@@ -14,14 +14,14 @@
     {
       "binding": "DB",
       "database_name": "glint-db",
-      "database_id": "local",
+      "database_id": "7339fa35-53aa-44e2-a565-ab626822337e",
       "migrations_dir": "migrations"
     },
   ],
   "kv_namespaces": [
     {
       "binding": "KV",
-      "id": "idk"
+      "id": "c28cc235abbc4affba7c89c653e8c975"
     }
   ]
 }
