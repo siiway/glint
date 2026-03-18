@@ -23,5 +23,12 @@
       "binding": "KV",
       "id": "c28cc235abbc4affba7c89c653e8c975"
     }
-  ]
+  ],
+    "routes": [
+    {
+      "pattern": "glint.siiway.org",
+      "custom_domain": true
+    }
+  ],
+
 }
