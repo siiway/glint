@@ -23,6 +23,7 @@ import {
   ArrowReset24Regular,
 } from "@fluentui/react-icons";
 import { Footer } from "./Footer";
+import { useI18n } from "../i18n";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -137,62 +138,6 @@ const useStyles = makeStyles({
   },
 });
 
-// ─── Friendly names ──────────────────────────────────────────────────────────
-
-const PERM_LABELS: Record<string, { label: string; description: string }> = {
-  manage_settings: {
-    label: "Manage Settings",
-    description: "Edit site name, logo, branding",
-  },
-  manage_permissions: {
-    label: "Manage Permissions",
-    description: "Edit permission rules",
-  },
-  manage_sets: {
-    label: "Manage Sets",
-    description: "Create, rename, delete, reorder todo sets",
-  },
-  create_todos: { label: "Create Todos", description: "Add new todos" },
-  edit_own_todos: {
-    label: "Edit Own Todos",
-    description: "Edit todos they created",
-  },
-  edit_any_todo: {
-    label: "Edit Any Todo",
-    description: "Edit todos created by others",
-  },
-  delete_own_todos: {
-    label: "Delete Own Todos",
-    description: "Delete todos they created",
-  },
-  delete_any_todo: {
-    label: "Delete Any Todo",
-    description: "Delete todos created by others",
-  },
-  complete_any_todo: {
-    label: "Complete Any Todo",
-    description: "Toggle completion on others' todos",
-  },
-  add_subtodos: {
-    label: "Add Sub-todos",
-    description: "Create nested sub-todos",
-  },
-  reorder_todos: {
-    label: "Reorder Todos",
-    description: "Drag to reorder todos",
-  },
-  comment: { label: "Comment", description: "Add comments to todos" },
-  delete_own_comments: {
-    label: "Delete Own Comments",
-    description: "Delete comments they posted",
-  },
-  delete_any_comment: {
-    label: "Delete Any Comment",
-    description: "Delete comments by others",
-  },
-  view_todos: { label: "View Todos", description: "View todos in a set" },
-};
-
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function SettingsPage({
@@ -203,6 +148,7 @@ export function SettingsPage({
   onBack: () => void;
 }) {
   const styles = useStyles();
+  const { t } = useI18n();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -362,7 +308,7 @@ export function SettingsPage({
             flex: 1,
           }}
         >
-          <Spinner size="large" label="Loading settings..." />
+          <Spinner size="large" label={t.settingsLoadingSettings} />
         </div>
       </div>
     );
@@ -376,7 +322,7 @@ export function SettingsPage({
           icon={<ArrowLeft24Regular />}
           onClick={onBack}
         />
-        <Title2>Settings</Title2>
+        <Title2>{t.settingsTitle}</Title2>
       </div>
 
       <div className={styles.content}>
@@ -385,17 +331,19 @@ export function SettingsPage({
           onTabSelect={(_, d) => setActiveTab(d.value as string)}
           style={{ marginBottom: 24 }}
         >
-          <Tab value="branding">Branding</Tab>
-          <Tab value="permissions">Permissions</Tab>
-          {canManage && <Tab value="appconfig">App Config</Tab>}
+          <Tab value="branding">{t.settingsTabBranding}</Tab>
+          <Tab value="permissions">{t.settingsTabPermissions}</Tab>
+          {canManage && <Tab value="appconfig">{t.settingsTabAppConfig}</Tab>}
         </TabList>
 
         {activeTab === "branding" && editSettings && (
           <div className={styles.section}>
-            <Title3 className={styles.sectionTitle}>Site Branding</Title3>
+            <Title3 className={styles.sectionTitle}>
+              {t.brandingSiteTitle}
+            </Title3>
 
             <div className={styles.field}>
-              <Body2 className={styles.fieldLabel}>Site Name</Body2>
+              <Body2 className={styles.fieldLabel}>{t.brandingSiteName}</Body2>
               <Input
                 value={editSettings.site_name}
                 onChange={(_, d) =>
@@ -407,7 +355,7 @@ export function SettingsPage({
             </div>
 
             <div className={styles.field}>
-              <Body2 className={styles.fieldLabel}>Logo URL</Body2>
+              <Body2 className={styles.fieldLabel}>{t.brandingLogoUrl}</Body2>
               <Input
                 value={editSettings.site_logo_url}
                 onChange={(_, d) =>
@@ -431,7 +379,9 @@ export function SettingsPage({
             </div>
 
             <div className={styles.field}>
-              <Body2 className={styles.fieldLabel}>Accent Color</Body2>
+              <Body2 className={styles.fieldLabel}>
+                {t.brandingAccentColor}
+              </Body2>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <Input
                   value={editSettings.accent_color}
@@ -458,10 +408,14 @@ export function SettingsPage({
 
             <Divider style={{ margin: "16px 0" }} />
 
-            <Title3 className={styles.sectionTitle}>Defaults</Title3>
+            <Title3 className={styles.sectionTitle}>
+              {t.brandingDefaults}
+            </Title3>
 
             <div className={styles.field}>
-              <Body2 className={styles.fieldLabel}>Default Set Name</Body2>
+              <Body2 className={styles.fieldLabel}>
+                {t.brandingDefaultSetName}
+              </Body2>
               <Input
                 value={editSettings.default_set_name}
                 onChange={(_, d) =>
@@ -475,7 +429,9 @@ export function SettingsPage({
             </div>
 
             <div className={styles.field}>
-              <Body2 className={styles.fieldLabel}>Welcome Message</Body2>
+              <Body2 className={styles.fieldLabel}>
+                {t.brandingWelcomeMessage}
+              </Body2>
               <Input
                 value={editSettings.welcome_message}
                 onChange={(_, d) =>
@@ -496,7 +452,7 @@ export function SettingsPage({
                   onClick={saveSettings}
                   disabled={saving}
                 >
-                  {saving ? "Saving..." : "Save Settings"}
+                  {saving ? t.saving : t.brandingSaveSettings}
                 </Button>
               </div>
             )}
@@ -505,7 +461,9 @@ export function SettingsPage({
 
         {activeTab === "permissions" && permsData && (
           <div className={styles.section}>
-            <Title3 className={styles.sectionTitle}>Permission Rules</Title3>
+            <Title3 className={styles.sectionTitle}>
+              {t.permissionsTitle}
+            </Title3>
 
             {!canManagePerms && (
               <Body1
@@ -514,58 +472,57 @@ export function SettingsPage({
                   marginBottom: 16,
                 }}
               >
-                You can view permissions but cannot edit them.
+                {t.permissionsViewOnly}
               </Body1>
             )}
 
             <div className={styles.scopeSelector}>
-              <Body2 className={styles.fieldLabel}>Scope:</Body2>
+              <Body2 className={styles.fieldLabel}>{t.permissionsScope}</Body2>
               <Select
                 value={permScope}
                 onChange={(_, d) => setPermScope(d.value)}
                 style={{ minWidth: 200 }}
               >
-                <option value="global">Global (team-wide)</option>
+                <option value="global">{t.permissionsScopeGlobal}</option>
                 {sets.map((s) => (
                   <option key={s.id} value={s.id}>
-                    Set: {s.name}
+                    {t.permissionsScopeSet.replace("{name}", s.name)}
                   </option>
                 ))}
               </Select>
               {permScope !== "global" && (
                 <Body1 style={{ color: tokens.colorNeutralForeground4 }}>
-                  Per-set overrides take priority over global rules.
+                  {t.permissionsSetOverrideHint}
                 </Body1>
               )}
             </div>
 
             <Subtitle2 style={{ marginBottom: 8 }}>
-              Owner always has full access (not shown).
+              {t.permissionsOwnerNote}
             </Subtitle2>
 
             <table className={styles.permTable}>
               <thead>
                 <tr>
-                  <th className={styles.permTh}>Permission</th>
-                  <th className={styles.permTh}>Admin</th>
-                  <th className={styles.permTh}>Member</th>
+                  <th className={styles.permTh}>
+                    {t.permissionsHeaderPermission}
+                  </th>
+                  <th className={styles.permTh}>{t.permissionsHeaderAdmin}</th>
+                  <th className={styles.permTh}>{t.permissionsHeaderMember}</th>
                 </tr>
               </thead>
               <tbody>
                 {(permsData.keys as string[]).map((key) => {
-                  const info = PERM_LABELS[key] ?? {
-                    label: key,
-                    description: "",
-                  };
+                  const permLabel =
+                    (t as Record<string, string>)[`permLabel_${key}`] ?? key;
+                  const permDesc =
+                    (t as Record<string, string>)[`permDesc_${key}`] ?? "";
                   return (
                     <tr key={key}>
                       <td className={styles.permTd}>
-                        <Tooltip
-                          content={info.description}
-                          relationship="description"
-                        >
+                        <Tooltip content={permDesc} relationship="description">
                           <span>
-                            <Body2>{info.label}</Body2>
+                            <Body2>{permLabel}</Body2>
                             <br />
                             <span className={styles.permKey}>{key}</span>
                           </span>
@@ -607,7 +564,7 @@ export function SettingsPage({
                   onClick={savePermissions}
                   disabled={saving}
                 >
-                  {saving ? "Saving..." : "Save Permissions"}
+                  {saving ? t.saving : t.permissionsSave}
                 </Button>
                 <Button
                   appearance="secondary"
@@ -615,7 +572,7 @@ export function SettingsPage({
                   onClick={resetPermissions}
                   disabled={saving}
                 >
-                  Reset to Defaults
+                  {t.permissionsReset}
                 </Button>
               </div>
             )}
@@ -624,10 +581,14 @@ export function SettingsPage({
 
         {activeTab === "appconfig" && canManage && editAppConfig && (
           <div className={styles.section}>
-            <Title3 className={styles.sectionTitle}>Prism OAuth</Title3>
+            <Title3 className={styles.sectionTitle}>
+              {t.appConfigPrismOAuth}
+            </Title3>
 
             <div className={styles.field}>
-              <Body2 className={styles.fieldLabel}>Prism Base URL</Body2>
+              <Body2 className={styles.fieldLabel}>
+                {t.appConfigPrismBaseUrl}
+              </Body2>
               <Input
                 value={editAppConfig.prism_base_url}
                 onChange={(_, d) =>
@@ -640,7 +601,7 @@ export function SettingsPage({
             </div>
 
             <div className={styles.field}>
-              <Body2 className={styles.fieldLabel}>Client ID</Body2>
+              <Body2 className={styles.fieldLabel}>{t.appConfigClientId}</Body2>
               <Input
                 value={editAppConfig.prism_client_id}
                 onChange={(_, d) =>
@@ -654,7 +615,7 @@ export function SettingsPage({
 
             <div className={styles.field}>
               <Switch
-                label="Use PKCE (public client)"
+                label={t.appConfigUsePkce}
                 checked={editAppConfig.use_pkce}
                 onChange={(_, d) =>
                   setEditAppConfig((c) => c && { ...c, use_pkce: d.checked })
@@ -663,14 +624,15 @@ export function SettingsPage({
               <Body1
                 style={{ fontSize: 12, color: tokens.colorNeutralForeground4 }}
               >
-                Enable for public clients (no secret). Disable for confidential
-                clients.
+                {t.appConfigUsePkceHint}
               </Body1>
             </div>
 
             {!editAppConfig.use_pkce && (
               <div className={styles.field}>
-                <Body2 className={styles.fieldLabel}>Client Secret</Body2>
+                <Body2 className={styles.fieldLabel}>
+                  {t.appConfigClientSecret}
+                </Body2>
                 <Input
                   value={editAppConfig.prism_client_secret}
                   onChange={(_, d) =>
@@ -685,7 +647,9 @@ export function SettingsPage({
             )}
 
             <div className={styles.field}>
-              <Body2 className={styles.fieldLabel}>Redirect URI</Body2>
+              <Body2 className={styles.fieldLabel}>
+                {t.appConfigRedirectUri}
+              </Body2>
               <Input
                 value={editAppConfig.prism_redirect_uri}
                 onChange={(_, d) =>
@@ -699,10 +663,14 @@ export function SettingsPage({
 
             <Divider style={{ margin: "16px 0" }} />
 
-            <Title3 className={styles.sectionTitle}>Access Control</Title3>
+            <Title3 className={styles.sectionTitle}>
+              {t.appConfigAccessControl}
+            </Title3>
 
             <div className={styles.field}>
-              <Body2 className={styles.fieldLabel}>Allowed Team ID</Body2>
+              <Body2 className={styles.fieldLabel}>
+                {t.appConfigAllowedTeamId}
+              </Body2>
               <Input
                 value={editAppConfig.allowed_team_id}
                 onChange={(_, d) =>
@@ -710,12 +678,12 @@ export function SettingsPage({
                     (c) => c && { ...c, allowed_team_id: d.value },
                   )
                 }
-                placeholder="Leave empty to allow all teams"
+                placeholder={t.initAllowedTeamIdPlaceholder}
               />
               <Body1
                 style={{ fontSize: 12, color: tokens.colorNeutralForeground4 }}
               >
-                If set, only members of this Prism team can sign in.
+                {t.appConfigAllowedTeamIdHint}
               </Body1>
             </div>
 
@@ -726,7 +694,7 @@ export function SettingsPage({
                 onClick={saveAppConfig}
                 disabled={saving}
               >
-                {saving ? "Saving..." : "Save App Config"}
+                {saving ? t.saving : t.appConfigSave}
               </Button>
             </div>
           </div>

@@ -10,6 +10,7 @@ import {
   DismissCircle24Regular,
 } from "@fluentui/react-icons";
 import type { Todo } from "../types";
+import { useI18n } from "../i18n";
 
 const useStyles = makeStyles({
   menu: {
@@ -88,46 +89,49 @@ export function TodoContextMenu({
   rootCount,
 }: Props) {
   const styles = useStyles();
+  const { t } = useI18n();
 
   return (
     <div className={styles.menu} style={{ left: x, top: y }} onClick={onClose}>
       {hasPerm("add_subtodos") && (
         <button className={styles.item} onClick={onAddSubTodo}>
-          <AddCircle24Regular /> Add sub-todo
+          <AddCircle24Regular /> {t.actionAddSubTodo}
         </button>
       )}
       {hasPerm("comment") && (
         <button className={styles.item} onClick={onOpenComments}>
-          <Comment24Regular /> Comments{" "}
+          <Comment24Regular /> {t.actionComments}{" "}
           {todo.commentCount > 0 ? `(${todo.commentCount})` : ""}
         </button>
       )}
       {isRoot && (
         <button className={styles.item} onClick={onToggleSelect}>
           {isSelected ? <DismissCircle24Regular /> : <Circle24Regular />}
-          {isSelected ? " Deselect" : " Select"}
+          {isSelected ? ` ${t.actionDeselect}` : ` ${t.actionSelect}`}
         </button>
       )}
       {isRoot && rootCount > 0 && (
         <button className={styles.item} onClick={onSelectAll}>
-          <SelectAllOn24Regular /> Select all
+          <SelectAllOn24Regular /> {t.actionSelectAll}
         </button>
       )}
       <div className={styles.divider} />
       {canEdit && (
         <button className={styles.item} onClick={onEdit}>
-          <Edit24Regular /> Edit
+          <Edit24Regular /> {t.edit}
         </button>
       )}
       {canToggle && (
         <button className={styles.item} onClick={onToggleComplete}>
           {todo.completed ? <Circle24Regular /> : <CheckmarkCircle24Regular />}
-          {todo.completed ? " Mark incomplete" : " Mark complete"}
+          {todo.completed
+            ? ` ${t.actionMarkIncomplete}`
+            : ` ${t.actionMarkComplete}`}
         </button>
       )}
       {canDelete && (
         <button className={styles.item} onClick={onDelete}>
-          <Delete24Regular /> Delete
+          <Delete24Regular /> {t.delete}
         </button>
       )}
     </div>

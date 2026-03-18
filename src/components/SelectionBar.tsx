@@ -6,6 +6,7 @@ import {
   tokens,
   mergeClasses,
 } from "@fluentui/react-components";
+import { useI18n } from "../i18n";
 import {
   Delete24Regular,
   Dismiss24Regular,
@@ -55,12 +56,13 @@ export function SelectionBar({
   onClear,
 }: Props) {
   const styles = useStyles();
+  const { t } = useI18n();
 
   return (
     <div className={mergeClasses(styles.bar, isMobile && styles.barMobile)}>
-      <Body2>{count} selected</Body2>
+      <Body2>{t.selectionCount.replace("{count}", String(count))}</Body2>
       <div className={styles.actions}>
-        <Tooltip content="Select all" relationship="label">
+        <Tooltip content={t.actionSelectAll} relationship="label">
           <Button
             appearance="subtle"
             size="small"
@@ -68,7 +70,7 @@ export function SelectionBar({
             onClick={onSelectAll}
           />
         </Tooltip>
-        <Tooltip content="Mark complete" relationship="label">
+        <Tooltip content={t.actionMarkComplete} relationship="label">
           <Button
             appearance="subtle"
             size="small"
@@ -76,7 +78,7 @@ export function SelectionBar({
             onClick={onMarkCompleted}
           />
         </Tooltip>
-        <Tooltip content="Mark incomplete" relationship="label">
+        <Tooltip content={t.actionMarkIncomplete} relationship="label">
           <Button
             appearance="subtle"
             size="small"
@@ -84,7 +86,7 @@ export function SelectionBar({
             onClick={onMarkIncomplete}
           />
         </Tooltip>
-        <Tooltip content="Delete selected" relationship="label">
+        <Tooltip content={t.actionDeleteSelected} relationship="label">
           <Button
             appearance="subtle"
             size="small"
@@ -92,7 +94,7 @@ export function SelectionBar({
             onClick={onDelete}
           />
         </Tooltip>
-        <Tooltip content="Clear selection" relationship="label">
+        <Tooltip content={t.actionClearSelection} relationship="label">
           <Button
             appearance="subtle"
             size="small"

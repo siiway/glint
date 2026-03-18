@@ -43,6 +43,8 @@ import type { TodoSet } from "../types";
 import { ROLE_COLORS } from "../types";
 import type { TeamInfo } from "../auth";
 import { Footer } from "./Footer";
+import { useI18n } from "../i18n";
+import { LocalLanguage24Regular } from "@fluentui/react-icons";
 
 const useStyles = makeStyles({
   sidebar: {
@@ -178,6 +180,7 @@ export function Sidebar({
   onLogout,
 }: Props) {
   const styles = useStyles();
+  const { t, locale, setLocale } = useI18n();
   const canDrag = !isMobile;
 
   const [newSetName, setNewSetName] = useState("");
@@ -278,13 +281,13 @@ export function Sidebar({
                       setRenameValue(s.name);
                     }}
                   >
-                    Rename
+                    {t.rename}
                   </MenuItem>
                   <MenuItem
                     icon={<Delete24Regular />}
                     onClick={() => onDeleteSet(s.id)}
                   >
-                    Delete
+                    {t.delete}
                   </MenuItem>
                 </MenuList>
               </MenuPopover>
@@ -296,7 +299,7 @@ export function Sidebar({
           <div className={styles.addSetRow}>
             <Input
               size="small"
-              placeholder="Set name..."
+              placeholder={t.sidebarSetPlaceholder}
               value={newSetName}
               onChange={(_, d) => setNewSetName(d.value)}
               onKeyDown={(e) => {
@@ -321,7 +324,7 @@ export function Sidebar({
             onClick={() => setShowAddSet(true)}
             style={{ width: "100%", justifyContent: "flex-start" }}
           >
-            New set
+            {t.sidebarNewSet}
           </Button>
         )}
       </>
@@ -356,7 +359,18 @@ export function Sidebar({
               {selectedTeam.role}
             </Badge>
           )}
-          <Tooltip content="Sign out" relationship="label">
+          <Tooltip
+            content={locale === "en" ? "中文" : "English"}
+            relationship="label"
+          >
+            <Button
+              appearance="transparent"
+              size="small"
+              icon={<LocalLanguage24Regular />}
+              onClick={() => setLocale(locale === "en" ? "zh" : "en")}
+            />
+          </Tooltip>
+          <Tooltip content={t.signOut} relationship="label">
             <Button
               appearance="transparent"
               size="small"
@@ -397,7 +411,7 @@ export function Sidebar({
     >
       <DialogSurface>
         <DialogBody>
-          <DialogTitle>Rename Set</DialogTitle>
+          <DialogTitle>{t.sidebarRenameSet}</DialogTitle>
           <DialogContent>
             <Input
               value={renameValue}
@@ -408,14 +422,14 @@ export function Sidebar({
                   setRenameSetId(null);
                 }
               }}
-              placeholder="Set name..."
+              placeholder={t.sidebarSetPlaceholder}
               autoFocus
               style={{ width: "100%" }}
             />
           </DialogContent>
           <DialogActions>
             <DialogTrigger disableButtonEnhancement>
-              <Button appearance="secondary">Cancel</Button>
+              <Button appearance="secondary">{t.cancel}</Button>
             </DialogTrigger>
             <Button
               appearance="primary"
@@ -427,7 +441,7 @@ export function Sidebar({
                 }
               }}
             >
-              Rename
+              {t.rename}
             </Button>
           </DialogActions>
         </DialogBody>
@@ -521,7 +535,7 @@ export function Sidebar({
             <Title3>{siteName}</Title3>
           )}
           {canManageSettings && (
-            <Tooltip content="Settings" relationship="label">
+            <Tooltip content={t.sidebarSettings} relationship="label">
               <Button
                 appearance="transparent"
                 size="small"

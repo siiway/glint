@@ -11,6 +11,7 @@ import {
 } from "@fluentui/react-components";
 import { CheckmarkCircle24Regular } from "@fluentui/react-icons";
 import { useAuth } from "../auth";
+import { useI18n } from "../i18n";
 
 const useStyles = makeStyles({
   container: {
@@ -49,6 +50,7 @@ const useStyles = makeStyles({
 export function LoginPage() {
   const styles = useStyles();
   const { login, handleCallback } = useAuth();
+  const { t } = useI18n();
   const [processing, setProcessing] = useState(false);
   const [siteName, setSiteName] = useState("Glint");
   const [siteLogo, setSiteLogo] = useState("");
@@ -80,7 +82,7 @@ export function LoginPage() {
   if (processing) {
     return (
       <div className={styles.container}>
-        <Spinner size="large" label="Signing in..." />
+        <Spinner size="large" label={t.signingIn} />
       </div>
     );
   }
@@ -96,11 +98,9 @@ export function LoginPage() {
           />
         )}
         <Title1 className={styles.title}>{siteName}</Title1>
-        <Body1 className={styles.subtitle}>
-          A simple todo list to keep you on track.
-        </Body1>
+        <Body1 className={styles.subtitle}>{t.tagline}</Body1>
         <Button appearance="primary" size="large" onClick={login}>
-          Sign in with Prism
+          {t.signInWithPrism}
         </Button>
       </Card>
     </div>

@@ -1,4 +1,5 @@
 import { Caption1, Link, makeStyles, tokens } from "@fluentui/react-components";
+import { useI18n } from "../i18n";
 
 const useStyles = makeStyles({
   footer: {
@@ -14,17 +15,18 @@ const useStyles = makeStyles({
 
 export function Footer() {
   const styles = useStyles();
+  const { t } = useI18n();
 
   return (
     <div className={styles.footer}>
       <Caption1>
         <Link href="https://github.com/siiway/glint" target="_blank">
-          GitHub
+          {t.footerGitHub}
         </Link>
         <span className={styles.dot}>&middot;</span>
-        Licensed under the{" "}
+        {t.footerLicense}{" "}
         <Link href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">
-          GNU GPL v3.0
+          {t.footerLicenseName}
         </Link>
       </Caption1>
     </div>

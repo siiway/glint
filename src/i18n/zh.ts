@@ -1,0 +1,175 @@
+import type en from "./en";
+
+const zh: typeof en = {
+  // Common
+  loading: "加载中...",
+  saving: "保存中...",
+  save: "保存",
+  cancel: "取消",
+  close: "关闭",
+  back: "返回",
+  delete: "删除",
+  edit: "编辑",
+  rename: "重命名",
+  add: "添加",
+  confirm: "确认",
+
+  // Auth / Login
+  signingIn: "登录中...",
+  signInWithPrism: "使用 Prism 登录",
+  signOut: "退出登录",
+  tagline: "简单好用的团队待办事项管理工具。",
+
+  // Footer
+  footerGitHub: "GitHub",
+  footerLicense: "基于",
+  footerLicenseName: "GNU GPL v3.0",
+
+  // Init page
+  initWelcome: "欢迎使用 Glint",
+  initConfigSubtitle: "配置您的 Prism 身份提供商和应用设置。",
+  initConfirmSubtitle: "确认配置并初始化数据库。",
+  initPrismOAuth: "Prism OAuth 配置",
+  initPrismBaseUrl: "Prism 基础 URL",
+  initPrismBaseUrlHint: "您的 Prism 身份服务器基础 URL。",
+  initClientId: "客户端 ID",
+  initClientIdHint: "来自 Prism 应用的 OAuth 客户端 ID。",
+  initUsePkce: "使用 PKCE（公开客户端）",
+  initUsePkceHint: "为公开客户端（无密钥）启用。为机密客户端（有密钥）禁用。",
+  initClientSecret: "客户端密钥",
+  initClientSecretHint: "机密客户端（非 PKCE）必填。",
+  initRedirectUri: "重定向 URI",
+  initRedirectUriHint:
+    "必须与 Prism 中配置的重定向 URI 一致。默认为 {origin}/callback。",
+  initAccessControl: "访问控制",
+  initAllowedTeamId: "允许的团队 ID（可选）",
+  initAllowedTeamIdPlaceholder: "留空则允许所有团队",
+  initAllowedTeamIdHint: "如果设置，只有该 Prism 团队的成员才能登录。",
+  initContinue: "继续",
+  initReview: "确认配置",
+  initAuthFlow: "认证方式",
+  initPkceFlow: "PKCE（公开客户端）",
+  initConfidentialFlow: "机密客户端（有密钥）",
+  initAutoDetect: "（自动检测）",
+  initAllTeams: "（所有团队）",
+  initConfirmText:
+    "这将创建数据库表并保存配置。您可以稍后在管理面板中修改这些设置。",
+  initSettingUp: "正在设置...",
+  initInitialize: "初始化",
+
+  // Todo page
+  todoPlaceholder: "有什么需要做的？",
+  todoLoadingTodos: "加载待办事项...",
+  todoEmpty: "还没有待办事项。在上方添加一个吧！",
+  todoNoTeams: "未找到团队",
+  todoNoTeamsDesc: "您需要成为 Prism 上至少一个团队的成员才能使用 Glint。",
+  todoOpenSets: "打开分组",
+  todoCreateSet: "创建一个待办分组以开始",
+  todoSelectSet: "选择一个待办分组",
+  todoSubTodoPlaceholder: "子任务标题...",
+  todoItemCount: "{count} 个任务",
+
+  // Context menu / actions
+  actionAddSubTodo: "添加子任务",
+  actionComments: "评论",
+  actionSelect: "选择",
+  actionDeselect: "取消选择",
+  actionSelectAll: "全选",
+  actionMarkComplete: "标记完成",
+  actionMarkIncomplete: "标记未完成",
+  actionDeleteSelected: "删除已选",
+  actionClearSelection: "清除选择",
+
+  // Selection bar
+  selectionCount: "已选择 {count} 项",
+
+  // Comments dialog
+  commentsTitle: "评论",
+  commentsLoading: "加载评论...",
+  commentsEmpty: "还没有评论。",
+  commentsPlaceholder: "写一条评论...",
+
+  // Sidebar
+  sidebarNewSet: "新建分组",
+  sidebarSetPlaceholder: "分组名称...",
+  sidebarRenameSet: "重命名分组",
+  sidebarSettings: "设置",
+
+  // Settings page
+  settingsTitle: "设置",
+  settingsTabBranding: "品牌",
+  settingsTabPermissions: "权限",
+  settingsTabAppConfig: "应用配置",
+  settingsLoadingSettings: "加载设置...",
+
+  // Settings - Branding
+  brandingSiteTitle: "站点品牌",
+  brandingSiteName: "站点名称",
+  brandingLogoUrl: "Logo URL",
+  brandingAccentColor: "强调色",
+  brandingDefaults: "默认设置",
+  brandingDefaultSetName: "默认分组名称",
+  brandingWelcomeMessage: "欢迎消息",
+  brandingSaveSettings: "保存设置",
+
+  // Settings - Permissions
+  permissionsTitle: "权限规则",
+  permissionsViewOnly: "您可以查看权限但无法编辑。",
+  permissionsScope: "范围：",
+  permissionsScopeGlobal: "全局（团队范围）",
+  permissionsScopeSet: "分组：{name}",
+  permissionsSetOverrideHint: "分组级覆盖优先于全局规则。",
+  permissionsOwnerNote: "所有者始终拥有完全访问权（未显示）。",
+  permissionsHeaderPermission: "权限",
+  permissionsHeaderAdmin: "管理员",
+  permissionsHeaderMember: "成员",
+  permissionsSave: "保存权限",
+  permissionsReset: "重置为默认",
+
+  // Settings - App Config
+  appConfigPrismOAuth: "Prism OAuth",
+  appConfigPrismBaseUrl: "Prism 基础 URL",
+  appConfigClientId: "客户端 ID",
+  appConfigUsePkce: "使用 PKCE（公开客户端）",
+  appConfigUsePkceHint: "为公开客户端（无密钥）启用。为机密客户端禁用。",
+  appConfigClientSecret: "客户端密钥",
+  appConfigRedirectUri: "重定向 URI",
+  appConfigAccessControl: "访问控制",
+  appConfigAllowedTeamId: "允许的团队 ID",
+  appConfigAllowedTeamIdHint: "如果设置，只有该 Prism 团队的成员才能登录。",
+  appConfigSave: "保存应用配置",
+
+  // Permission labels
+  permLabel_manage_settings: "管理设置",
+  permDesc_manage_settings: "编辑站点名称、Logo、品牌",
+  permLabel_manage_permissions: "管理权限",
+  permDesc_manage_permissions: "编辑权限规则",
+  permLabel_manage_sets: "管理分组",
+  permDesc_manage_sets: "创建、重命名、删除、排序待办分组",
+  permLabel_create_todos: "创建任务",
+  permDesc_create_todos: "添加新任务",
+  permLabel_edit_own_todos: "编辑自己的任务",
+  permDesc_edit_own_todos: "编辑自己创建的任务",
+  permLabel_edit_any_todo: "编辑任意任务",
+  permDesc_edit_any_todo: "编辑他人创建的任务",
+  permLabel_delete_own_todos: "删除自己的任务",
+  permDesc_delete_own_todos: "删除自己创建的任务",
+  permLabel_delete_any_todo: "删除任意任务",
+  permDesc_delete_any_todo: "删除他人创建的任务",
+  permLabel_complete_any_todo: "完成任意任务",
+  permDesc_complete_any_todo: "切换他人任务的完成状态",
+  permLabel_add_subtodos: "添加子任务",
+  permDesc_add_subtodos: "创建嵌套子任务",
+  permLabel_reorder_todos: "重新排序",
+  permDesc_reorder_todos: "拖拽重新排序任务",
+  permLabel_comment: "评论",
+  permDesc_comment: "为任务添加评论",
+  permLabel_delete_own_comments: "删除自己的评论",
+  permDesc_delete_own_comments: "删除自己发布的评论",
+  permLabel_delete_any_comment: "删除任意评论",
+  permDesc_delete_any_comment: "删除他人的评论",
+  permLabel_view_todos: "查看任务",
+  permDesc_view_todos: "查看分组中的任务",
+};
+
+export default zh;

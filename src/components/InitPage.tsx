@@ -16,6 +16,7 @@ import {
   MessageBarBody,
 } from "@fluentui/react-components";
 import { Database24Regular } from "@fluentui/react-icons";
+import { useI18n } from "../i18n";
 
 const useStyles = makeStyles({
   container: {
@@ -79,6 +80,7 @@ const useStyles = makeStyles({
 
 export function InitPage({ onComplete }: { onComplete: () => void }) {
   const styles = useStyles();
+  const { t } = useI18n();
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<"config" | "confirm">("config");
@@ -133,12 +135,10 @@ export function InitPage({ onComplete }: { onComplete: () => void }) {
       <Card className={styles.card}>
         <div className={styles.header}>
           <Database24Regular className={styles.icon} />
-          <Title1 className={styles.title}>Welcome to Glint</Title1>
+          <Title1 className={styles.title}>{t.initWelcome}</Title1>
           <br />
           <Body1 className={styles.subtitle}>
-            {step === "config"
-              ? "Configure your Prism identity provider and app settings."
-              : "Review your configuration and initialize the database."}
+            {step === "config" ? t.initConfigSubtitle : t.initConfirmSubtitle}
           </Body1>
         </div>
 
@@ -152,48 +152,47 @@ export function InitPage({ onComplete }: { onComplete: () => void }) {
           <>
             <div className={styles.section}>
               <Title3 className={styles.sectionTitle}>
-                Prism OAuth Configuration
+                {t.initPrismOAuth}
               </Title3>
 
               <div className={styles.field}>
-                <Body2 className={styles.fieldLabel}>Prism Base URL *</Body2>
+                <Body2 className={styles.fieldLabel}>
+                  {t.initPrismBaseUrl} *
+                </Body2>
                 <Input
                   value={prismBaseUrl}
                   onChange={(_, d) => setPrismBaseUrl(d.value)}
                   placeholder="https://prism.siiway.org"
                 />
                 <span className={styles.fieldHint}>
-                  The base URL of your Prism identity server.
+                  {t.initPrismBaseUrlHint}
                 </span>
               </div>
 
               <div className={styles.field}>
-                <Body2 className={styles.fieldLabel}>Client ID *</Body2>
+                <Body2 className={styles.fieldLabel}>{t.initClientId} *</Body2>
                 <Input
                   value={prismClientId}
                   onChange={(_, d) => setPrismClientId(d.value)}
                   placeholder="prism_xxxxx"
                 />
-                <span className={styles.fieldHint}>
-                  The OAuth client ID from your Prism app.
-                </span>
+                <span className={styles.fieldHint}>{t.initClientIdHint}</span>
               </div>
 
               <div className={styles.field}>
                 <Switch
-                  label="Use PKCE (public client)"
+                  label={t.initUsePkce}
                   checked={usePkce}
                   onChange={(_, d) => setUsePkce(d.checked)}
                 />
-                <span className={styles.fieldHint}>
-                  Enable for public clients (no secret). Disable for
-                  confidential clients with a client secret.
-                </span>
+                <span className={styles.fieldHint}>{t.initUsePkceHint}</span>
               </div>
 
               {!usePkce && (
                 <div className={styles.field}>
-                  <Body2 className={styles.fieldLabel}>Client Secret *</Body2>
+                  <Body2 className={styles.fieldLabel}>
+                    {t.initClientSecret} *
+                  </Body2>
                   <Input
                     value={prismClientSecret}
                     onChange={(_, d) => setPrismClientSecret(d.value)}
@@ -201,21 +200,23 @@ export function InitPage({ onComplete }: { onComplete: () => void }) {
                     type="password"
                   />
                   <span className={styles.fieldHint}>
-                    Required for confidential clients (non-PKCE).
+                    {t.initClientSecretHint}
                   </span>
                 </div>
               )}
 
               <div className={styles.field}>
-                <Body2 className={styles.fieldLabel}>Redirect URI</Body2>
+                <Body2 className={styles.fieldLabel}>{t.initRedirectUri}</Body2>
                 <Input
                   value={prismRedirectUri}
                   onChange={(_, d) => setPrismRedirectUri(d.value)}
                   placeholder={`${window.location.origin}/callback`}
                 />
                 <span className={styles.fieldHint}>
-                  Must match the redirect URI configured in Prism. Defaults to{" "}
-                  {window.location.origin}/callback.
+                  {t.initRedirectUriHint.replace(
+                    "{origin}",
+                    window.location.origin,
+                  )}
                 </span>
               </div>
             </div>
@@ -223,19 +224,21 @@ export function InitPage({ onComplete }: { onComplete: () => void }) {
             <Divider />
 
             <div className={styles.section} style={{ marginTop: 20 }}>
-              <Title3 className={styles.sectionTitle}>Access Control</Title3>
+              <Title3 className={styles.sectionTitle}>
+                {t.initAccessControl}
+              </Title3>
 
               <div className={styles.field}>
                 <Body2 className={styles.fieldLabel}>
-                  Allowed Team ID (optional)
+                  {t.initAllowedTeamId}
                 </Body2>
                 <Input
                   value={allowedTeamId}
                   onChange={(_, d) => setAllowedTeamId(d.value)}
-                  placeholder="Leave empty to allow all teams"
+                  placeholder={t.initAllowedTeamIdPlaceholder}
                 />
                 <span className={styles.fieldHint}>
-                  If set, only members of this Prism team can sign in.
+                  {t.initAllowedTeamIdHint}
                 </span>
               </div>
             </div>
@@ -247,7 +250,7 @@ export function InitPage({ onComplete }: { onComplete: () => void }) {
                 disabled={!isValid}
                 onClick={() => setStep("confirm")}
               >
-                Continue
+                {t.initContinue}
               </Button>
             </div>
           </>
@@ -256,37 +259,37 @@ export function InitPage({ onComplete }: { onComplete: () => void }) {
         {step === "confirm" && (
           <>
             <div className={styles.section}>
-              <Title3 className={styles.sectionTitle}>
-                Review Configuration
-              </Title3>
+              <Title3 className={styles.sectionTitle}>{t.initReview}</Title3>
 
               <div className={styles.field}>
-                <Body2 className={styles.fieldLabel}>Prism Base URL</Body2>
+                <Body2 className={styles.fieldLabel}>
+                  {t.initPrismBaseUrl}
+                </Body2>
                 <Body1>{prismBaseUrl}</Body1>
               </div>
 
               <div className={styles.field}>
-                <Body2 className={styles.fieldLabel}>Client ID</Body2>
+                <Body2 className={styles.fieldLabel}>{t.initClientId}</Body2>
                 <Body1>{prismClientId}</Body1>
               </div>
 
               <div className={styles.field}>
-                <Body2 className={styles.fieldLabel}>Auth Flow</Body2>
+                <Body2 className={styles.fieldLabel}>{t.initAuthFlow}</Body2>
                 <Body1>
-                  {usePkce
-                    ? "PKCE (public client)"
-                    : "Confidential client (with secret)"}
+                  {usePkce ? t.initPkceFlow : t.initConfidentialFlow}
                 </Body1>
               </div>
 
               <div className={styles.field}>
-                <Body2 className={styles.fieldLabel}>Redirect URI</Body2>
-                <Body1>{prismRedirectUri || "(auto-detect)"}</Body1>
+                <Body2 className={styles.fieldLabel}>{t.initRedirectUri}</Body2>
+                <Body1>{prismRedirectUri || t.initAutoDetect}</Body1>
               </div>
 
               <div className={styles.field}>
-                <Body2 className={styles.fieldLabel}>Allowed Team ID</Body2>
-                <Body1>{allowedTeamId || "(all teams)"}</Body1>
+                <Body2 className={styles.fieldLabel}>
+                  {t.initAllowedTeamId}
+                </Body2>
+                <Body1>{allowedTeamId || t.initAllTeams}</Body1>
               </div>
             </div>
 
@@ -298,8 +301,7 @@ export function InitPage({ onComplete }: { onComplete: () => void }) {
                 color: tokens.colorNeutralForeground3,
               }}
             >
-              This will create the database tables and save your configuration.
-              You can change these settings later in the admin panel.
+              {t.initConfirmText}
             </Body1>
 
             <div className={styles.actions} style={{ gap: 8 }}>
@@ -309,7 +311,7 @@ export function InitPage({ onComplete }: { onComplete: () => void }) {
                 onClick={() => setStep("config")}
                 disabled={running}
               >
-                Back
+                {t.back}
               </Button>
               <Button
                 appearance="primary"
@@ -318,7 +320,7 @@ export function InitPage({ onComplete }: { onComplete: () => void }) {
                 disabled={running}
                 icon={running ? <Spinner size="tiny" /> : undefined}
               >
-                {running ? "Setting up..." : "Initialize"}
+                {running ? t.initSettingUp : t.initInitialize}
               </Button>
             </div>
           </>

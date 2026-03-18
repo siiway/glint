@@ -6,6 +6,7 @@ import {
   Spinner,
 } from "@fluentui/react-components";
 import { AuthProvider, useAuth } from "./auth";
+import { I18nProvider, useI18n } from "./i18n";
 import { PageLayout } from "./components/PageLayout";
 import { InitPage } from "./components/InitPage";
 import { LoginPage } from "./components/LoginPage";
@@ -40,6 +41,7 @@ function useInitStatus() {
 function AppContent() {
   const { user, loading } = useAuth();
   const { configured, markConfigured } = useInitStatus();
+  const { t } = useI18n();
 
   if (loading || configured === null) {
     return (
@@ -52,7 +54,7 @@ function AppContent() {
             height: "100%",
           }}
         >
-          <Spinner size="large" label="Loading..." />
+          <Spinner size="large" label={t.loading} />
         </div>
       </PageLayout>
     );
@@ -89,9 +91,11 @@ export default function App() {
       theme={dark ? webDarkTheme : webLightTheme}
       style={{ height: "100%" }}
     >
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </I18nProvider>
     </FluentProvider>
   );
 }

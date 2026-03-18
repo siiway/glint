@@ -50,6 +50,7 @@ import { CommentsDialog } from "./CommentsDialog";
 import { SelectionBar } from "./SelectionBar";
 import { TodoContextMenu } from "./TodoContextMenu";
 import { SettingsPage } from "./SettingsPage";
+import { useI18n } from "../i18n";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -190,6 +191,7 @@ export function TodoPage() {
   const styles = useStyles();
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
+  const { t } = useI18n();
 
   const teams = user?.teams ?? [];
   const [selectedTeamId, setSelectedTeamId] = useState("");
@@ -594,7 +596,7 @@ export function TodoPage() {
             setSubTitle("");
           }}
         >
-          Add sub-todo
+          {t.actionAddSubTodo}
         </MenuItem>
       )}
       {hasPerm("comment") && (
@@ -602,7 +604,8 @@ export function TodoPage() {
           icon={<Comment24Regular />}
           onClick={() => setCommentTodoId(todo.id)}
         >
-          Comments {todo.commentCount > 0 ? `(${todo.commentCount})` : ""}
+          {t.actionComments}{" "}
+          {todo.commentCount > 0 ? `(${todo.commentCount})` : ""}
         </MenuItem>
       )}
       {todo.parentId === null && (
@@ -616,7 +619,7 @@ export function TodoPage() {
           }
           onClick={(e) => toggleSelect(todo.id, e)}
         >
-          {selected.has(todo.id) ? "Deselect" : "Select"}
+          {selected.has(todo.id) ? t.actionDeselect : t.actionSelect}
         </MenuItem>
       )}
       {canModify(todo) && (
@@ -627,7 +630,7 @@ export function TodoPage() {
             setEditTitle(todo.title);
           }}
         >
-          Edit
+          {t.edit}
         </MenuItem>
       )}
       {(todo.userId === user?.id || hasPerm("complete_any_todo")) && (
@@ -637,7 +640,7 @@ export function TodoPage() {
           }
           onClick={() => toggleTodo(todo)}
         >
-          {todo.completed ? "Mark incomplete" : "Mark complete"}
+          {todo.completed ? t.actionMarkIncomplete : t.actionMarkComplete}
         </MenuItem>
       )}
       {canDeleteTodo(todo) && (
@@ -645,7 +648,7 @@ export function TodoPage() {
           icon={<Delete24Regular />}
           onClick={() => deleteTodo(todo.id)}
         >
-          Delete
+          {t.delete}
         </MenuItem>
       )}
     </MenuList>
@@ -819,7 +822,7 @@ export function TodoPage() {
               <Input
                 className={styles.inputFlex}
                 size="small"
-                placeholder="Sub-todo title..."
+                placeholder={t.todoSubTodoPlaceholder}
                 value={subTitle}
                 onChange={(_, d) => setSubTitle(d.value)}
                 onKeyDown={(e) => {
@@ -835,7 +838,7 @@ export function TodoPage() {
                 onClick={() => addTodo(todo.id)}
                 disabled={!subTitle.trim()}
               >
-                {isMobile ? undefined : "Add"}
+                {isMobile ? undefined : t.add}
               </Button>
               <Button
                 appearance="subtle"
@@ -884,11 +887,8 @@ export function TodoPage() {
           }}
         >
           <div className={styles.empty}>
-            <Subtitle2>No teams found</Subtitle2>
-            <Body1>
-              You need to be a member of at least one team on Prism to use
-              Glint.
-            </Body1>
+            <Subtitle2>{t.todoNoTeams}</Subtitle2>
+            <Body1>{t.todoNoTeamsDesc}</Body1>
           </div>
         </div>
       </div>
@@ -970,7 +970,13 @@ export function TodoPage() {
                   </Title2>
                 </div>
                 <Caption1 style={{ whiteSpace: "nowrap" }}>
-                  {rootTodos.length} item{rootTodos.length !== 1 ? "s" : ""}
+                  {rootTodos.length === 1
+                    ? t.todoItemCount
+                        .split(" | ")[0]
+                        .replace("{count}", String(rootTodos.length))
+                    : t.todoItemCount
+                        .split(" | ")[1]
+                        .replace("{count}", String(rootTodos.length))}
                 </Caption1>
               </div>
 
@@ -995,7 +1001,7 @@ export function TodoPage() {
                 <div className={styles.inputRow}>
                   <Input
                     className={styles.inputFlex}
-                    placeholder="What needs to be done?"
+                    placeholder={t.todoPlaceholder}
                     value={newTitle}
                     onChange={(_, d) => setNewTitle(d.value)}
                     onKeyDown={(e) => e.key === "Enter" && addTodo()}
@@ -1007,17 +1013,17 @@ export function TodoPage() {
                     onClick={() => addTodo()}
                     disabled={!newTitle.trim() || adding}
                   >
-                    {isMobile ? undefined : "Add"}
+                    {isMobile ? undefined : t.add}
                   </Button>
                 </div>
 
                 {loadingTodos ? (
                   <div className={styles.empty}>
-                    <Spinner size="medium" label="Loading todos..." />
+                    <Spinner size="medium" label={t.todoLoadingTodos} />
                   </div>
                 ) : rootTodos.length === 0 ? (
                   <div className={styles.empty}>
-                    <Body1>No todos yet. Add one above!</Body1>
+                    <Body1>{t.todoEmpty}</Body1>
                   </div>
                 ) : (
                   rootTodos.map((todo, index) => renderTodo(todo, index, true))
@@ -1046,9 +1052,7 @@ export function TodoPage() {
                   style={{ fontSize: 48, marginBottom: 8, display: "block" }}
                 />
                 <Subtitle2>
-                  {sets.length === 0
-                    ? "Create a todo set to get started"
-                    : "Select a todo set"}
+                  {sets.length === 0 ? t.todoCreateSet : t.todoSelectSet}
                 </Subtitle2>
                 {isMobile && (
                   <Button
@@ -1056,7 +1060,7 @@ export function TodoPage() {
                     style={{ marginTop: 16 }}
                     onClick={() => setDrawerOpen(true)}
                   >
-                    Open sets
+                    {t.todoOpenSets}
                   </Button>
                 )}
               </div>

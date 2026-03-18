@@ -20,6 +20,7 @@ import {
 } from "@fluentui/react-components";
 import { Delete24Regular, Send24Regular } from "@fluentui/react-icons";
 import type { Comment } from "../types";
+import { useI18n } from "../i18n";
 
 const useStyles = makeStyles({
   commentList: {
@@ -68,6 +69,7 @@ export function CommentsDialog({
   onCommentCountChange,
 }: Props) {
   const styles = useStyles();
+  const { t } = useI18n();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
   const [newComment, setNewComment] = useState("");
@@ -127,11 +129,12 @@ export function CommentsDialog({
       <DialogSurface>
         <DialogBody>
           <DialogTitle>
-            Comments {todoTitle && <Caption1> &mdash; {todoTitle}</Caption1>}
+            {t.commentsTitle}{" "}
+            {todoTitle && <Caption1> &mdash; {todoTitle}</Caption1>}
           </DialogTitle>
           <DialogContent>
             {loading ? (
-              <Spinner size="small" label="Loading comments..." />
+              <Spinner size="small" label={t.commentsLoading} />
             ) : comments.length === 0 ? (
               <Body1
                 style={{
@@ -139,7 +142,7 @@ export function CommentsDialog({
                   padding: "16px 0",
                 }}
               >
-                No comments yet.
+                {t.commentsEmpty}
               </Body1>
             ) : (
               <div className={styles.commentList}>
@@ -179,7 +182,7 @@ export function CommentsDialog({
             <div className={styles.commentInput}>
               <Textarea
                 style={{ flex: 1 }}
-                placeholder="Write a comment..."
+                placeholder={t.commentsPlaceholder}
                 value={newComment}
                 onChange={(_, d) => setNewComment(d.value)}
                 onKeyDown={(e) => {
@@ -199,7 +202,7 @@ export function CommentsDialog({
           </DialogContent>
           <DialogActions>
             <DialogTrigger disableButtonEnhancement>
-              <Button appearance="secondary">Close</Button>
+              <Button appearance="secondary">{t.close}</Button>
             </DialogTrigger>
           </DialogActions>
         </DialogBody>
