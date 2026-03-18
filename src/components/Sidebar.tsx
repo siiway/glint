@@ -1,0 +1,549 @@
+import { useState, useRef } from "react";
+import {
+  Input,
+  Button,
+  Body2,
+  Title3,
+  Spinner,
+  Avatar,
+  Badge,
+  Menu,
+  MenuTrigger,
+  MenuPopover,
+  MenuList,
+  MenuItem,
+  Select,
+  Tooltip,
+  OverlayDrawer,
+  DrawerHeader,
+  DrawerHeaderTitle,
+  DrawerBody,
+  Dialog,
+  DialogTrigger,
+  DialogSurface,
+  DialogBody,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  makeStyles,
+  tokens,
+  mergeClasses,
+} from "@fluentui/react-components";
+import {
+  Add24Regular,
+  Delete24Regular,
+  SignOut24Regular,
+  Edit24Regular,
+  Dismiss24Regular,
+  Folder24Regular,
+  MoreVertical24Regular,
+  Settings24Regular,
+} from "@fluentui/react-icons";
+import type { TodoSet } from "../types";
+import { ROLE_COLORS } from "../types";
+import type { TeamInfo } from "../auth";
+import { Footer } from "./Footer";
+
+const useStyles = makeStyles({
+  sidebar: {
+    width: "260px",
+    minWidth: "260px",
+    borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
+    overflow: "hidden",
+  },
+  sidebarHeader: {
+    padding: "16px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+  },
+  sidebarContent: {
+    flex: 1,
+    overflowY: "auto",
+    padding: "8px",
+  },
+  sidebarFooter: {
+    padding: "12px 16px",
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+  setItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "8px 12px",
+    borderRadius: tokens.borderRadiusMedium,
+    cursor: "pointer",
+    userSelect: "none" as const,
+    "&:hover": {
+      backgroundColor: tokens.colorNeutralBackground1Hover,
+    },
+  },
+  setItemActive: {
+    backgroundColor: tokens.colorNeutralBackground1Selected,
+    fontWeight: "600",
+  },
+  setItemDragging: {
+    opacity: "0.5",
+  },
+  setItemDragOver: {
+    borderBottom: `2px solid ${tokens.colorBrandForeground1}`,
+  },
+  setName: {
+    flex: 1,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  addSetRow: {
+    display: "flex",
+    gap: "4px",
+    padding: "4px 8px",
+  },
+  teamSelect: {
+    minWidth: "180px",
+  },
+  teamSelectMobile: {
+    minWidth: "0",
+    flex: 1,
+  },
+  empty: {
+    textAlign: "center" as const,
+    padding: "48px 0",
+    color: tokens.colorNeutralForeground4,
+  },
+  drawerSets: {
+    flex: 1,
+    overflowY: "auto",
+    padding: "8px",
+  },
+  drawerFooter: {
+    padding: "12px 16px",
+    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  },
+});
+
+type Props = {
+  isMobile: boolean;
+  drawerOpen: boolean;
+  onDrawerChange: (open: boolean) => void;
+  teams: TeamInfo[];
+  selectedTeamId: string;
+  onTeamChange: (id: string) => void;
+  sets: TodoSet[];
+  selectedSetId: string;
+  onSetSelect: (id: string) => void;
+  loadingSets: boolean;
+  siteName: string;
+  siteLogo: string;
+  canManageSettings: boolean;
+  onOpenSettings: () => void;
+  onAddSet: (name: string) => Promise<void>;
+  onDeleteSet: (id: string) => void;
+  onRenameSet: (id: string, name: string) => void;
+  onReorderSets: (items: { id: string; sortOrder: number }[]) => void;
+  user: { displayName?: string; username: string; avatarUrl?: string } | null;
+  onLogout: () => void;
+};
+
+export function Sidebar({
+  isMobile,
+  drawerOpen,
+  onDrawerChange,
+  teams,
+  selectedTeamId,
+  onTeamChange,
+  sets,
+  selectedSetId,
+  onSetSelect,
+  loadingSets,
+  siteName,
+  siteLogo,
+  canManageSettings,
+  onOpenSettings,
+  onAddSet,
+  onDeleteSet,
+  onRenameSet,
+  onReorderSets,
+  user,
+  onLogout,
+}: Props) {
+  const styles = useStyles();
+  const canDrag = !isMobile;
+
+  const [newSetName, setNewSetName] = useState("");
+  const [addingSet, setAddingSet] = useState(false);
+  const [showAddSet, setShowAddSet] = useState(false);
+  const [renameSetId, setRenameSetId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+
+  // Drag state
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragCounter = useRef(0);
+
+  const handleDragStart = (i: number) => setDragIndex(i);
+  const handleDragEnter = (i: number) => {
+    dragCounter.current++;
+    setDragOverIndex(i);
+  };
+  const handleDragLeave = () => {
+    dragCounter.current--;
+    if (dragCounter.current === 0) setDragOverIndex(null);
+  };
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
+  const handleDrop = (dropIndex: number) => {
+    dragCounter.current = 0;
+    setDragOverIndex(null);
+    if (dragIndex === null || dragIndex === dropIndex) {
+      setDragIndex(null);
+      return;
+    }
+    const reordered = [...sets];
+    const [moved] = reordered.splice(dragIndex, 1);
+    reordered.splice(dropIndex, 0, moved);
+    onReorderSets(reordered.map((s, i) => ({ id: s.id, sortOrder: i + 1 })));
+    setDragIndex(null);
+  };
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+    dragCounter.current = 0;
+  };
+
+  const handleAddSet = async () => {
+    if (!newSetName.trim() || addingSet) return;
+    setAddingSet(true);
+    await onAddSet(newSetName.trim());
+    setNewSetName("");
+    setShowAddSet(false);
+    setAddingSet(false);
+  };
+
+  const selectedTeam = teams.find((t) => t.id === selectedTeamId);
+
+  function renderSetsList() {
+    return (
+      <>
+        {sets.map((s, i) => (
+          <div
+            key={s.id}
+            className={mergeClasses(
+              styles.setItem,
+              selectedSetId === s.id && styles.setItemActive,
+              canDrag && dragIndex === i && styles.setItemDragging,
+              canDrag &&
+                dragOverIndex === i &&
+                dragIndex !== i &&
+                styles.setItemDragOver,
+            )}
+            onClick={() => {
+              onSetSelect(s.id);
+              if (isMobile) onDrawerChange(false);
+            }}
+            draggable={canDrag}
+            onDragStart={canDrag ? () => handleDragStart(i) : undefined}
+            onDragEnter={canDrag ? () => handleDragEnter(i) : undefined}
+            onDragLeave={canDrag ? handleDragLeave : undefined}
+            onDragOver={canDrag ? handleDragOver : undefined}
+            onDrop={canDrag ? () => handleDrop(i) : undefined}
+            onDragEnd={canDrag ? handleDragEnd : undefined}
+          >
+            <Folder24Regular />
+            <span className={styles.setName}>{s.name}</span>
+            <Menu>
+              <MenuTrigger disableButtonEnhancement>
+                <Button
+                  appearance="transparent"
+                  size="small"
+                  icon={<MoreVertical24Regular />}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </MenuTrigger>
+              <MenuPopover>
+                <MenuList>
+                  <MenuItem
+                    icon={<Edit24Regular />}
+                    onClick={() => {
+                      setRenameSetId(s.id);
+                      setRenameValue(s.name);
+                    }}
+                  >
+                    Rename
+                  </MenuItem>
+                  <MenuItem
+                    icon={<Delete24Regular />}
+                    onClick={() => onDeleteSet(s.id)}
+                  >
+                    Delete
+                  </MenuItem>
+                </MenuList>
+              </MenuPopover>
+            </Menu>
+          </div>
+        ))}
+
+        {showAddSet ? (
+          <div className={styles.addSetRow}>
+            <Input
+              size="small"
+              placeholder="Set name..."
+              value={newSetName}
+              onChange={(_, d) => setNewSetName(d.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAddSet();
+                if (e.key === "Escape") setShowAddSet(false);
+              }}
+              autoFocus
+              style={{ flex: 1 }}
+            />
+            <Button
+              appearance="primary"
+              size="small"
+              icon={<Add24Regular />}
+              onClick={handleAddSet}
+              disabled={!newSetName.trim() || addingSet}
+            />
+          </div>
+        ) : (
+          <Button
+            appearance="transparent"
+            icon={<Add24Regular />}
+            onClick={() => setShowAddSet(true)}
+            style={{ width: "100%", justifyContent: "flex-start" }}
+          >
+            New set
+          </Button>
+        )}
+      </>
+    );
+  }
+
+  function renderUserFooter() {
+    return (
+      <>
+        <div className={isMobile ? styles.drawerFooter : styles.sidebarFooter}>
+          <Avatar
+            name={user?.displayName || user?.username}
+            image={user?.avatarUrl ? { src: user.avatarUrl } : undefined}
+            size={24}
+          />
+          <Body2
+            style={{
+              flex: 1,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {user?.displayName || user?.username}
+          </Body2>
+          {selectedTeam && (
+            <Badge
+              appearance="filled"
+              size="small"
+              color={ROLE_COLORS[selectedTeam.role]}
+            >
+              {selectedTeam.role}
+            </Badge>
+          )}
+          <Tooltip content="Sign out" relationship="label">
+            <Button
+              appearance="transparent"
+              size="small"
+              icon={<SignOut24Regular />}
+              onClick={onLogout}
+            />
+          </Tooltip>
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
+  function renderTeamSelector(className?: string) {
+    if (teams.length <= 1) return null;
+    return (
+      <Select
+        className={className ?? styles.teamSelect}
+        size="small"
+        value={selectedTeamId}
+        onChange={(_, d) => onTeamChange(d.value)}
+      >
+        {teams.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.name}
+          </option>
+        ))}
+      </Select>
+    );
+  }
+
+  const renameDialog = (
+    <Dialog
+      open={renameSetId !== null}
+      onOpenChange={(_, d) => {
+        if (!d.open) setRenameSetId(null);
+      }}
+    >
+      <DialogSurface>
+        <DialogBody>
+          <DialogTitle>Rename Set</DialogTitle>
+          <DialogContent>
+            <Input
+              value={renameValue}
+              onChange={(_, d) => setRenameValue(d.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && renameValue.trim() && renameSetId) {
+                  onRenameSet(renameSetId, renameValue.trim());
+                  setRenameSetId(null);
+                }
+              }}
+              placeholder="Set name..."
+              autoFocus
+              style={{ width: "100%" }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <DialogTrigger disableButtonEnhancement>
+              <Button appearance="secondary">Cancel</Button>
+            </DialogTrigger>
+            <Button
+              appearance="primary"
+              disabled={!renameValue.trim()}
+              onClick={() => {
+                if (renameSetId && renameValue.trim()) {
+                  onRenameSet(renameSetId, renameValue.trim());
+                  setRenameSetId(null);
+                }
+              }}
+            >
+              Rename
+            </Button>
+          </DialogActions>
+        </DialogBody>
+      </DialogSurface>
+    </Dialog>
+  );
+
+  if (isMobile) {
+    return (
+      <>
+        <OverlayDrawer
+          open={drawerOpen}
+          onOpenChange={(_, d) => onDrawerChange(d.open)}
+          position="start"
+        >
+          <DrawerHeader>
+            <DrawerHeaderTitle
+              action={
+                <span style={{ display: "flex", gap: 4 }}>
+                  {canManageSettings && (
+                    <Button
+                      appearance="subtle"
+                      size="small"
+                      icon={<Settings24Regular />}
+                      onClick={() => {
+                        onDrawerChange(false);
+                        onOpenSettings();
+                      }}
+                    />
+                  )}
+                  <Button
+                    appearance="subtle"
+                    icon={<Dismiss24Regular />}
+                    onClick={() => onDrawerChange(false)}
+                  />
+                </span>
+              }
+            >
+              {siteLogo ? (
+                <img
+                  src={siteLogo}
+                  alt={siteName}
+                  style={{ maxHeight: 24, objectFit: "contain" }}
+                />
+              ) : (
+                siteName
+              )}
+            </DrawerHeaderTitle>
+          </DrawerHeader>
+          <DrawerBody
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              padding: 0,
+            }}
+          >
+            {teams.length > 1 && (
+              <div style={{ padding: "8px 16px" }}>
+                {renderTeamSelector(styles.teamSelectMobile)}
+              </div>
+            )}
+            <div className={styles.drawerSets}>
+              {loadingSets ? (
+                <div className={styles.empty}>
+                  <Spinner size="small" />
+                </div>
+              ) : (
+                renderSetsList()
+              )}
+            </div>
+            {renderUserFooter()}
+          </DrawerBody>
+        </OverlayDrawer>
+        {renameDialog}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className={styles.sidebar}>
+        <div className={styles.sidebarHeader}>
+          {siteLogo ? (
+            <img
+              src={siteLogo}
+              alt={siteName}
+              style={{ maxHeight: 28, objectFit: "contain" }}
+            />
+          ) : (
+            <Title3>{siteName}</Title3>
+          )}
+          {canManageSettings && (
+            <Tooltip content="Settings" relationship="label">
+              <Button
+                appearance="transparent"
+                size="small"
+                icon={<Settings24Regular />}
+                onClick={onOpenSettings}
+              />
+            </Tooltip>
+          )}
+          {renderTeamSelector()}
+        </div>
+        <div className={styles.sidebarContent}>
+          {loadingSets ? (
+            <div className={styles.empty}>
+              <Spinner size="small" />
+            </div>
+          ) : (
+            renderSetsList()
+          )}
+        </div>
+        {renderUserFooter()}
+      </div>
+      {renameDialog}
+    </>
+  );
+}

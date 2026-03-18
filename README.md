@@ -1,73 +1,51 @@
-# React + TypeScript + Vite
+# Glint
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A team-based todo list built on Cloudflare Workers with [Prism](https://github.com/siiway/prism) authentication.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Team-scoped todos** with role-based access control (owner / admin / member)
+- **Drag-and-drop reordering** with persistent sort order
+- **Prism OAuth 2.0 + PKCE** authentication
+- **Cloudflare D1** for persistent storage, **KV** for sessions
+- **Fluent UI v9** component library
+- **First-time init page** that sets up the database automatically
 
-## React Compiler
+## Quick Start
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+bun install
 
-## Expanding the ESLint configuration
+# Create Cloudflare resources
+wrangler d1 create glint-db
+wrangler kv namespace create KV
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+# Update wrangler.jsonc with the IDs from above, plus your Prism config
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+bun run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+See the [documentation](docs/guide/getting-started.md) for full setup instructions.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Scripts
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+| Command              | Description                    |
+| -------------------- | ------------------------------ |
+| `bun run dev`        | Start development server       |
+| `bun run build`      | Build for production           |
+| `bun run deploy`     | Build and deploy to Cloudflare |
+| `bun run docs:dev`   | Start docs dev server          |
+| `bun run docs:build` | Build documentation            |
+
+## Tech Stack
+
+- [Cloudflare Workers](https://workers.cloudflare.com/) + D1 + KV
+- [Hono](https://hono.dev/) (API router)
+- [React 19](https://react.dev/) + [Fluent UI v9](https://react.fluentui.dev/)
+- [Prism](https://github.com/siiway/prism) (authentication)
+- [Vite](https://vite.dev/) (build tool)
+- [VitePress](https://vitepress.dev/) (documentation)
+
+## License
+
+This project is licensed under the [GNU General Public License v3.0](LICENSE).

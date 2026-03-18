@@ -1,58 +1,97 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import cloudflareLogo from './assets/Cloudflare_Logo.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import {
+  FluentProvider,
+  webLightTheme,
+  webDarkTheme,
+  Spinner,
+} from "@fluentui/react-components";
+import { AuthProvider, useAuth } from "./auth";
+import { PageLayout } from "./components/PageLayout";
+import { InitPage } from "./components/InitPage";
+import { LoginPage } from "./components/LoginPage";
+import { TodoPage } from "./components/TodoPage";
 
-function App() {
-  const [count, setCount] = useState(0)
-  const [name, setName] = useState('unknown')
-
-  return (
-    <>
-      <div>
-        <a href='https://vite.dev' target='_blank'>
-          <img src={viteLogo} className='logo' alt='Vite logo' />
-        </a>
-        <a href='https://react.dev' target='_blank'>
-          <img src={reactLogo} className='logo react' alt='React logo' />
-        </a>
-        <a href='https://workers.cloudflare.com/' target='_blank'>
-          <img src={cloudflareLogo} className='logo cloudflare' alt='Cloudflare logo' />
-        </a>
-      </div>
-      <h1>Vite + React + Cloudflare</h1>
-      <div className='card'>
-        <button
-          onClick={() => setCount((count) => count + 1)}
-          aria-label='increment'
-        >
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <div className='card'>
-        <button
-          onClick={() => {
-            fetch('/api/')
-              .then((res) => res.json() as Promise<{ name: string }>)
-              .then((data) => setName(data.name))
-          }}
-          aria-label='get name'
-        >
-          Name from API is: {name}
-        </button>
-        <p>
-          Edit <code>worker/index.ts</code> to change the name
-        </p>
-      </div>
-      <p className='read-the-docs'>
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+function useColorScheme() {
+  const [dark, setDark] = useState(
+    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = (e: MediaQueryListEvent) => setDark(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return dark;
 }
 
-export default App
+function useInitStatus() {
+  const [configured, setConfigured] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    fetch("/api/init/status")
+      .then((res) => res.json())
+      .then((data: { configured: boolean }) => setConfigured(data.configured))
+      .catch(() => setConfigured(false));
+  }, []);
+
+  return { configured, markConfigured: () => setConfigured(true) };
+}
+
+function AppContent() {
+  const { user, loading } = useAuth();
+  const { configured, markConfigured } = useInitStatus();
+
+  if (loading || configured === null) {
+    return (
+      <PageLayout>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "100%",
+          }}
+        >
+          <Spinner size="large" label="Loading..." />
+        </div>
+      </PageLayout>
+    );
+  }
+
+  if (!configured) {
+    return (
+      <PageLayout>
+        <InitPage onComplete={markConfigured} />
+      </PageLayout>
+    );
+  }
+
+  if (!user) {
+    return (
+      <PageLayout>
+        <LoginPage />
+      </PageLayout>
+    );
+  }
+
+  return (
+    <PageLayout footer={false}>
+      <TodoPage />
+    </PageLayout>
+  );
+}
+
+export default function App() {
+  const dark = useColorScheme();
+
+  return (
+    <FluentProvider
+      theme={dark ? webDarkTheme : webLightTheme}
+      style={{ height: "100%" }}
+    >
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </FluentProvider>
+  );
+}
