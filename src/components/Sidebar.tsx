@@ -198,7 +198,9 @@ export function Sidebar({
 
   // Set settings dialog
   const [settingsSetId, setSettingsSetId] = useState<string | null>(null);
-  const settingsSet = settingsSetId ? sets.find((s) => s.id === settingsSetId) : null;
+  const settingsSet = settingsSetId
+    ? sets.find((s) => s.id === settingsSetId)
+    : null;
 
   // Drag state
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -478,7 +480,9 @@ export function Sidebar({
           <DialogTitle>{t.sidebarSetSettings}</DialogTitle>
           <DialogContent>
             {settingsSet && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 16 }}
+              >
                 <div>
                   <Switch
                     label={t.setAutoRenew}
@@ -487,14 +491,22 @@ export function Sidebar({
                       onUpdateSet(settingsSet.id, { autoRenew: d.checked })
                     }
                   />
-                  <Caption1 style={{ color: tokens.colorNeutralForeground4, display: "block", marginTop: 4 }}>
+                  <Caption1
+                    style={{
+                      color: tokens.colorNeutralForeground4,
+                      display: "block",
+                      marginTop: 4,
+                    }}
+                  >
                     {t.setAutoRenewHint}
                   </Caption1>
                 </div>
 
                 {settingsSet.autoRenew && (
                   <div>
-                    <Body1 style={{ fontWeight: 600, marginBottom: 4 }}>{t.setRenewTime}</Body1>
+                    <Body1 style={{ fontWeight: 600, marginBottom: 4 }}>
+                      {t.setRenewTime}
+                    </Body1>
                     <Input
                       type="time"
                       value={settingsSet.renewTime}
@@ -507,7 +519,9 @@ export function Sidebar({
                 )}
 
                 <div>
-                  <Body1 style={{ fontWeight: 600, marginBottom: 4 }}>{t.setTimezone}</Body1>
+                  <Body1 style={{ fontWeight: 600, marginBottom: 4 }}>
+                    {t.setTimezone}
+                  </Body1>
                   <Input
                     value={settingsSet.timezone}
                     onChange={(_, d) =>
@@ -515,15 +529,25 @@ export function Sidebar({
                     }
                     placeholder={defaultTimezone || "UTC"}
                   />
-                  <Caption1 style={{ color: tokens.colorNeutralForeground4, display: "block", marginTop: 4 }}>
+                  <Caption1
+                    style={{
+                      color: tokens.colorNeutralForeground4,
+                      display: "block",
+                      marginTop: 4,
+                    }}
+                  >
                     {t.setTimezoneHint}
                   </Caption1>
                 </div>
 
                 {settingsSet.lastRenewedAt && (
                   <div>
-                    <Body1 style={{ fontWeight: 600, marginBottom: 4 }}>{t.setLastRenewed}</Body1>
-                    <Body2>{new Date(settingsSet.lastRenewedAt).toLocaleString()}</Body2>
+                    <Body1 style={{ fontWeight: 600, marginBottom: 4 }}>
+                      {t.setLastRenewed}
+                    </Body1>
+                    <Body2>
+                      {new Date(settingsSet.lastRenewedAt).toLocaleString()}
+                    </Body2>
                   </div>
                 )}
               </div>

@@ -99,7 +99,8 @@ export default {
 
   // Set settings
   setAutoRenew: "Auto-renew daily",
-  setAutoRenewHint: "Reset all completed todos to incomplete at the specified time each day.",
+  setAutoRenewHint:
+    "Reset all completed todos to incomplete at the specified time each day.",
   setRenewTime: "Renew time",
   setTimezone: "Timezone",
   setTimezoneHint: "Leave empty to use the team's default timezone.",
