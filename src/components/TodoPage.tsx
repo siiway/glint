@@ -259,7 +259,13 @@ export function TodoPage() {
     fetch(`/api/teams/${selectedTeamId}/settings`)
       .then((r) => r.json())
       .then(
-        (data: { settings: { site_name: string; site_logo_url: string; default_timezone?: string } }) => {
+        (data: {
+          settings: {
+            site_name: string;
+            site_logo_url: string;
+            default_timezone?: string;
+          };
+        }) => {
           setSiteName(data.settings.site_name || "Glint");
           setSiteLogo(data.settings.site_logo_url || "");
           setDefaultTimezone(data.settings.default_timezone || "UTC");
@@ -551,7 +557,9 @@ export function TodoPage() {
   };
 
   const handleUpdateSet = async (setId: string, patch: Partial<TodoSet>) => {
-    setSets((prev) => prev.map((s) => (s.id === setId ? { ...s, ...patch } : s)));
+    setSets((prev) =>
+      prev.map((s) => (s.id === setId ? { ...s, ...patch } : s)),
+    );
     await fetch(`/api/teams/${selectedTeamId}/sets/${setId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -581,7 +589,13 @@ export function TodoPage() {
     fetch(`/api/teams/${selectedTeamId}/settings`)
       .then((r) => r.json())
       .then(
-        (data: { settings: { site_name: string; site_logo_url: string; default_timezone?: string } }) => {
+        (data: {
+          settings: {
+            site_name: string;
+            site_logo_url: string;
+            default_timezone?: string;
+          };
+        }) => {
           setSiteName(data.settings.site_name || "Glint");
           setSiteLogo(data.settings.site_logo_url || "");
           setDefaultTimezone(data.settings.default_timezone || "UTC");
@@ -900,7 +914,16 @@ export function TodoPage() {
         >
           <div className={styles.empty}>
             <Subtitle2>{t.todoNoTeams}</Subtitle2>
+            <br />
             <Body1>{t.todoNoTeamsDesc}</Body1>
+            <br />
+            <Button
+              appearance="secondary"
+              onClick={logout}
+              style={{ marginTop: 12 }}
+            >
+              {t.signOut}
+            </Button>
           </div>
         </div>
       </div>
