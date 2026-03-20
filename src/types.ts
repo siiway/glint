@@ -15,6 +15,10 @@ export type TodoSet = {
   userId: string;
   name: string;
   sortOrder: number;
+  autoRenew: boolean;
+  renewTime: string;
+  timezone: string;
+  lastRenewedAt: string | null;
   createdAt: string;
 };
 

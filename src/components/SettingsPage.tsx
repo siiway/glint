@@ -43,6 +43,7 @@ type TeamSettings = {
   welcome_message: string;
   default_set_name: string;
   allow_member_create_sets: boolean;
+  default_timezone: string;
 };
 
 type PermissionKey = string;
@@ -441,6 +442,22 @@ export function SettingsPage({
                 }
                 disabled={!canManage}
                 placeholder="Welcome to our team workspace!"
+              />
+            </div>
+
+            <div className={styles.field}>
+              <Body2 className={styles.fieldLabel}>
+                {t.settingsDefaultTimezone}
+              </Body2>
+              <Input
+                value={editSettings.default_timezone}
+                onChange={(_, d) =>
+                  setEditSettings(
+                    (s) => s && { ...s, default_timezone: d.value },
+                  )
+                }
+                disabled={!canManage}
+                placeholder="UTC"
               />
             </div>
 

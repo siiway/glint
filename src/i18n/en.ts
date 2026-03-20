@@ -94,7 +94,20 @@ export default {
   sidebarNewSet: "New set",
   sidebarSetPlaceholder: "Set name...",
   sidebarRenameSet: "Rename Set",
+  sidebarSetSettings: "Set Settings",
   sidebarSettings: "Settings",
+
+  // Set settings
+  setAutoRenew: "Auto-renew daily",
+  setAutoRenewHint: "Reset all completed todos to incomplete at the specified time each day.",
+  setRenewTime: "Renew time",
+  setTimezone: "Timezone",
+  setTimezoneHint: "Leave empty to use the team's default timezone.",
+  setLastRenewed: "Last renewed",
+  setNeverRenewed: "Never",
+
+  // Global timezone
+  settingsDefaultTimezone: "Default Timezone",
 
   // Settings page
   settingsTitle: "Settings",

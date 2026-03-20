@@ -144,6 +144,7 @@ type TeamSettings = {
   welcome_message: string;
   default_set_name: string;
   allow_member_create_sets: boolean;
+  default_timezone: string;
 };
 
 const DEFAULT_SETTINGS: TeamSettings = {
@@ -153,6 +154,7 @@ const DEFAULT_SETTINGS: TeamSettings = {
   welcome_message: "",
   default_set_name: "Not Grouped",
   allow_member_create_sets: false,
+  default_timezone: "UTC",
 };
 
 async function getTeamSettings(
@@ -601,6 +603,7 @@ app.patch("/api/teams/:teamId/settings", requireAuth, async (c) => {
     "welcome_message",
     "default_set_name",
     "allow_member_create_sets",
+    "default_timezone",
   ];
 
   const patch: Partial<TeamSettings> = {};
@@ -774,7 +777,7 @@ app.get("/api/teams/:teamId/sets", requireAuth, async (c) => {
   await ensureDefaultSet(c.env.DB, c.env.KV, teamId, session.userId);
 
   const result = await c.env.DB.prepare(
-    "SELECT id, user_id, name, sort_order, created_at FROM todo_sets WHERE team_id = ? ORDER BY sort_order ASC",
+    "SELECT id, user_id, name, sort_order, auto_renew, renew_time, timezone, last_renewed_at, created_at FROM todo_sets WHERE team_id = ? ORDER BY sort_order ASC",
   )
     .bind(teamId)
     .all();
@@ -785,6 +788,10 @@ app.get("/api/teams/:teamId/sets", requireAuth, async (c) => {
       userId: r.user_id as string,
       name: r.name as string,
       sortOrder: r.sort_order as number,
+      autoRenew: r.auto_renew === 1,
+      renewTime: r.renew_time as string,
+      timezone: r.timezone as string,
+      lastRenewedAt: (r.last_renewed_at as string) || null,
       createdAt: r.created_at as string,
     })),
     role,
@@ -826,6 +833,10 @@ app.post("/api/teams/:teamId/sets", requireAuth, async (c) => {
         userId: session.userId,
         name: name.trim(),
         sortOrder,
+        autoRenew: false,
+        renewTime: "00:00",
+        timezone: "",
+        lastRenewedAt: null,
         createdAt: new Date().toISOString(),
       },
     },
@@ -851,13 +862,43 @@ app.patch("/api/teams/:teamId/sets/:setId", requireAuth, async (c) => {
     }
   }
 
-  const { name } = await c.req.json<{ name: string }>();
-  if (!name?.trim()) return c.json({ error: "Name is required" }, 400);
+  const body = await c.req.json<{
+    name?: string;
+    autoRenew?: boolean;
+    renewTime?: string;
+    timezone?: string;
+  }>();
+
+  const updates: string[] = [];
+  const values: (string | number)[] = [];
+
+  if (body.name !== undefined) {
+    if (!body.name.trim()) return c.json({ error: "Name is required" }, 400);
+    updates.push("name = ?");
+    values.push(body.name.trim());
+  }
+  if (body.autoRenew !== undefined) {
+    updates.push("auto_renew = ?");
+    values.push(body.autoRenew ? 1 : 0);
+  }
+  if (body.renewTime !== undefined) {
+    updates.push("renew_time = ?");
+    values.push(body.renewTime);
+  }
+  if (body.timezone !== undefined) {
+    updates.push("timezone = ?");
+    values.push(body.timezone);
+  }
+
+  if (updates.length === 0) return c.json({ error: "No updates" }, 400);
+
+  updates.push("updated_at = datetime('now')");
+  values.push(setId, teamId);
 
   await c.env.DB.prepare(
-    "UPDATE todo_sets SET name = ?, updated_at = datetime('now') WHERE id = ? AND team_id = ?",
+    `UPDATE todo_sets SET ${updates.join(", ")} WHERE id = ? AND team_id = ?`,
   )
-    .bind(name.trim(), setId, teamId)
+    .bind(...values)
     .run();
 
   return c.json({ ok: true });
@@ -1294,4 +1335,60 @@ app.delete(
   },
 );
 
-export default app;
+// ─── Cron: Auto-renew ────────────────────────────────────────────────────────
+
+async function processAutoRenew(env: Bindings) {
+  const now = new Date();
+
+  // Find all sets with auto_renew enabled
+  const sets = await env.DB.prepare(
+    "SELECT id, team_id, renew_time, timezone, last_renewed_at FROM todo_sets WHERE auto_renew = 1",
+  ).all();
+
+  for (const set of sets.results) {
+    const setId = set.id as string;
+    const teamId = set.team_id as string;
+    const renewTime = (set.renew_time as string) || "00:00";
+    let tz = (set.timezone as string) || "";
+
+    // Fall back to team's default timezone
+    if (!tz) {
+      const settings = await getTeamSettings(env.KV, teamId);
+      tz = settings.default_timezone || "UTC";
+    }
+
+    // Get current time in the set's timezone
+    const localNow = new Date(
+      now.toLocaleString("en-US", { timeZone: tz || "UTC" }),
+    );
+    const localTime = `${String(localNow.getHours()).padStart(2, "0")}:${String(localNow.getMinutes()).padStart(2, "0")}`;
+    const localDate = localNow.toISOString().split("T")[0];
+
+    // Check if it's past the renew time and hasn't been renewed today
+    const lastRenewed = set.last_renewed_at as string | null;
+    const lastDate = lastRenewed ? lastRenewed.split("T")[0] : null;
+
+    if (localTime >= renewTime && lastDate !== localDate) {
+      // Reset all completed todos in this set
+      await env.DB.prepare(
+        "UPDATE todos SET completed = 0, updated_at = datetime('now') WHERE set_id = ? AND team_id = ? AND completed = 1",
+      )
+        .bind(setId, teamId)
+        .run();
+
+      // Update last_renewed_at
+      await env.DB.prepare(
+        "UPDATE todo_sets SET last_renewed_at = ? WHERE id = ?",
+      )
+        .bind(now.toISOString(), setId)
+        .run();
+    }
+  }
+}
+
+export default {
+  fetch: app.fetch,
+  async scheduled(_event: ScheduledEvent, env: Bindings) {
+    await processAutoRenew(env);
+  },
+};

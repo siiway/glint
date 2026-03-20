@@ -206,6 +206,7 @@ export function TodoPage() {
   const [siteName, setSiteName] = useState("Glint");
   const [siteLogo, setSiteLogo] = useState("");
   const [perms, setPerms] = useState<Record<string, boolean>>({});
+  const [defaultTimezone, setDefaultTimezone] = useState("UTC");
 
   // Todo UI state
   const [newTitle, setNewTitle] = useState("");
@@ -258,9 +259,10 @@ export function TodoPage() {
     fetch(`/api/teams/${selectedTeamId}/settings`)
       .then((r) => r.json())
       .then(
-        (data: { settings: { site_name: string; site_logo_url: string } }) => {
+        (data: { settings: { site_name: string; site_logo_url: string; default_timezone?: string } }) => {
           setSiteName(data.settings.site_name || "Glint");
           setSiteLogo(data.settings.site_logo_url || "");
+          setDefaultTimezone(data.settings.default_timezone || "UTC");
         },
       )
       .catch(() => {});
@@ -548,6 +550,15 @@ export function TodoPage() {
     });
   };
 
+  const handleUpdateSet = async (setId: string, patch: Partial<TodoSet>) => {
+    setSets((prev) => prev.map((s) => (s.id === setId ? { ...s, ...patch } : s)));
+    await fetch(`/api/teams/${selectedTeamId}/sets/${setId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+  };
+
   const handleReorderSets = async (
     items: { id: string; sortOrder: number }[],
   ) => {
@@ -570,9 +581,10 @@ export function TodoPage() {
     fetch(`/api/teams/${selectedTeamId}/settings`)
       .then((r) => r.json())
       .then(
-        (data: { settings: { site_name: string; site_logo_url: string } }) => {
+        (data: { settings: { site_name: string; site_logo_url: string; default_timezone?: string } }) => {
           setSiteName(data.settings.site_name || "Glint");
           setSiteLogo(data.settings.site_logo_url || "");
+          setDefaultTimezone(data.settings.default_timezone || "UTC");
         },
       )
       .catch(() => {});
@@ -924,7 +936,9 @@ export function TodoPage() {
           onAddSet={handleAddSet}
           onDeleteSet={handleDeleteSet}
           onRenameSet={handleRenameSet}
+          onUpdateSet={handleUpdateSet}
           onReorderSets={handleReorderSets}
+          defaultTimezone={defaultTimezone}
           user={
             user
               ? {

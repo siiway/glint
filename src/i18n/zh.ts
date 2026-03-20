@@ -93,7 +93,20 @@ const zh: typeof en = {
   sidebarNewSet: "新建分组",
   sidebarSetPlaceholder: "分组名称...",
   sidebarRenameSet: "重命名分组",
+  sidebarSetSettings: "分组设置",
   sidebarSettings: "设置",
+
+  // Set settings
+  setAutoRenew: "每日自动续期",
+  setAutoRenewHint: "每天在指定时间将所有已完成的待办事项重置为未完成。",
+  setRenewTime: "续期时间",
+  setTimezone: "时区",
+  setTimezoneHint: "留空则使用团队默认时区。",
+  setLastRenewed: "上次续期",
+  setNeverRenewed: "从未",
+
+  // Global timezone
+  settingsDefaultTimezone: "默认时区",
 
   // Settings page
   settingsTitle: "设置",

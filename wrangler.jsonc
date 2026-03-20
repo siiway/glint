@@ -30,5 +30,8 @@
       "custom_domain": true
     }
   ],
-
+  // Run every 15 minutes to check for auto-renew sets
+  "triggers": {
+    "crons": ["*/15 * * * *"]
+  }
 }

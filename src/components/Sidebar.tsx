@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import {
   Input,
   Button,
+  Body1,
   Body2,
   Title3,
   Spinner,
@@ -13,6 +14,7 @@ import {
   MenuList,
   MenuItem,
   Select,
+  Switch,
   Tooltip,
   OverlayDrawer,
   DrawerHeader,
@@ -25,6 +27,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Caption1,
   makeStyles,
   tokens,
   mergeClasses,
@@ -152,7 +155,9 @@ type Props = {
   onAddSet: (name: string) => Promise<void>;
   onDeleteSet: (id: string) => void;
   onRenameSet: (id: string, name: string) => void;
+  onUpdateSet: (id: string, patch: Partial<TodoSet>) => void;
   onReorderSets: (items: { id: string; sortOrder: number }[]) => void;
+  defaultTimezone: string;
   user: { displayName?: string; username: string; avatarUrl?: string } | null;
   onLogout: () => void;
 };
@@ -175,7 +180,9 @@ export function Sidebar({
   onAddSet,
   onDeleteSet,
   onRenameSet,
+  onUpdateSet,
   onReorderSets,
+  defaultTimezone,
   user,
   onLogout,
 }: Props) {
@@ -188,6 +195,10 @@ export function Sidebar({
   const [showAddSet, setShowAddSet] = useState(false);
   const [renameSetId, setRenameSetId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+
+  // Set settings dialog
+  const [settingsSetId, setSettingsSetId] = useState<string | null>(null);
+  const settingsSet = settingsSetId ? sets.find((s) => s.id === settingsSetId) : null;
 
   // Drag state
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -282,6 +293,12 @@ export function Sidebar({
                     }}
                   >
                     {t.rename}
+                  </MenuItem>
+                  <MenuItem
+                    icon={<Settings24Regular />}
+                    onClick={() => setSettingsSetId(s.id)}
+                  >
+                    {t.sidebarSetSettings}
                   </MenuItem>
                   <MenuItem
                     icon={<Delete24Regular />}
@@ -449,6 +466,79 @@ export function Sidebar({
     </Dialog>
   );
 
+  const setSettingsDialog = (
+    <Dialog
+      open={settingsSetId !== null}
+      onOpenChange={(_, d) => {
+        if (!d.open) setSettingsSetId(null);
+      }}
+    >
+      <DialogSurface>
+        <DialogBody>
+          <DialogTitle>{t.sidebarSetSettings}</DialogTitle>
+          <DialogContent>
+            {settingsSet && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div>
+                  <Switch
+                    label={t.setAutoRenew}
+                    checked={settingsSet.autoRenew}
+                    onChange={(_, d) =>
+                      onUpdateSet(settingsSet.id, { autoRenew: d.checked })
+                    }
+                  />
+                  <Caption1 style={{ color: tokens.colorNeutralForeground4, display: "block", marginTop: 4 }}>
+                    {t.setAutoRenewHint}
+                  </Caption1>
+                </div>
+
+                {settingsSet.autoRenew && (
+                  <div>
+                    <Body1 style={{ fontWeight: 600, marginBottom: 4 }}>{t.setRenewTime}</Body1>
+                    <Input
+                      type="time"
+                      value={settingsSet.renewTime}
+                      onChange={(_, d) =>
+                        onUpdateSet(settingsSet.id, { renewTime: d.value })
+                      }
+                      style={{ width: 140 }}
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <Body1 style={{ fontWeight: 600, marginBottom: 4 }}>{t.setTimezone}</Body1>
+                  <Input
+                    value={settingsSet.timezone}
+                    onChange={(_, d) =>
+                      onUpdateSet(settingsSet.id, { timezone: d.value })
+                    }
+                    placeholder={defaultTimezone || "UTC"}
+                  />
+                  <Caption1 style={{ color: tokens.colorNeutralForeground4, display: "block", marginTop: 4 }}>
+                    {t.setTimezoneHint}
+                  </Caption1>
+                </div>
+
+                {settingsSet.lastRenewedAt && (
+                  <div>
+                    <Body1 style={{ fontWeight: 600, marginBottom: 4 }}>{t.setLastRenewed}</Body1>
+                    <Body2>{new Date(settingsSet.lastRenewedAt).toLocaleString()}</Body2>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <DialogTrigger disableButtonEnhancement>
+              <Button appearance="secondary">{t.close}</Button>
+            </DialogTrigger>
+          </DialogActions>
+        </DialogBody>
+      </DialogSurface>
+    </Dialog>
+  );
+
   if (isMobile) {
     return (
       <>
@@ -517,6 +607,7 @@ export function Sidebar({
           </DrawerBody>
         </OverlayDrawer>
         {renameDialog}
+        {setSettingsDialog}
       </>
     );
   }
