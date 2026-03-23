@@ -96,6 +96,19 @@ const zh: typeof en = {
   sidebarSetSettings: "分组设置",
   sidebarSettings: "设置",
 
+  // Share
+  shareSet: "分享分组",
+  shareDialogTitle: "分享分组",
+  shareDialogDesc: "拥有此链接的任何人都可以查看和编辑此分组中的任务。",
+  shareCopyLink: "复制链接",
+  shareCopied: "已复制！",
+  shareCreate: "创建分享链接",
+  shareRemove: "移除分享链接",
+  shareNoLink: "还没有分享链接。创建一个来分享此分组。",
+  sharedPageTitle: "共享分组",
+  sharedNotFound: "分享链接未找到或已被移除。",
+  sharedGoHome: "前往 Glint",
+
   // Set settings
   setAutoRenew: "每日自动续期",
   setAutoRenewHint: "每天在指定时间将所有已完成的待办事项重置为未完成。",

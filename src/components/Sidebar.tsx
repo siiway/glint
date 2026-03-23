@@ -41,6 +41,7 @@ import {
   Folder24Regular,
   MoreVertical24Regular,
   Settings24Regular,
+  Share24Regular,
 } from "@fluentui/react-icons";
 import type { TodoSet } from "../types";
 import { ROLE_COLORS } from "../types";
@@ -151,6 +152,7 @@ type Props = {
   siteName: string;
   siteLogo: string;
   canManageSettings: boolean;
+  canManageSets: boolean;
   onOpenSettings: () => void;
   onAddSet: (name: string) => Promise<void>;
   onDeleteSet: (id: string) => void;
@@ -176,6 +178,7 @@ export function Sidebar({
   siteName,
   siteLogo,
   canManageSettings,
+  canManageSets,
   onOpenSettings,
   onAddSet,
   onDeleteSet,
@@ -201,6 +204,12 @@ export function Sidebar({
   const settingsSet = settingsSetId
     ? sets.find((s) => s.id === settingsSetId)
     : null;
+
+  // Share dialog
+  const [shareSetId, setShareSetId] = useState<string | null>(null);
+  const [shareToken, setShareToken] = useState<string | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   // Drag state
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -302,6 +311,26 @@ export function Sidebar({
                   >
                     {t.sidebarSetSettings}
                   </MenuItem>
+                  {canManageSets && (
+                    <MenuItem
+                      icon={<Share24Regular />}
+                      onClick={() => {
+                        setShareSetId(s.id);
+                        setShareToken(null);
+                        setShareLoading(true);
+                        setShareCopied(false);
+                        fetch(`/api/teams/${selectedTeamId}/sets/${s.id}/share`)
+                          .then((r) => r.json())
+                          .then((data: { share: { token: string } | null }) => {
+                            setShareToken(data.share?.token ?? null);
+                          })
+                          .catch(() => {})
+                          .finally(() => setShareLoading(false));
+                      }}
+                    >
+                      {t.shareSet}
+                    </MenuItem>
+                  )}
                   <MenuItem
                     icon={<Delete24Regular />}
                     onClick={() => onDeleteSet(s.id)}
@@ -563,6 +592,97 @@ export function Sidebar({
     </Dialog>
   );
 
+  const shareDialog = (
+    <Dialog
+      open={shareSetId !== null}
+      onOpenChange={(_, d) => {
+        if (!d.open) setShareSetId(null);
+      }}
+    >
+      <DialogSurface>
+        <DialogBody>
+          <DialogTitle>{t.shareDialogTitle}</DialogTitle>
+          <DialogContent>
+            {shareLoading ? (
+              <Spinner size="small" />
+            ) : shareToken ? (
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 12 }}
+              >
+                <Caption1 style={{ color: tokens.colorNeutralForeground4 }}>
+                  {t.shareDialogDesc}
+                </Caption1>
+                <Input
+                  readOnly
+                  value={`${window.location.origin}/shared/${shareToken}`}
+                  style={{ width: "100%" }}
+                />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Button
+                    appearance="primary"
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        `${window.location.origin}/shared/${shareToken}`,
+                      );
+                      setShareCopied(true);
+                      setTimeout(() => setShareCopied(false), 2000);
+                    }}
+                  >
+                    {shareCopied ? t.shareCopied : t.shareCopyLink}
+                  </Button>
+                  <Button
+                    appearance="secondary"
+                    onClick={async () => {
+                      if (!shareSetId) return;
+                      setShareLoading(true);
+                      await fetch(
+                        `/api/teams/${selectedTeamId}/sets/${shareSetId}/share`,
+                        { method: "DELETE" },
+                      );
+                      setShareToken(null);
+                      setShareLoading(false);
+                    }}
+                  >
+                    {t.shareRemove}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 12 }}
+              >
+                <Body1>{t.shareNoLink}</Body1>
+                <Button
+                  appearance="primary"
+                  onClick={async () => {
+                    if (!shareSetId) return;
+                    setShareLoading(true);
+                    const res = await fetch(
+                      `/api/teams/${selectedTeamId}/sets/${shareSetId}/share`,
+                      { method: "POST" },
+                    );
+                    if (res.ok) {
+                      const data: { token: string } = await res.json();
+                      setShareToken(data.token);
+                    }
+                    setShareLoading(false);
+                  }}
+                >
+                  {t.shareCreate}
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <DialogTrigger disableButtonEnhancement>
+              <Button appearance="secondary">{t.close}</Button>
+            </DialogTrigger>
+          </DialogActions>
+        </DialogBody>
+      </DialogSurface>
+    </Dialog>
+  );
+
   if (isMobile) {
     return (
       <>
@@ -632,6 +752,7 @@ export function Sidebar({
         </OverlayDrawer>
         {renameDialog}
         {setSettingsDialog}
+        {shareDialog}
       </>
     );
   }
@@ -673,6 +794,8 @@ export function Sidebar({
         {renderUserFooter()}
       </div>
       {renameDialog}
+      {setSettingsDialog}
+      {shareDialog}
     </>
   );
 }

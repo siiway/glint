@@ -11,6 +11,7 @@ import { PageLayout } from "./components/PageLayout";
 import { InitPage } from "./components/InitPage";
 import { LoginPage } from "./components/LoginPage";
 import { TodoPage } from "./components/TodoPage";
+import { SharedPage } from "./components/SharedPage";
 
 function useColorScheme() {
   const [dark, setDark] = useState(
@@ -38,10 +39,35 @@ function useInitStatus() {
   return { configured, markConfigured: () => setConfigured(true) };
 }
 
+function useSharedToken(): string | null {
+  const [token, setToken] = useState<string | null>(() => {
+    const match = window.location.pathname.match(/^\/shared\/([a-f0-9]+)$/);
+    return match ? match[1] : null;
+  });
+  useEffect(() => {
+    const handler = () => {
+      const match = window.location.pathname.match(/^\/shared\/([a-f0-9]+)$/);
+      setToken(match ? match[1] : null);
+    };
+    window.addEventListener("popstate", handler);
+    return () => window.removeEventListener("popstate", handler);
+  }, []);
+  return token;
+}
+
 function AppContent() {
   const { user, loading } = useAuth();
   const { configured, markConfigured } = useInitStatus();
   const { t } = useI18n();
+  const sharedToken = useSharedToken();
+
+  if (sharedToken) {
+    return (
+      <PageLayout>
+        <SharedPage token={sharedToken} />
+      </PageLayout>
+    );
+  }
 
   if (loading || configured === null) {
     return (

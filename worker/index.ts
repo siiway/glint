@@ -9,6 +9,7 @@ import permissionsRoutes from "./routes/permissions";
 import setsRoutes from "./routes/sets";
 import todosRoutes from "./routes/todos";
 import commentsRoutes from "./routes/comments";
+import sharesRoutes from "./routes/shares";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -19,6 +20,7 @@ app.route("/", permissionsRoutes);
 app.route("/", setsRoutes);
 app.route("/", todosRoutes);
 app.route("/", commentsRoutes);
+app.route("/", sharesRoutes);
 
 export default {
   fetch: app.fetch,

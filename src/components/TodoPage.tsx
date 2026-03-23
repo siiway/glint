@@ -955,6 +955,7 @@ export function TodoPage() {
           siteName={siteName}
           siteLogo={siteLogo}
           canManageSettings={hasPerm("manage_settings")}
+          canManageSets={hasPerm("manage_sets")}
           onOpenSettings={() => setShowSettings(true)}
           onAddSet={handleAddSet}
           onDeleteSet={handleDeleteSet}

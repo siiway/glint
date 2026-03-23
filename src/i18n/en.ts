@@ -97,6 +97,19 @@ export default {
   sidebarSetSettings: "Set Settings",
   sidebarSettings: "Settings",
 
+  // Share
+  shareSet: "Share Set",
+  shareDialogTitle: "Share Set",
+  shareDialogDesc: "Anyone with this link can view and edit todos in this set.",
+  shareCopyLink: "Copy Link",
+  shareCopied: "Copied!",
+  shareCreate: "Create Share Link",
+  shareRemove: "Remove Share Link",
+  shareNoLink: "No share link yet. Create one to share this set.",
+  sharedPageTitle: "Shared Set",
+  sharedNotFound: "Share link not found or has been removed.",
+  sharedGoHome: "Go to Glint",
+
   // Set settings
   setAutoRenew: "Auto-renew daily",
   setAutoRenewHint:
