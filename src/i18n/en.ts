@@ -146,6 +146,20 @@ export default {
   shareBadgeCopyUrl: "Copy Image URL",
   shareBadgeAutoColor: "auto (by progress)",
 
+  // Todo List embed
+  shareTodoList: "Todo List",
+  shareTodoListDesc: "Embed a live checklist image in your README.",
+  shareTodoListTheme: "Theme",
+  shareTodoListWidth: "Width",
+  shareTodoListFontSize: "Font Size",
+  shareTodoListMaxItems: "Max Items",
+  shareTodoListShowProgress: "Show progress",
+  shareTodoListBgColor: "Background",
+  shareTodoListTextColor: "Text Color",
+  shareTodoListCheckColor: "Check Color",
+  shareTodoListBorderColor: "Border Color",
+  shareTodoListTitle: "Title",
+
   // Settings - Share Links tab
   settingsTabShareLinks: "Share Links",
   settingsShareLinksTitle: "All Share Links",

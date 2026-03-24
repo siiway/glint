@@ -2,7 +2,12 @@ import { Hono } from "hono";
 import type { Bindings, Variables } from "../types";
 import { requireAuth, getTeamRole } from "../auth";
 import { hasPermission } from "../permissions";
-import { renderBadge, progressColor } from "../badge";
+import {
+  renderBadge,
+  progressColor,
+  renderTodoList,
+  type TodoItem,
+} from "../badge";
 
 const shares = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -633,6 +638,111 @@ shares.get("/api/shared/:token/badge.svg", async (c) => {
   const message = q.message ?? `${done}/${total}`;
 
   const svg = renderBadge({ label, message, color, labelColor, style });
+
+  return c.body(svg, 200, {
+    "Content-Type": "image/svg+xml",
+    "Cache-Control": "public, max-age=60, s-maxage=60",
+  });
+});
+
+// ─── Todo-list SVG endpoint ──────────────────────────────────────────────────
+
+shares.get("/api/shared/:token/todo-list.svg", async (c) => {
+  const token = c.req.param("token");
+  const link = await resolveShareToken(c.env.DB, token);
+  if (!link) {
+    const svg = renderTodoList({
+      title: "Not found",
+      todos: [],
+      showProgress: false,
+    });
+    return c.body(svg, 404, {
+      "Content-Type": "image/svg+xml",
+      "Cache-Control": "no-cache",
+    });
+  }
+
+  const set = await c.env.DB.prepare(
+    "SELECT name FROM todo_sets WHERE id = ? AND team_id = ?",
+  )
+    .bind(link.set_id, link.team_id)
+    .first<{ name: string }>();
+
+  if (!set) {
+    const svg = renderTodoList({
+      title: "Not found",
+      todos: [],
+      showProgress: false,
+    });
+    return c.body(svg, 404, {
+      "Content-Type": "image/svg+xml",
+      "Cache-Control": "no-cache",
+    });
+  }
+
+  const result = await c.env.DB.prepare(
+    "SELECT id, parent_id, title, completed, sort_order FROM todos WHERE set_id = ? AND team_id = ? ORDER BY sort_order ASC, created_at ASC",
+  )
+    .bind(link.set_id, link.team_id)
+    .all();
+
+  // Build tree with depth
+  const rows = result.results as {
+    id: string;
+    parent_id: string | null;
+    title: string;
+    completed: number;
+    sort_order: number;
+  }[];
+
+  const childrenMap = new Map<string | null, typeof rows>();
+  for (const row of rows) {
+    const pid = row.parent_id ?? null;
+    if (!childrenMap.has(pid)) childrenMap.set(pid, []);
+    childrenMap.get(pid)!.push(row);
+  }
+
+  const todos: TodoItem[] = [];
+  function walk(parentId: string | null, depth: number) {
+    const children = childrenMap.get(parentId) ?? [];
+    for (const row of children) {
+      todos.push({
+        title: row.title,
+        completed: row.completed === 1,
+        depth,
+      });
+      walk(row.id, depth + 1);
+    }
+  }
+  walk(null, 0);
+
+  const q = c.req.query();
+  const theme = q.theme === "dark" ? "dark" : "light";
+  const width = q.width
+    ? Math.min(Math.max(parseInt(q.width, 10), 200), 1000)
+    : undefined;
+  const fontSize = q.fontSize
+    ? Math.min(Math.max(parseInt(q.fontSize, 10), 10), 24)
+    : undefined;
+  const maxItems = q.maxItems
+    ? Math.min(Math.max(parseInt(q.maxItems, 10), 1), 100)
+    : undefined;
+  const showProgress = q.showProgress !== "false";
+  const title = q.title ?? set.name;
+
+  const svg = renderTodoList({
+    title: title || undefined,
+    todos,
+    theme,
+    bgColor: q.bgColor || undefined,
+    textColor: q.textColor || undefined,
+    checkColor: q.checkColor || undefined,
+    borderColor: q.borderColor || undefined,
+    fontSize,
+    showProgress,
+    maxItems,
+    width,
+  });
 
   return c.body(svg, 200, {
     "Content-Type": "image/svg+xml",

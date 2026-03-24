@@ -144,6 +144,20 @@ const zh: typeof en = {
   shareBadgeCopyUrl: "复制图片 URL",
   shareBadgeAutoColor: "自动（按进度）",
 
+  // Todo List embed
+  shareTodoList: "待办清单",
+  shareTodoListDesc: "在 README 中嵌入实时清单图片。",
+  shareTodoListTheme: "主题",
+  shareTodoListWidth: "宽度",
+  shareTodoListFontSize: "字号",
+  shareTodoListMaxItems: "最大条数",
+  shareTodoListShowProgress: "显示进度",
+  shareTodoListBgColor: "背景色",
+  shareTodoListTextColor: "文字颜色",
+  shareTodoListCheckColor: "勾选颜色",
+  shareTodoListBorderColor: "边框颜色",
+  shareTodoListTitle: "标题",
+
   // Settings - Share Links tab
   settingsTabShareLinks: "分享链接",
   settingsShareLinksTitle: "所有分享链接",
