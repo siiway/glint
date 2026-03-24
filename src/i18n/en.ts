@@ -97,18 +97,65 @@ export default {
   sidebarSetSettings: "Set Settings",
   sidebarSettings: "Settings",
 
-  // Share
-  shareSet: "Share Set",
-  shareDialogTitle: "Share Set",
-  shareDialogDesc: "Anyone with this link can view and edit todos in this set.",
+  // Share links
+  shareManageLinks: "Manage Links",
   shareCopyLink: "Copy Link",
   shareCopied: "Copied!",
-  shareCreate: "Create Share Link",
-  shareRemove: "Remove Share Link",
-  shareNoLink: "No share link yet. Create one to share this set.",
-  sharedPageTitle: "Shared Set",
   sharedNotFound: "Share link not found or has been removed.",
   sharedGoHome: "Go to Glint",
+
+  // Share link email gate
+  sharedEmailRequired: "Email required",
+  sharedEmailHint: "This link is restricted. Enter your email to continue.",
+  sharedEmailDenied: "Your email does not have access to this link.",
+  sharedEmailSubmit: "Continue",
+
+  // Manage links dialog
+  linksDialogTitle: "Share Links",
+  linksDialogDesc:
+    "Create links to share this set. Each link has its own permissions.",
+  linksEmpty: "No share links yet.",
+  linksCreateNew: "New Link",
+  linksLinkName: "Link name",
+  linksLinkNamePlaceholder: "e.g. Read-only for stakeholders",
+  linksAllowedEmails: "Restrict to emails",
+  linksAllowedEmailsPlaceholder: "a@x.com, b@x.com (empty = public)",
+  linksPermView: "View",
+  linksPermCreate: "Create",
+  linksPermEdit: "Edit",
+  linksPermComplete: "Complete",
+  linksPermDelete: "Delete",
+  linksPermComment: "Comment",
+  linksPermReorder: "Reorder",
+  linksReadOnly: "Read-only",
+  linksFullAccess: "Full access",
+  linksCustom: "Custom",
+  linksSave: "Save",
+  linksDelete: "Delete link",
+  linksDeleteConfirm: "Are you sure? Anyone using this link will lose access.",
+
+  // Badge
+  shareBadge: "Badge",
+  shareBadgeDesc: "Embed in your README to show live progress.",
+  shareBadgeStyle: "Style",
+  shareBadgeLabel: "Label",
+  shareBadgeColor: "Color",
+  shareBadgeLabelColor: "Label Color",
+  shareBadgePreview: "Preview",
+  shareBadgeCopyMarkdown: "Copy Markdown",
+  shareBadgeCopyUrl: "Copy Image URL",
+  shareBadgeAutoColor: "auto (by progress)",
+
+  // Settings - Share Links tab
+  settingsTabShareLinks: "Share Links",
+  settingsShareLinksTitle: "All Share Links",
+  settingsShareLinksDesc:
+    "Manage all share links across all sets in this team.",
+  settingsShareLinksSet: "Set",
+  settingsShareLinksName: "Name",
+  settingsShareLinksPermissions: "Permissions",
+  settingsShareLinksRestricted: "Restricted",
+  settingsShareLinksPublic: "Public",
 
   // Set settings
   setAutoRenew: "Auto-renew daily",

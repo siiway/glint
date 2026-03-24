@@ -37,8 +37,9 @@ import {
   Dismiss24Regular,
   AddCircle24Regular,
   MoreVertical24Regular,
+  LockClosed24Regular,
 } from "@fluentui/react-icons";
-import type { Todo } from "../types";
+import type { Todo, ShareLinkPermissions } from "../types";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { useI18n } from "../i18n";
 
@@ -144,6 +145,15 @@ const useStyles = makeStyles({
     padding: "48px 0",
     color: tokens.colorNeutralForeground4,
   },
+  emailGate: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    height: "100%",
+    gap: "16px",
+    padding: "24px",
+  },
 });
 
 type Props = {
@@ -157,6 +167,15 @@ export function SharedPage({ token }: Props) {
 
   const [setName, setSetName] = useState("");
   const [todos, setTodos] = useState<Todo[]>([]);
+  const [perms, setPerms] = useState<ShareLinkPermissions>({
+    canView: true,
+    canCreate: false,
+    canEdit: false,
+    canComplete: false,
+    canDelete: false,
+    canComment: false,
+    canReorder: false,
+  });
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -167,31 +186,61 @@ export function SharedPage({ token }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
 
+  // Email gate
+  const [requiresEmail, setRequiresEmail] = useState(false);
+  const [email, setEmail] = useState("");
+  const [emailSubmitted, setEmailSubmitted] = useState(false);
+  const [emailError, setEmailError] = useState(false);
+
   // Drag state
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragCounter = useRef(0);
-  const canDrag = !isMobile;
+  const canDrag = !isMobile && perms.canReorder;
 
   const apiBase = `/api/shared/${token}`;
+  const emailParam = emailSubmitted ? email : "";
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(apiBase);
+      const qs = emailParam ? `?email=${encodeURIComponent(emailParam)}` : "";
+      const res = await fetch(`${apiBase}${qs}`);
+      if (res.status === 404) {
+        setNotFound(true);
+        return;
+      }
+      if (res.status === 403) {
+        const data = await res.json();
+        if (data.requiresEmail) {
+          setRequiresEmail(true);
+          setEmailError(emailSubmitted);
+          setLoading(false);
+          return;
+        }
+        setNotFound(true);
+        return;
+      }
       if (!res.ok) {
         setNotFound(true);
         return;
       }
-      const data: { set: { name: string }; todos: Todo[] } = await res.json();
+      const data: {
+        set: { name: string };
+        todos: Todo[];
+        permissions: ShareLinkPermissions;
+        requiresEmail: boolean;
+      } = await res.json();
       setSetName(data.set.name);
       setTodos(data.todos);
+      setPerms(data.permissions);
+      setRequiresEmail(false);
     } catch {
       setNotFound(true);
     } finally {
       setLoading(false);
     }
-  }, [apiBase]);
+  }, [apiBase, emailParam, emailSubmitted]);
 
   useEffect(() => {
     fetchData();
@@ -216,7 +265,11 @@ export function SharedPage({ token }: Props) {
     const res = await fetch(`${apiBase}/todos`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, parentId: parentId ?? undefined }),
+      body: JSON.stringify({
+        title,
+        parentId: parentId ?? undefined,
+        email: emailParam || undefined,
+      }),
     });
     if (res.ok) {
       const data: { todo: Todo } = await res.json();
@@ -238,7 +291,7 @@ export function SharedPage({ token }: Props) {
     await fetch(`${apiBase}/todos/${todo.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed }),
+      body: JSON.stringify({ completed, email: emailParam || undefined }),
     });
   };
 
@@ -250,7 +303,8 @@ export function SharedPage({ token }: Props) {
     };
     collect(id);
     setTodos((prev) => prev.filter((t) => !toRemove.has(t.id)));
-    await fetch(`${apiBase}/todos/${id}`, { method: "DELETE" });
+    const qs = emailParam ? `?email=${encodeURIComponent(emailParam)}` : "";
+    await fetch(`${apiBase}/todos/${id}${qs}`, { method: "DELETE" });
   };
 
   const saveEdit = async (todoId: string) => {
@@ -264,7 +318,10 @@ export function SharedPage({ token }: Props) {
     await fetch(`${apiBase}/todos/${todoId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: editTitle.trim() }),
+      body: JSON.stringify({
+        title: editTitle.trim(),
+        email: emailParam || undefined,
+      }),
     });
   };
 
@@ -303,7 +360,7 @@ export function SharedPage({ token }: Props) {
     await fetch(`${apiBase}/todos/reorder`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ items, email: emailParam || undefined }),
     });
   };
   const handleDragEnd = () => {
@@ -378,6 +435,7 @@ export function SharedPage({ token }: Props) {
           <Checkbox
             checked={todo.completed}
             onChange={() => toggleTodo(todo)}
+            disabled={!perms.canComplete}
           />
 
           <div className={styles.todoContent}>
@@ -419,62 +477,74 @@ export function SharedPage({ token }: Props) {
             )}
           </div>
 
-          {!isEditing && (
-            <Menu>
-              <MenuTrigger disableButtonEnhancement>
-                <Button
-                  appearance="transparent"
-                  size="small"
-                  icon={<MoreVertical24Regular />}
-                />
-              </MenuTrigger>
-              <MenuPopover>
-                <MenuList>
-                  <MenuItem
-                    icon={<AddCircle24Regular />}
-                    onClick={() => {
-                      setAddingSubFor(todo.id);
-                      setSubTitle("");
-                    }}
-                  >
-                    {t.actionAddSubTodo}
-                  </MenuItem>
-                  <MenuItem
-                    icon={<Edit24Regular />}
-                    onClick={() => {
-                      setEditingId(todo.id);
-                      setEditTitle(todo.title);
-                    }}
-                  >
-                    {t.edit}
-                  </MenuItem>
-                  <MenuItem
-                    icon={
-                      todo.completed ? (
-                        <Circle24Regular />
-                      ) : (
-                        <CheckmarkCircle24Regular />
-                      )
-                    }
-                    onClick={() => toggleTodo(todo)}
-                  >
-                    {todo.completed
-                      ? t.actionMarkIncomplete
-                      : t.actionMarkComplete}
-                  </MenuItem>
-                  <MenuItem
-                    icon={<Delete24Regular />}
-                    onClick={() => deleteTodo(todo.id)}
-                  >
-                    {t.delete}
-                  </MenuItem>
-                </MenuList>
-              </MenuPopover>
-            </Menu>
-          )}
+          {!isEditing &&
+            (perms.canCreate ||
+              perms.canEdit ||
+              perms.canComplete ||
+              perms.canDelete) && (
+              <Menu>
+                <MenuTrigger disableButtonEnhancement>
+                  <Button
+                    appearance="transparent"
+                    size="small"
+                    icon={<MoreVertical24Regular />}
+                  />
+                </MenuTrigger>
+                <MenuPopover>
+                  <MenuList>
+                    {perms.canCreate && (
+                      <MenuItem
+                        icon={<AddCircle24Regular />}
+                        onClick={() => {
+                          setAddingSubFor(todo.id);
+                          setSubTitle("");
+                        }}
+                      >
+                        {t.actionAddSubTodo}
+                      </MenuItem>
+                    )}
+                    {perms.canEdit && (
+                      <MenuItem
+                        icon={<Edit24Regular />}
+                        onClick={() => {
+                          setEditingId(todo.id);
+                          setEditTitle(todo.title);
+                        }}
+                      >
+                        {t.edit}
+                      </MenuItem>
+                    )}
+                    {perms.canComplete && (
+                      <MenuItem
+                        icon={
+                          todo.completed ? (
+                            <Circle24Regular />
+                          ) : (
+                            <CheckmarkCircle24Regular />
+                          )
+                        }
+                        onClick={() => toggleTodo(todo)}
+                      >
+                        {todo.completed
+                          ? t.actionMarkIncomplete
+                          : t.actionMarkComplete}
+                      </MenuItem>
+                    )}
+                    {perms.canDelete && (
+                      <MenuItem
+                        icon={<Delete24Regular />}
+                        onClick={() => deleteTodo(todo.id)}
+                      >
+                        {t.delete}
+                      </MenuItem>
+                    )}
+                  </MenuList>
+                </MenuPopover>
+              </Menu>
+            )}
         </div>
 
-        {addingSubFor === todo.id && (
+        {addingSubFor === todo.id && perms.canCreate && (
           <div className={isMobile ? styles.subTodosMobile : styles.subTodos}>
             <div className={styles.inputRow}>
               <Input
@@ -556,6 +626,46 @@ export function SharedPage({ token }: Props) {
     );
   }
 
+  if (requiresEmail && !emailSubmitted) {
+    return (
+      <div className={styles.layout}>
+        <div className={styles.emailGate}>
+          <LockClosed24Regular style={{ fontSize: 48 }} />
+          <Subtitle2>{t.sharedEmailRequired}</Subtitle2>
+          <Body1>{t.sharedEmailHint}</Body1>
+          {emailError && (
+            <Body1 style={{ color: tokens.colorPaletteRedForeground1 }}>
+              {t.sharedEmailDenied}
+            </Body1>
+          )}
+          <div
+            style={{ display: "flex", gap: 8, width: "100%", maxWidth: 360 }}
+          >
+            <Input
+              className={styles.inputFlex}
+              placeholder="you@example.com"
+              value={email}
+              type="email"
+              onChange={(_, d) => setEmail(d.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && email.trim()) {
+                  setEmailSubmitted(true);
+                }
+              }}
+            />
+            <Button
+              appearance="primary"
+              disabled={!email.trim()}
+              onClick={() => setEmailSubmitted(true)}
+            >
+              {t.sharedEmailSubmit}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.layout}>
       <div
@@ -593,24 +703,26 @@ export function SharedPage({ token }: Props) {
           isMobile && styles.contentMobile,
         )}
       >
-        <div className={styles.inputRow}>
-          <Input
-            className={styles.inputFlex}
-            placeholder={t.todoPlaceholder}
-            value={newTitle}
-            onChange={(_, d) => setNewTitle(d.value)}
-            onKeyDown={(e) => e.key === "Enter" && addTodo()}
-            disabled={adding}
-          />
-          <Button
-            appearance="primary"
-            icon={<Add24Regular />}
-            onClick={() => addTodo()}
-            disabled={!newTitle.trim() || adding}
-          >
-            {isMobile ? undefined : t.add}
-          </Button>
-        </div>
+        {perms.canCreate && (
+          <div className={styles.inputRow}>
+            <Input
+              className={styles.inputFlex}
+              placeholder={t.todoPlaceholder}
+              value={newTitle}
+              onChange={(_, d) => setNewTitle(d.value)}
+              onKeyDown={(e) => e.key === "Enter" && addTodo()}
+              disabled={adding}
+            />
+            <Button
+              appearance="primary"
+              icon={<Add24Regular />}
+              onClick={() => addTodo()}
+              disabled={!newTitle.trim() || adding}
+            >
+              {isMobile ? undefined : t.add}
+            </Button>
+          </div>
+        )}
 
         {rootTodos.length === 0 ? (
           <div className={styles.empty}>

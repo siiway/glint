@@ -2,68 +2,102 @@ import { Hono } from "hono";
 import type { Bindings, Variables } from "../types";
 import { requireAuth, getTeamRole } from "../auth";
 import { hasPermission } from "../permissions";
+import { renderBadge, progressColor } from "../badge";
 
 const shares = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-// ─── Authenticated endpoints (manage share links) ────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-shares.get("/api/teams/:teamId/sets/:setId/share", requireAuth, async (c) => {
+type ShareRow = {
+  id: string;
+  set_id: string;
+  team_id: string;
+  token: string;
+  name: string;
+  can_view: number;
+  can_create: number;
+  can_edit: number;
+  can_complete: number;
+  can_delete: number;
+  can_comment: number;
+  can_reorder: number;
+  allowed_emails: string;
+  created_by: string;
+  created_at: string;
+};
+
+function mapShareRow(r: ShareRow, setName?: string) {
+  return {
+    id: r.id,
+    setId: r.set_id,
+    setName,
+    token: r.token,
+    name: r.name,
+    canView: r.can_view === 1,
+    canCreate: r.can_create === 1,
+    canEdit: r.can_edit === 1,
+    canComplete: r.can_complete === 1,
+    canDelete: r.can_delete === 1,
+    canComment: r.can_comment === 1,
+    canReorder: r.can_reorder === 1,
+    allowedEmails: r.allowed_emails,
+    createdBy: r.created_by,
+    createdAt: r.created_at,
+  };
+}
+
+// ─── Authenticated: list links for a set ─────────────────────────────────────
+
+shares.get(
+  "/api/teams/:teamId/sets/:setId/share-links",
+  requireAuth,
+  async (c) => {
+    const teamId = c.req.param("teamId");
+    const setId = c.req.param("setId");
+    const session = c.get("session");
+    const role = getTeamRole(session, teamId);
+    if (!role) return c.json({ error: "Not a member of this team" }, 403);
+
+    const result = await c.env.DB.prepare(
+      "SELECT * FROM share_links WHERE set_id = ? AND team_id = ? ORDER BY created_at ASC",
+    )
+      .bind(setId, teamId)
+      .all();
+
+    return c.json({
+      links: result.results.map((r) => mapShareRow(r as unknown as ShareRow)),
+    });
+  },
+);
+
+// ─── Authenticated: list ALL links for team (admin panel) ────────────────────
+
+shares.get("/api/teams/:teamId/share-links", requireAuth, async (c) => {
   const teamId = c.req.param("teamId");
-  const setId = c.req.param("setId");
   const session = c.get("session");
   const role = getTeamRole(session, teamId);
   if (!role) return c.json({ error: "Not a member of this team" }, 403);
 
-  const row = await c.env.DB.prepare(
-    "SELECT id, token, created_by, created_at FROM share_links WHERE set_id = ? AND team_id = ?",
+  const result = await c.env.DB.prepare(
+    `SELECT sl.*, ts.name as set_name FROM share_links sl
+     LEFT JOIN todo_sets ts ON sl.set_id = ts.id
+     WHERE sl.team_id = ? ORDER BY sl.created_at ASC`,
   )
-    .bind(setId, teamId)
-    .first<{
-      id: string;
-      token: string;
-      created_by: string;
-      created_at: string;
-    }>();
+    .bind(teamId)
+    .all();
 
-  return c.json({ share: row ?? null });
+  return c.json({
+    links: result.results.map((r) => {
+      const setName = r.set_name as string;
+      return mapShareRow(r as unknown as ShareRow, setName);
+    }),
+  });
 });
 
-shares.post("/api/teams/:teamId/sets/:setId/share", requireAuth, async (c) => {
-  const teamId = c.req.param("teamId");
-  const setId = c.req.param("setId");
-  const session = c.get("session");
-  const role = getTeamRole(session, teamId);
-  if (!role) return c.json({ error: "Not a member of this team" }, 403);
+// ─── Authenticated: create link ──────────────────────────────────────────────
 
-  if (!(await hasPermission(c.env.DB, teamId, role, "manage_sets"))) {
-    return c.json({ error: "No permission to manage sets" }, 403);
-  }
-
-  // Check if share link already exists
-  const existing = await c.env.DB.prepare(
-    "SELECT token FROM share_links WHERE set_id = ? AND team_id = ?",
-  )
-    .bind(setId, teamId)
-    .first<{ token: string }>();
-
-  if (existing) {
-    return c.json({ token: existing.token });
-  }
-
-  const id = crypto.randomUUID();
-  const token = crypto.randomUUID().replace(/-/g, "");
-
-  await c.env.DB.prepare(
-    "INSERT INTO share_links (id, set_id, team_id, token, created_by) VALUES (?, ?, ?, ?, ?)",
-  )
-    .bind(id, setId, teamId, token, session.userId)
-    .run();
-
-  return c.json({ token }, 201);
-});
-
-shares.delete(
-  "/api/teams/:teamId/sets/:setId/share",
+shares.post(
+  "/api/teams/:teamId/sets/:setId/share-links",
   requireAuth,
   async (c) => {
     const teamId = c.req.param("teamId");
@@ -76,32 +110,223 @@ shares.delete(
       return c.json({ error: "No permission to manage sets" }, 403);
     }
 
+    const body = await c.req.json<{
+      name?: string;
+      canView?: boolean;
+      canCreate?: boolean;
+      canEdit?: boolean;
+      canComplete?: boolean;
+      canDelete?: boolean;
+      canComment?: boolean;
+      canReorder?: boolean;
+      allowedEmails?: string;
+    }>();
+
+    const id = crypto.randomUUID();
+    const token = crypto.randomUUID().replace(/-/g, "");
+
     await c.env.DB.prepare(
-      "DELETE FROM share_links WHERE set_id = ? AND team_id = ?",
+      `INSERT INTO share_links (id, set_id, team_id, token, name, can_view, can_create, can_edit, can_complete, can_delete, can_comment, can_reorder, allowed_emails, created_by, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
     )
-      .bind(setId, teamId)
+      .bind(
+        id,
+        setId,
+        teamId,
+        token,
+        body.name ?? "",
+        body.canView !== false ? 1 : 0,
+        body.canCreate ? 1 : 0,
+        body.canEdit ? 1 : 0,
+        body.canComplete ? 1 : 0,
+        body.canDelete ? 1 : 0,
+        body.canComment ? 1 : 0,
+        body.canReorder ? 1 : 0,
+        body.allowedEmails ?? "",
+        session.userId,
+      )
+      .run();
+
+    return c.json(
+      {
+        link: {
+          id,
+          setId,
+          token,
+          name: body.name ?? "",
+          canView: body.canView !== false,
+          canCreate: body.canCreate ?? false,
+          canEdit: body.canEdit ?? false,
+          canComplete: body.canComplete ?? false,
+          canDelete: body.canDelete ?? false,
+          canComment: body.canComment ?? false,
+          canReorder: body.canReorder ?? false,
+          allowedEmails: body.allowedEmails ?? "",
+          createdBy: session.userId,
+          createdAt: new Date().toISOString(),
+        },
+      },
+      201,
+    );
+  },
+);
+
+// ─── Authenticated: update link ──────────────────────────────────────────────
+
+shares.patch(
+  "/api/teams/:teamId/share-links/:linkId",
+  requireAuth,
+  async (c) => {
+    const teamId = c.req.param("teamId");
+    const linkId = c.req.param("linkId");
+    const session = c.get("session");
+    const role = getTeamRole(session, teamId);
+    if (!role) return c.json({ error: "Not a member of this team" }, 403);
+
+    if (!(await hasPermission(c.env.DB, teamId, role, "manage_sets"))) {
+      return c.json({ error: "No permission to manage sets" }, 403);
+    }
+
+    const body = await c.req.json<{
+      name?: string;
+      canView?: boolean;
+      canCreate?: boolean;
+      canEdit?: boolean;
+      canComplete?: boolean;
+      canDelete?: boolean;
+      canComment?: boolean;
+      canReorder?: boolean;
+      allowedEmails?: string;
+    }>();
+
+    const updates: string[] = [];
+    const values: (string | number)[] = [];
+
+    if (body.name !== undefined) {
+      updates.push("name = ?");
+      values.push(body.name);
+    }
+    if (body.canView !== undefined) {
+      updates.push("can_view = ?");
+      values.push(body.canView ? 1 : 0);
+    }
+    if (body.canCreate !== undefined) {
+      updates.push("can_create = ?");
+      values.push(body.canCreate ? 1 : 0);
+    }
+    if (body.canEdit !== undefined) {
+      updates.push("can_edit = ?");
+      values.push(body.canEdit ? 1 : 0);
+    }
+    if (body.canComplete !== undefined) {
+      updates.push("can_complete = ?");
+      values.push(body.canComplete ? 1 : 0);
+    }
+    if (body.canDelete !== undefined) {
+      updates.push("can_delete = ?");
+      values.push(body.canDelete ? 1 : 0);
+    }
+    if (body.canComment !== undefined) {
+      updates.push("can_comment = ?");
+      values.push(body.canComment ? 1 : 0);
+    }
+    if (body.canReorder !== undefined) {
+      updates.push("can_reorder = ?");
+      values.push(body.canReorder ? 1 : 0);
+    }
+    if (body.allowedEmails !== undefined) {
+      updates.push("allowed_emails = ?");
+      values.push(body.allowedEmails);
+    }
+
+    if (updates.length === 0) return c.json({ error: "No updates" }, 400);
+
+    updates.push("updated_at = datetime('now')");
+    values.push(linkId, teamId);
+
+    await c.env.DB.prepare(
+      `UPDATE share_links SET ${updates.join(", ")} WHERE id = ? AND team_id = ?`,
+    )
+      .bind(...values)
       .run();
 
     return c.json({ ok: true });
   },
 );
 
-// ─── Public endpoints (no auth required) ─────────────────────────────────────
+// ─── Authenticated: delete link ──────────────────────────────────────────────
+
+shares.delete(
+  "/api/teams/:teamId/share-links/:linkId",
+  requireAuth,
+  async (c) => {
+    const teamId = c.req.param("teamId");
+    const linkId = c.req.param("linkId");
+    const session = c.get("session");
+    const role = getTeamRole(session, teamId);
+    if (!role) return c.json({ error: "Not a member of this team" }, 403);
+
+    if (!(await hasPermission(c.env.DB, teamId, role, "manage_sets"))) {
+      return c.json({ error: "No permission to manage sets" }, 403);
+    }
+
+    await c.env.DB.prepare(
+      "DELETE FROM share_links WHERE id = ? AND team_id = ?",
+    )
+      .bind(linkId, teamId)
+      .run();
+
+    return c.json({ ok: true });
+  },
+);
+
+// ─── Public endpoints ────────────────────────────────────────────────────────
+
+type ResolvedLink = {
+  id: string;
+  set_id: string;
+  team_id: string;
+  can_view: number;
+  can_create: number;
+  can_edit: number;
+  can_complete: number;
+  can_delete: number;
+  can_comment: number;
+  can_reorder: number;
+  allowed_emails: string;
+};
 
 async function resolveShareToken(
   db: D1Database,
   token: string,
-): Promise<{ set_id: string; team_id: string } | null> {
+): Promise<ResolvedLink | null> {
   return db
-    .prepare("SELECT set_id, team_id FROM share_links WHERE token = ?")
+    .prepare(
+      "SELECT id, set_id, team_id, can_view, can_create, can_edit, can_complete, can_delete, can_comment, can_reorder, allowed_emails FROM share_links WHERE token = ?",
+    )
     .bind(token)
-    .first<{ set_id: string; team_id: string }>();
+    .first<ResolvedLink>();
+}
+
+function checkEmailAccess(link: ResolvedLink, email: string | null): boolean {
+  if (!link.allowed_emails) return true; // no restriction
+  if (!email) return false; // restriction exists but no email provided
+  const allowed = link.allowed_emails
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return allowed.includes(email.toLowerCase());
 }
 
 shares.get("/api/shared/:token", async (c) => {
   const token = c.req.param("token");
+  const email = c.req.query("email") ?? null;
   const link = await resolveShareToken(c.env.DB, token);
   if (!link) return c.json({ error: "Share link not found" }, 404);
+
+  if (!checkEmailAccess(link, email)) {
+    return c.json({ error: "Access denied", requiresEmail: true }, 403);
+  }
 
   const set = await c.env.DB.prepare(
     "SELECT id, name FROM todo_sets WHERE id = ? AND team_id = ?",
@@ -130,6 +355,16 @@ shares.get("/api/shared/:token", async (c) => {
 
   return c.json({
     set: { id: set.id, name: set.name },
+    permissions: {
+      canView: link.can_view === 1,
+      canCreate: link.can_create === 1,
+      canEdit: link.can_edit === 1,
+      canComplete: link.can_complete === 1,
+      canDelete: link.can_delete === 1,
+      canComment: link.can_comment === 1,
+      canReorder: link.can_reorder === 1,
+    },
+    requiresEmail: !!link.allowed_emails,
     todos: result.results.map((row) => ({
       id: row.id as string,
       userId: row.user_id as string,
@@ -149,10 +384,18 @@ shares.post("/api/shared/:token/todos", async (c) => {
   const link = await resolveShareToken(c.env.DB, token);
   if (!link) return c.json({ error: "Share link not found" }, 404);
 
-  const { title, parentId } = await c.req.json<{
+  const { title, parentId, email } = await c.req.json<{
     title: string;
     parentId?: string;
+    email?: string;
   }>();
+
+  if (!checkEmailAccess(link, email ?? null)) {
+    return c.json({ error: "Access denied" }, 403);
+  }
+  if (!link.can_create) {
+    return c.json({ error: "This link does not allow creating todos" }, 403);
+  }
   if (!title?.trim()) return c.json({ error: "Title is required" }, 400);
 
   if (parentId) {
@@ -213,18 +456,36 @@ shares.patch("/api/shared/:token/todos/:id", async (c) => {
   const link = await resolveShareToken(c.env.DB, token);
   if (!link) return c.json({ error: "Share link not found" }, 404);
 
+  const body = await c.req.json<{
+    title?: string;
+    completed?: boolean;
+    sortOrder?: number;
+    email?: string;
+  }>();
+
+  if (!checkEmailAccess(link, body.email ?? null)) {
+    return c.json({ error: "Access denied" }, 403);
+  }
+
+  if (body.title !== undefined && !link.can_edit) {
+    return c.json({ error: "This link does not allow editing" }, 403);
+  }
+  if (body.completed !== undefined && !link.can_complete) {
+    return c.json(
+      { error: "This link does not allow toggling completion" },
+      403,
+    );
+  }
+  if (body.sortOrder !== undefined && !link.can_reorder) {
+    return c.json({ error: "This link does not allow reordering" }, 403);
+  }
+
   const existing = await c.env.DB.prepare(
     "SELECT id FROM todos WHERE id = ? AND set_id = ? AND team_id = ?",
   )
     .bind(todoId, link.set_id, link.team_id)
     .first();
   if (!existing) return c.json({ error: "Not found" }, 404);
-
-  const body = await c.req.json<{
-    title?: string;
-    completed?: boolean;
-    sortOrder?: number;
-  }>();
 
   const updates: string[] = [];
   const values: (string | number)[] = [];
@@ -262,6 +523,14 @@ shares.delete("/api/shared/:token/todos/:id", async (c) => {
   const link = await resolveShareToken(c.env.DB, token);
   if (!link) return c.json({ error: "Share link not found" }, 404);
 
+  const email = c.req.query("email") ?? null;
+  if (!checkEmailAccess(link, email)) {
+    return c.json({ error: "Access denied" }, 403);
+  }
+  if (!link.can_delete) {
+    return c.json({ error: "This link does not allow deleting" }, 403);
+  }
+
   const existing = await c.env.DB.prepare(
     "SELECT id FROM todos WHERE id = ? AND set_id = ? AND team_id = ?",
   )
@@ -281,9 +550,18 @@ shares.post("/api/shared/:token/todos/reorder", async (c) => {
   const link = await resolveShareToken(c.env.DB, token);
   if (!link) return c.json({ error: "Share link not found" }, 404);
 
-  const { items } = await c.req.json<{
+  const { items, email } = await c.req.json<{
     items: { id: string; sortOrder: number }[];
+    email?: string;
   }>();
+
+  if (!checkEmailAccess(link, email ?? null)) {
+    return c.json({ error: "Access denied" }, 403);
+  }
+  if (!link.can_reorder) {
+    return c.json({ error: "This link does not allow reordering" }, 403);
+  }
+
   if (!items?.length) return c.json({ error: "No items" }, 400);
 
   await c.env.DB.batch(
@@ -294,6 +572,72 @@ shares.post("/api/shared/:token/todos/reorder", async (c) => {
     ),
   );
   return c.json({ ok: true });
+});
+
+// ─── Badge endpoint (SVG) ────────────────────────────────────────────────────
+
+shares.get("/api/shared/:token/badge.svg", async (c) => {
+  const token = c.req.param("token");
+  const link = await resolveShareToken(c.env.DB, token);
+  if (!link) {
+    return c.body(
+      renderBadge({
+        label: "glint",
+        message: "not found",
+        color: "#9f9f9f",
+        labelColor: "#555",
+        style: "flat",
+      }),
+      404,
+      { "Content-Type": "image/svg+xml", "Cache-Control": "no-cache" },
+    );
+  }
+
+  const set = await c.env.DB.prepare(
+    "SELECT name FROM todo_sets WHERE id = ? AND team_id = ?",
+  )
+    .bind(link.set_id, link.team_id)
+    .first<{ name: string }>();
+
+  if (!set) {
+    return c.body(
+      renderBadge({
+        label: "glint",
+        message: "not found",
+        color: "#9f9f9f",
+        labelColor: "#555",
+        style: "flat",
+      }),
+      404,
+      { "Content-Type": "image/svg+xml", "Cache-Control": "no-cache" },
+    );
+  }
+
+  const counts = await c.env.DB.prepare(
+    "SELECT COUNT(*) as total, SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as done FROM todos WHERE set_id = ? AND team_id = ?",
+  )
+    .bind(link.set_id, link.team_id)
+    .first<{ total: number; done: number }>();
+
+  const total = counts?.total ?? 0;
+  const done = counts?.done ?? 0;
+  const ratio = total > 0 ? done / total : 0;
+
+  const q = c.req.query();
+  const style = (q.style === "flat-square" ? "flat-square" : "flat") as
+    | "flat"
+    | "flat-square";
+  const label = q.label ?? set.name;
+  const labelColor = q.labelColor ?? "#555";
+  const color = q.color ?? progressColor(ratio);
+  const message = q.message ?? `${done}/${total}`;
+
+  const svg = renderBadge({ label, message, color, labelColor, style });
+
+  return c.body(svg, 200, {
+    "Content-Type": "image/svg+xml",
+    "Cache-Control": "public, max-age=60, s-maxage=60",
+  });
 });
 
 export default shares;

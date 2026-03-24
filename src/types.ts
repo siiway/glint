@@ -30,6 +30,34 @@ export type Comment = {
   createdAt: string;
 };
 
+export type ShareLink = {
+  id: string;
+  setId: string;
+  setName?: string;
+  token: string;
+  name: string;
+  canView: boolean;
+  canCreate: boolean;
+  canEdit: boolean;
+  canComplete: boolean;
+  canDelete: boolean;
+  canComment: boolean;
+  canReorder: boolean;
+  allowedEmails: string;
+  createdBy: string;
+  createdAt: string;
+};
+
+export type ShareLinkPermissions = {
+  canView: boolean;
+  canCreate: boolean;
+  canEdit: boolean;
+  canComplete: boolean;
+  canDelete: boolean;
+  canComment: boolean;
+  canReorder: boolean;
+};
+
 export type TeamRole = "owner" | "admin" | "member";
 
 export const ROLE_COLORS: Record<

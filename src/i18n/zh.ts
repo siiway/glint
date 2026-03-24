@@ -96,18 +96,63 @@ const zh: typeof en = {
   sidebarSetSettings: "分组设置",
   sidebarSettings: "设置",
 
-  // Share
-  shareSet: "分享分组",
-  shareDialogTitle: "分享分组",
-  shareDialogDesc: "拥有此链接的任何人都可以查看和编辑此分组中的任务。",
+  // Share links
+  shareManageLinks: "管理链接",
   shareCopyLink: "复制链接",
   shareCopied: "已复制！",
-  shareCreate: "创建分享链接",
-  shareRemove: "移除分享链接",
-  shareNoLink: "还没有分享链接。创建一个来分享此分组。",
-  sharedPageTitle: "共享分组",
   sharedNotFound: "分享链接未找到或已被移除。",
   sharedGoHome: "前往 Glint",
+
+  // Share link email gate
+  sharedEmailRequired: "需要邮箱验证",
+  sharedEmailHint: "此链接受限。请输入您的邮箱以继续。",
+  sharedEmailDenied: "您的邮箱没有访问此链接的权限。",
+  sharedEmailSubmit: "继续",
+
+  // Manage links dialog
+  linksDialogTitle: "分享链接",
+  linksDialogDesc: "创建链接来分享此分组。每个链接有独立的权限设置。",
+  linksEmpty: "还没有分享链接。",
+  linksCreateNew: "新建链接",
+  linksLinkName: "链接名称",
+  linksLinkNamePlaceholder: "例如：仅供查看",
+  linksAllowedEmails: "限制邮箱",
+  linksAllowedEmailsPlaceholder: "a@x.com, b@x.com（留空 = 公开）",
+  linksPermView: "查看",
+  linksPermCreate: "创建",
+  linksPermEdit: "编辑",
+  linksPermComplete: "完成",
+  linksPermDelete: "删除",
+  linksPermComment: "评论",
+  linksPermReorder: "排序",
+  linksReadOnly: "只读",
+  linksFullAccess: "完全访问",
+  linksCustom: "自定义",
+  linksSave: "保存",
+  linksDelete: "删除链接",
+  linksDeleteConfirm: "确定要删除吗？使用此链接的人将失去访问权限。",
+
+  // Badge
+  shareBadge: "徽章",
+  shareBadgeDesc: "嵌入到 README 中显示实时进度。",
+  shareBadgeStyle: "样式",
+  shareBadgeLabel: "标签",
+  shareBadgeColor: "颜色",
+  shareBadgeLabelColor: "标签颜色",
+  shareBadgePreview: "预览",
+  shareBadgeCopyMarkdown: "复制 Markdown",
+  shareBadgeCopyUrl: "复制图片 URL",
+  shareBadgeAutoColor: "自动（按进度）",
+
+  // Settings - Share Links tab
+  settingsTabShareLinks: "分享链接",
+  settingsShareLinksTitle: "所有分享链接",
+  settingsShareLinksDesc: "管理此团队所有分组的分享链接。",
+  settingsShareLinksSet: "分组",
+  settingsShareLinksName: "名称",
+  settingsShareLinksPermissions: "权限",
+  settingsShareLinksRestricted: "受限",
+  settingsShareLinksPublic: "公开",
 
   // Set settings
   setAutoRenew: "每日自动续期",

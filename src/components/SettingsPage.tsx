@@ -21,9 +21,12 @@ import {
   ArrowLeft24Regular,
   Save24Regular,
   ArrowReset24Regular,
+  Delete24Regular,
+  Copy24Regular,
 } from "@fluentui/react-icons";
 import { Footer } from "./Footer";
 import { useI18n } from "../i18n";
+import type { ShareLink } from "../types";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -165,6 +168,8 @@ export function SettingsPage({
   >({});
   const [permScope, setPermScope] = useState("global");
   const [activeTab, setActiveTab] = useState<string>("branding");
+  const [shareLinks, setShareLinks] = useState<ShareLink[]>([]);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   const canManage = permsData?.role === "owner" || false;
   const canManagePerms =
@@ -176,12 +181,14 @@ export function SettingsPage({
   // Fetch all data
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [settingsRes, permsRes, setsRes, configRes] = await Promise.all([
-      fetch(`/api/teams/${teamId}/settings`),
-      fetch(`/api/teams/${teamId}/permissions`),
-      fetch(`/api/teams/${teamId}/sets`),
-      fetch("/api/init/config"),
-    ]);
+    const [settingsRes, permsRes, setsRes, configRes, linksRes] =
+      await Promise.all([
+        fetch(`/api/teams/${teamId}/settings`),
+        fetch(`/api/teams/${teamId}/permissions`),
+        fetch(`/api/teams/${teamId}/sets`),
+        fetch("/api/init/config"),
+        fetch(`/api/teams/${teamId}/share-links`),
+      ]);
 
     if (settingsRes.ok) {
       const data = (await settingsRes.json()) as { settings: TeamSettings };
@@ -202,6 +209,10 @@ export function SettingsPage({
     if (configRes.ok) {
       const data = (await configRes.json()) as { config: AppConfig };
       setEditAppConfig(data.config);
+    }
+    if (linksRes.ok) {
+      const data = (await linksRes.json()) as { links: ShareLink[] };
+      setShareLinks(data.links);
     }
     setLoading(false);
   }, [teamId]);
@@ -334,6 +345,7 @@ export function SettingsPage({
         >
           <Tab value="branding">{t.settingsTabBranding}</Tab>
           <Tab value="permissions">{t.settingsTabPermissions}</Tab>
+          <Tab value="sharelinks">{t.settingsTabShareLinks}</Tab>
           {canManage && <Tab value="appconfig">{t.settingsTabAppConfig}</Tab>}
         </TabList>
 
@@ -592,6 +604,124 @@ export function SettingsPage({
                   {t.permissionsReset}
                 </Button>
               </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "sharelinks" && (
+          <div className={styles.section}>
+            <Title3 className={styles.sectionTitle}>
+              {t.settingsShareLinksTitle}
+            </Title3>
+            <Body1
+              style={{
+                color: tokens.colorNeutralForeground4,
+                marginBottom: 16,
+              }}
+            >
+              {t.settingsShareLinksDesc}
+            </Body1>
+
+            {shareLinks.length === 0 ? (
+              <Body1 style={{ color: tokens.colorNeutralForeground4 }}>
+                {t.linksEmpty}
+              </Body1>
+            ) : (
+              <table className={styles.permTable}>
+                <thead>
+                  <tr>
+                    <th className={styles.permTh}>{t.settingsShareLinksSet}</th>
+                    <th className={styles.permTh}>
+                      {t.settingsShareLinksName}
+                    </th>
+                    <th className={styles.permTh}>
+                      {t.settingsShareLinksPermissions}
+                    </th>
+                    <th className={styles.permTh} style={{ width: 80 }}>
+                      {t.linksAllowedEmails}
+                    </th>
+                    <th className={styles.permTh} style={{ width: 100 }} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {shareLinks.map((link) => {
+                    const permList = [
+                      link.canView && t.linksPermView,
+                      link.canCreate && t.linksPermCreate,
+                      link.canEdit && t.linksPermEdit,
+                      link.canComplete && t.linksPermComplete,
+                      link.canDelete && t.linksPermDelete,
+                      link.canComment && t.linksPermComment,
+                      link.canReorder && t.linksPermReorder,
+                    ].filter(Boolean);
+
+                    return (
+                      <tr key={link.id}>
+                        <td className={styles.permTd}>
+                          <Body2>{link.setName ?? "—"}</Body2>
+                        </td>
+                        <td className={styles.permTd}>
+                          <Body2>{link.name || "—"}</Body2>
+                        </td>
+                        <td className={styles.permTd}>
+                          <span className={styles.permKey}>
+                            {permList.join(", ") || "—"}
+                          </span>
+                        </td>
+                        <td className={styles.permTd}>
+                          <Body2>
+                            {link.allowedEmails
+                              ? t.settingsShareLinksRestricted
+                              : t.settingsShareLinksPublic}
+                          </Body2>
+                        </td>
+                        <td className={styles.permTd}>
+                          <div style={{ display: "flex", gap: 4 }}>
+                            <Tooltip
+                              content={t.shareCopyLink}
+                              relationship="label"
+                            >
+                              <Button
+                                appearance="transparent"
+                                size="small"
+                                icon={<Copy24Regular />}
+                                onClick={() => {
+                                  navigator.clipboard.writeText(
+                                    `${window.location.origin}/shared/${link.token}`,
+                                  );
+                                  setCopiedToken(link.token);
+                                  setTimeout(() => setCopiedToken(null), 2000);
+                                }}
+                              >
+                                {copiedToken === link.token
+                                  ? t.shareCopied
+                                  : undefined}
+                              </Button>
+                            </Tooltip>
+                            {canManage && (
+                              <Button
+                                appearance="transparent"
+                                size="small"
+                                icon={<Delete24Regular />}
+                                onClick={async () => {
+                                  if (!confirm(t.linksDeleteConfirm)) return;
+                                  await fetch(
+                                    `/api/teams/${teamId}/share-links/${link.id}`,
+                                    { method: "DELETE" },
+                                  );
+                                  setShareLinks((prev) =>
+                                    prev.filter((l) => l.id !== link.id),
+                                  );
+                                }}
+                              />
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             )}
           </div>
         )}
