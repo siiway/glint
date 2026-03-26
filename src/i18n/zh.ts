@@ -68,6 +68,12 @@ const zh: typeof en = {
   todoSelectSet: "选择一个待办分组",
   todoSubTodoPlaceholder: "子任务标题...",
   todoItemCount: "{count} 个任务",
+  todoImportMarkdown: "从 Markdown 导入",
+  todoImportMarkdownDesc: "粘贴 Markdown 清单。支持通过缩进嵌套子任务。",
+  todoImportMarkdownPlaceholder: "- [x] 已完成\n- [ ] 待完成\n  - [ ] 子任务",
+  todoImporting: "导入中...",
+  todoImport: "导入",
+  todoImportEmpty: "未找到有效的清单项。",
 
   // Context menu / actions
   actionAddSubTodo: "添加子任务",

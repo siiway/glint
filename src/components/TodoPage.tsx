@@ -41,6 +41,7 @@ import {
   MoreVertical24Regular,
   Navigation24Regular,
   DismissCircle24Regular,
+  ArrowImport24Regular,
 } from "@fluentui/react-icons";
 import { useAuth } from "../auth";
 import type { Todo, TodoSet, TeamRole, Comment } from "../types";
@@ -50,6 +51,7 @@ import { CommentsDialog } from "./CommentsDialog";
 import { SelectionBar } from "./SelectionBar";
 import { TodoContextMenu } from "./TodoContextMenu";
 import { SettingsPage } from "./SettingsPage";
+import { ImportMarkdownDialog } from "./ImportMarkdownDialog";
 import { useI18n } from "../i18n";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
@@ -225,6 +227,9 @@ export function TodoPage() {
 
   // Selection
   const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  // Import dialog
+  const [importOpen, setImportOpen] = useState(false);
 
   // Context menu
   const [contextMenu, setContextMenu] = useState<{
@@ -1053,6 +1058,16 @@ export function TodoPage() {
                   >
                     {isMobile ? undefined : t.add}
                   </Button>
+                  {hasPerm("create_todos") && (
+                    <Button
+                      appearance="subtle"
+                      icon={<ArrowImport24Regular />}
+                      onClick={() => setImportOpen(true)}
+                      title={t.todoImportMarkdown}
+                    >
+                      {isMobile ? undefined : t.todoImportMarkdown}
+                    </Button>
+                  )}
                 </div>
 
                 {loadingTodos ? (
@@ -1123,6 +1138,14 @@ export function TodoPage() {
             ),
           );
         }}
+      />
+
+      <ImportMarkdownDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        teamId={selectedTeamId}
+        setId={selectedSetId}
+        onImported={fetchTodos}
       />
 
       {contextMenu && contextTodo && (

@@ -69,6 +69,14 @@ export default {
   todoSelectSet: "Select a todo set",
   todoSubTodoPlaceholder: "Sub-todo title...",
   todoItemCount: "{count} item | {count} items",
+  todoImportMarkdown: "Import from Markdown",
+  todoImportMarkdownDesc:
+    "Paste a Markdown checklist. Supports nested items via indentation.",
+  todoImportMarkdownPlaceholder:
+    "- [x] Done task\n- [ ] Open task\n  - [ ] Sub-task",
+  todoImporting: "Importing...",
+  todoImport: "Import",
+  todoImportEmpty: "No valid checklist items found.",
 
   // Context menu / actions
   actionAddSubTodo: "Add sub-todo",
