@@ -1017,8 +1017,7 @@ export function TodoPage() {
                     ? t.todoItemCount
                         .split(" | ")[0]
                         .replace("{count}", String(rootTodos.length))
-                    : t.todoItemCount
-                        .split(" | ")[1]
+                    : (t.todoItemCount.split(" | ")[1] ?? t.todoItemCount)
                         .replace("{count}", String(rootTodos.length))}
                 </Caption1>
               </div>

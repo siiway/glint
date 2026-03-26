@@ -67,7 +67,7 @@ const zh: typeof en = {
   todoCreateSet: "创建一个待办分组以开始",
   todoSelectSet: "选择一个待办分组",
   todoSubTodoPlaceholder: "子任务标题...",
-  todoItemCount: "{count} 个任务",
+  todoItemCount: "{count} 个任务 | {count} 个任务",
   todoImportMarkdown: "从 Markdown 导入",
   todoImportMarkdownDesc: "粘贴 Markdown 清单。支持通过缩进嵌套子任务。",
   todoImportMarkdownPlaceholder: "- [x] 已完成\n- [ ] 待完成\n  - [ ] 子任务",
