@@ -27,6 +27,7 @@ import {
 import { Footer } from "./Footer";
 import { useI18n } from "../i18n";
 import type { ShareLink } from "../types";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -170,6 +171,8 @@ export function SettingsPage({
   const [activeTab, setActiveTab] = useState<string>("branding");
   const [shareLinks, setShareLinks] = useState<ShareLink[]>([]);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [deletingLinkId, setDeletingLinkId] = useState<string | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const canManage = permsData?.role === "owner" || false;
   const canManagePerms =
@@ -598,7 +601,7 @@ export function SettingsPage({
                 <Button
                   appearance="secondary"
                   icon={<ArrowReset24Regular />}
-                  onClick={resetPermissions}
+                  onClick={() => setShowResetConfirm(true)}
                   disabled={saving}
                 >
                   {t.permissionsReset}
@@ -703,16 +706,7 @@ export function SettingsPage({
                                 appearance="transparent"
                                 size="small"
                                 icon={<Delete24Regular />}
-                                onClick={async () => {
-                                  if (!confirm(t.linksDeleteConfirm)) return;
-                                  await fetch(
-                                    `/api/teams/${teamId}/share-links/${link.id}`,
-                                    { method: "DELETE" },
-                                  );
-                                  setShareLinks((prev) =>
-                                    prev.filter((l) => l.id !== link.id),
-                                  );
-                                }}
+                                onClick={() => setDeletingLinkId(link.id)}
                               />
                             )}
                           </div>
@@ -848,6 +842,29 @@ export function SettingsPage({
         )}
       </div>
       <Footer />
+      <ConfirmDialog
+        open={deletingLinkId !== null}
+        message={t.linksDeleteConfirm}
+        onConfirm={async () => {
+          if (!deletingLinkId) return;
+          await fetch(`/api/teams/${teamId}/share-links/${deletingLinkId}`, {
+            method: "DELETE",
+          });
+          setShareLinks((prev) => prev.filter((l) => l.id !== deletingLinkId));
+          setDeletingLinkId(null);
+        }}
+        onCancel={() => setDeletingLinkId(null)}
+      />
+      <ConfirmDialog
+        open={showResetConfirm}
+        message={t.confirmResetPermissions}
+        confirmLabel={t.permissionsReset}
+        onConfirm={() => {
+          setShowResetConfirm(false);
+          resetPermissions();
+        }}
+        onCancel={() => setShowResetConfirm(false)}
+      />
     </div>
   );
 }

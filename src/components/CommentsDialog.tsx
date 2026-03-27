@@ -21,6 +21,7 @@ import {
 import { Delete24Regular, Send24Regular } from "@fluentui/react-icons";
 import type { Comment } from "../types";
 import { useI18n } from "../i18n";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const useStyles = makeStyles({
   commentList: {
@@ -74,6 +75,9 @@ export function CommentsDialog({
   const [loading, setLoading] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [adding, setAdding] = useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(
+    null,
+  );
 
   const fetchComments = useCallback(async () => {
     if (!todoId) return;
@@ -117,96 +121,109 @@ export function CommentsDialog({
   };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(_, d) => {
-        if (!d.open) {
-          onClose();
-          setNewComment("");
-        }
-      }}
-    >
-      <DialogSurface>
-        <DialogBody>
-          <DialogTitle>
-            {t.commentsTitle}{" "}
-            {todoTitle && <Caption1> &mdash; {todoTitle}</Caption1>}
-          </DialogTitle>
-          <DialogContent>
-            {loading ? (
-              <Spinner size="small" label={t.commentsLoading} />
-            ) : comments.length === 0 ? (
-              <Body1
-                style={{
-                  color: tokens.colorNeutralForeground4,
-                  padding: "16px 0",
-                }}
-              >
-                {t.commentsEmpty}
-              </Body1>
-            ) : (
-              <div className={styles.commentList}>
-                {comments.map((c) => (
-                  <div key={c.id} className={styles.commentItem}>
-                    <Avatar name={c.username} size={24} />
-                    <div className={styles.commentContent}>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          alignItems: "center",
-                        }}
-                      >
-                        <Body2 style={{ fontWeight: 600 }}>{c.username}</Body2>
-                        <Caption1>
-                          {new Date(c.createdAt).toLocaleString()}
-                        </Caption1>
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(_, d) => {
+          if (!d.open) {
+            onClose();
+            setNewComment("");
+          }
+        }}
+      >
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>
+              {t.commentsTitle}{" "}
+              {todoTitle && <Caption1> &mdash; {todoTitle}</Caption1>}
+            </DialogTitle>
+            <DialogContent>
+              {loading ? (
+                <Spinner size="small" label={t.commentsLoading} />
+              ) : comments.length === 0 ? (
+                <Body1
+                  style={{
+                    color: tokens.colorNeutralForeground4,
+                    padding: "16px 0",
+                  }}
+                >
+                  {t.commentsEmpty}
+                </Body1>
+              ) : (
+                <div className={styles.commentList}>
+                  {comments.map((c) => (
+                    <div key={c.id} className={styles.commentItem}>
+                      <Avatar name={c.username} size={24} />
+                      <div className={styles.commentContent}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 8,
+                            alignItems: "center",
+                          }}
+                        >
+                          <Body2 style={{ fontWeight: 600 }}>
+                            {c.username}
+                          </Body2>
+                          <Caption1>
+                            {new Date(c.createdAt).toLocaleString()}
+                          </Caption1>
+                        </div>
+                        <Body1>{c.body}</Body1>
                       </div>
-                      <Body1>{c.body}</Body1>
+                      {canDelete(c) && (
+                        <Button
+                          appearance="transparent"
+                          size="small"
+                          icon={<Delete24Regular />}
+                          onClick={() => setDeletingCommentId(c.id)}
+                        />
+                      )}
                     </div>
-                    {canDelete(c) && (
-                      <Button
-                        appearance="transparent"
-                        size="small"
-                        icon={<Delete24Regular />}
-                        onClick={() => deleteComment(c.id)}
-                      />
-                    )}
-                  </div>
-                ))}
+                  ))}
+                </div>
+              )}
+
+              <Divider style={{ margin: "8px 0" }} />
+
+              <div className={styles.commentInput}>
+                <Textarea
+                  style={{ flex: 1 }}
+                  placeholder={t.commentsPlaceholder}
+                  value={newComment}
+                  onChange={(_, d) => setNewComment(d.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      addComment();
+                    }
+                  }}
+                />
+                <Button
+                  appearance="primary"
+                  icon={<Send24Regular />}
+                  onClick={addComment}
+                  disabled={!newComment.trim() || adding}
+                />
               </div>
-            )}
-
-            <Divider style={{ margin: "8px 0" }} />
-
-            <div className={styles.commentInput}>
-              <Textarea
-                style={{ flex: 1 }}
-                placeholder={t.commentsPlaceholder}
-                value={newComment}
-                onChange={(_, d) => setNewComment(d.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    addComment();
-                  }
-                }}
-              />
-              <Button
-                appearance="primary"
-                icon={<Send24Regular />}
-                onClick={addComment}
-                disabled={!newComment.trim() || adding}
-              />
-            </div>
-          </DialogContent>
-          <DialogActions>
-            <DialogTrigger disableButtonEnhancement>
-              <Button appearance="secondary">{t.close}</Button>
-            </DialogTrigger>
-          </DialogActions>
-        </DialogBody>
-      </DialogSurface>
-    </Dialog>
+            </DialogContent>
+            <DialogActions>
+              <DialogTrigger disableButtonEnhancement>
+                <Button appearance="secondary">{t.close}</Button>
+              </DialogTrigger>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+      <ConfirmDialog
+        open={deletingCommentId !== null}
+        message={t.confirmDeleteComment}
+        onConfirm={() => {
+          if (deletingCommentId) deleteComment(deletingCommentId);
+          setDeletingCommentId(null);
+        }}
+        onCancel={() => setDeletingCommentId(null)}
+      />
+    </>
   );
 }

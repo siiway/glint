@@ -261,6 +261,14 @@ const zh: typeof en = {
   permDesc_delete_any_comment: "删除他人的评论",
   permLabel_view_todos: "查看任务",
   permDesc_view_todos: "查看分组中的任务",
+
+  // Confirmations
+  confirmDeleteTodo: "确定要删除此项目吗？此操作无法撤销。",
+  confirmBulkDelete: "确定要删除 {count} 个选中的项目吗？此操作无法撤销。",
+  confirmDeleteSet: "确定要删除此分组及其所有项目吗？此操作无法撤销。",
+  confirmDeleteComment: "确定要删除此评论吗？",
+  confirmResetPermissions:
+    "确定要重置为默认权限吗？此范围的所有自定义权限将丢失。",
 };
 
 export default zh;

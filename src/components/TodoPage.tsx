@@ -53,6 +53,7 @@ import { TodoContextMenu } from "./TodoContextMenu";
 import { SettingsPage } from "./SettingsPage";
 import { ImportMarkdownDialog } from "./ImportMarkdownDialog";
 import { useI18n } from "../i18n";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -230,6 +231,10 @@ export function TodoPage() {
 
   // Import dialog
   const [importOpen, setImportOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<{
+    message: string;
+    action: () => void;
+  } | null>(null);
 
   // Context menu
   const [contextMenu, setContextMenu] = useState<{
@@ -677,7 +682,12 @@ export function TodoPage() {
       {canDeleteTodo(todo) && (
         <MenuItem
           icon={<Delete24Regular />}
-          onClick={() => deleteTodo(todo.id)}
+          onClick={() =>
+            setConfirmAction({
+              message: t.confirmDeleteTodo,
+              action: () => deleteTodo(todo.id),
+            })
+          }
         >
           {t.delete}
         </MenuItem>
@@ -963,7 +973,12 @@ export function TodoPage() {
           canManageSets={hasPerm("manage_sets")}
           onOpenSettings={() => setShowSettings(true)}
           onAddSet={handleAddSet}
-          onDeleteSet={handleDeleteSet}
+          onDeleteSet={(setId) =>
+            setConfirmAction({
+              message: t.confirmDeleteSet,
+              action: () => handleDeleteSet(setId),
+            })
+          }
           onRenameSet={handleRenameSet}
           onUpdateSet={handleUpdateSet}
           onReorderSets={handleReorderSets}
@@ -1017,8 +1032,9 @@ export function TodoPage() {
                     ? t.todoItemCount
                         .split(" | ")[0]
                         .replace("{count}", String(rootTodos.length))
-                    : (t.todoItemCount.split(" | ")[1] ?? t.todoItemCount)
-                        .replace("{count}", String(rootTodos.length))}
+                    : (
+                        t.todoItemCount.split(" | ")[1] ?? t.todoItemCount
+                      ).replace("{count}", String(rootTodos.length))}
                 </Caption1>
               </div>
 
@@ -1029,7 +1045,15 @@ export function TodoPage() {
                   onSelectAll={selectAll}
                   onMarkCompleted={() => bulkMarkCompleted(true)}
                   onMarkIncomplete={() => bulkMarkCompleted(false)}
-                  onDelete={bulkDelete}
+                  onDelete={() =>
+                    setConfirmAction({
+                      message: t.confirmBulkDelete.replace(
+                        "{count}",
+                        String(selected.size),
+                      ),
+                      action: bulkDelete,
+                    })
+                  }
                   onClear={clearSelection}
                 />
               )}
@@ -1173,10 +1197,24 @@ export function TodoPage() {
             setEditTitle(contextTodo.title);
           }}
           onToggleComplete={() => toggleTodo(contextTodo)}
-          onDelete={() => deleteTodo(contextTodo.id)}
+          onDelete={() =>
+            setConfirmAction({
+              message: t.confirmDeleteTodo,
+              action: () => deleteTodo(contextTodo.id),
+            })
+          }
           rootCount={rootTodos.length}
         />
       )}
+      <ConfirmDialog
+        open={confirmAction !== null}
+        message={confirmAction?.message ?? ""}
+        onConfirm={() => {
+          confirmAction?.action();
+          setConfirmAction(null);
+        }}
+        onCancel={() => setConfirmAction(null)}
+      />
     </>
   );
 }

@@ -270,4 +270,15 @@ export default {
   permDesc_delete_any_comment: "Delete comments by others",
   permLabel_view_todos: "View Todos",
   permDesc_view_todos: "View todos in a set",
+
+  // Confirmations
+  confirmDeleteTodo:
+    "Are you sure you want to delete this item? This action cannot be undone.",
+  confirmBulkDelete:
+    "Are you sure you want to delete {count} selected items? This action cannot be undone.",
+  confirmDeleteSet:
+    "Are you sure you want to delete this set and all its items? This action cannot be undone.",
+  confirmDeleteComment: "Are you sure you want to delete this comment?",
+  confirmResetPermissions:
+    "Are you sure you want to reset permissions to defaults? All custom permissions for this scope will be lost.",
 };

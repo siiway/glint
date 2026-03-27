@@ -42,6 +42,7 @@ import {
 import type { Todo, ShareLinkPermissions } from "../types";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { useI18n } from "../i18n";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const useStyles = makeStyles({
   layout: {
@@ -195,6 +196,7 @@ export function SharedPage({ token }: Props) {
   // Drag state
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [deletingTodoId, setDeletingTodoId] = useState<string | null>(null);
   const dragCounter = useRef(0);
   const canDrag = !isMobile && perms.canReorder;
 
@@ -533,7 +535,7 @@ export function SharedPage({ token }: Props) {
                     {perms.canDelete && (
                       <MenuItem
                         icon={<Delete24Regular />}
-                        onClick={() => deleteTodo(todo.id)}
+                        onClick={() => setDeletingTodoId(todo.id)}
                       >
                         {t.delete}
                       </MenuItem>
@@ -732,6 +734,15 @@ export function SharedPage({ token }: Props) {
           rootTodos.map((todo, index) => renderTodo(todo, index, true))
         )}
       </div>
+      <ConfirmDialog
+        open={deletingTodoId !== null}
+        message={t.confirmDeleteTodo}
+        onConfirm={() => {
+          if (deletingTodoId) deleteTodo(deletingTodoId);
+          setDeletingTodoId(null);
+        }}
+        onCancel={() => setDeletingTodoId(null)}
+      />
     </div>
   );
 }
