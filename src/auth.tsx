@@ -89,6 +89,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Auto-logout on 401 from any API call (expired session)
+  useEffect(() => {
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const res = await originalFetch(...args);
+      if (res.status === 401) {
+        const url = typeof args[0] === "string" ? args[0] : args[0] instanceof Request ? args[0].url : "";
+        // Don't trigger on auth endpoints to avoid loops
+        if (url.includes("/api/") && !url.includes("/api/auth/")) {
+          setUser(null);
+        }
+      }
+      return res;
+    };
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, []);
+
   const login = useCallback(async () => {
     const cfg = await getConfig();
     const prism = await getPrism();
