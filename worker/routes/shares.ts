@@ -342,7 +342,7 @@ shares.get("/api/shared/:token", async (c) => {
   if (!set) return c.json({ error: "Set not found" }, 404);
 
   const result = await c.env.DB.prepare(
-    "SELECT id, user_id, parent_id, title, completed, sort_order, created_at, updated_at FROM todos WHERE set_id = ? AND team_id = ? ORDER BY sort_order ASC, created_at ASC",
+    "SELECT id, user_id, parent_id, title, completed, sort_order, claimed_by, created_at, updated_at FROM todos WHERE set_id = ? AND team_id = ? ORDER BY sort_order ASC, created_at ASC",
   )
     .bind(link.set_id, link.team_id)
     .all();
@@ -378,6 +378,7 @@ shares.get("/api/shared/:token", async (c) => {
       completed: row.completed === 1,
       sortOrder: row.sort_order as number,
       commentCount: countMap[row.id as string] ?? 0,
+      claimedBy: (row.claimed_by as string) || null,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
     })),
@@ -447,6 +448,7 @@ shares.post("/api/shared/:token/todos", async (c) => {
         completed: false,
         sortOrder,
         commentCount: 0,
+        claimedBy: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },

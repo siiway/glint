@@ -20,6 +20,7 @@ import {
   MenuPopover,
   MenuList,
   MenuItem,
+  Tooltip,
   makeStyles,
   tokens,
   mergeClasses,
@@ -42,6 +43,8 @@ import {
   Navigation24Regular,
   DismissCircle24Regular,
   ArrowImport24Regular,
+  PersonAvailable24Regular,
+  PersonDelete24Regular,
 } from "@fluentui/react-icons";
 import { useAuth } from "../auth";
 import type { Todo, TodoSet, TeamRole, Comment } from "../types";
@@ -180,6 +183,13 @@ const useStyles = makeStyles({
     "&:hover": {
       color: tokens.colorBrandForeground1,
     },
+  },
+  claimedBadge: {
+    display: "flex",
+    alignItems: "center",
+    gap: "2px",
+    color: tokens.colorPaletteGreenForeground1,
+    fontSize: "12px",
   },
   empty: {
     textAlign: "center" as const,
@@ -411,6 +421,16 @@ export function TodoPage() {
     setTodos((prev) => prev.filter((t) => !toRemove.has(t.id)));
     await fetch(`/api/teams/${selectedTeamId}/todos/${id}`, {
       method: "DELETE",
+    });
+  };
+
+  const claimTodo = async (todo: Todo) => {
+    const newClaimed = todo.claimedBy === user?.id ? null : (user?.id ?? null);
+    setTodos((prev) =>
+      prev.map((t) => (t.id === todo.id ? { ...t, claimedBy: newClaimed } : t)),
+    );
+    await fetch(`/api/teams/${selectedTeamId}/todos/${todo.id}/claim`, {
+      method: "POST",
     });
   };
 
@@ -669,6 +689,21 @@ export function TodoPage() {
           {t.edit}
         </MenuItem>
       )}
+      {hasPerm("claim_todos") &&
+        (!todo.claimedBy || todo.claimedBy === user?.id) && (
+          <MenuItem
+            icon={
+              todo.claimedBy === user?.id ? (
+                <PersonDelete24Regular />
+              ) : (
+                <PersonAvailable24Regular />
+              )
+            }
+            onClick={() => claimTodo(todo)}
+          >
+            {todo.claimedBy === user?.id ? t.actionUnclaim : t.actionClaim}
+          </MenuItem>
+        )}
       {(todo.userId === user?.id || hasPerm("complete_any_todo")) && (
         <MenuItem
           icon={
@@ -826,6 +861,21 @@ export function TodoPage() {
                 >
                   {todo.title}
                 </Body2>
+                {todo.claimedBy && (
+                  <Tooltip
+                    content={t.actionClaimedBy.replace(
+                      "{name}",
+                      todo.claimedBy === user?.id
+                        ? user?.displayName || user?.username || todo.claimedBy
+                        : todo.claimedBy,
+                    )}
+                    relationship="label"
+                  >
+                    <span className={styles.claimedBadge}>
+                      <PersonAvailable24Regular style={{ fontSize: 14 }} />
+                    </span>
+                  </Tooltip>
+                )}
                 {todo.commentCount > 0 && (
                   <span
                     className={styles.commentBadge}
@@ -1197,6 +1247,9 @@ export function TodoPage() {
             setEditTitle(contextTodo.title);
           }}
           onToggleComplete={() => toggleTodo(contextTodo)}
+          onClaim={() => claimTodo(contextTodo)}
+          isClaimed={contextTodo.claimedBy !== null}
+          isClaimedByMe={contextTodo.claimedBy === user?.id}
           onDelete={() =>
             setConfirmAction({
               message: t.confirmDeleteTodo,

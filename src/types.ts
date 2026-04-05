@@ -6,6 +6,7 @@ export type Todo = {
   completed: boolean;
   sortOrder: number;
   commentCount: number;
+  claimedBy: string | null;
   createdAt: string;
   updatedAt: string;
 };

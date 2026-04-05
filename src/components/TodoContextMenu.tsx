@@ -8,6 +8,8 @@ import {
   Delete24Regular,
   SelectAllOn24Regular,
   DismissCircle24Regular,
+  PersonAvailable24Regular,
+  PersonDelete24Regular,
 } from "@fluentui/react-icons";
 import type { Todo } from "../types";
 import { useI18n } from "../i18n";
@@ -64,6 +66,9 @@ type Props = {
   onSelectAll: () => void;
   onEdit: () => void;
   onToggleComplete: () => void;
+  onClaim: () => void;
+  isClaimed: boolean;
+  isClaimedByMe: boolean;
   onDelete: () => void;
   rootCount: number;
 };
@@ -85,6 +90,9 @@ export function TodoContextMenu({
   onSelectAll,
   onEdit,
   onToggleComplete,
+  onClaim,
+  isClaimed,
+  isClaimedByMe,
   onDelete,
   rootCount,
 }: Props) {
@@ -119,6 +127,16 @@ export function TodoContextMenu({
       {canEdit && (
         <button className={styles.item} onClick={onEdit}>
           <Edit24Regular /> {t.edit}
+        </button>
+      )}
+      {hasPerm("claim_todos") && (!isClaimed || isClaimedByMe) && (
+        <button className={styles.item} onClick={onClaim}>
+          {isClaimedByMe ? (
+            <PersonDelete24Regular />
+          ) : (
+            <PersonAvailable24Regular />
+          )}
+          {isClaimedByMe ? ` ${t.actionUnclaim}` : ` ${t.actionClaim}`}
         </button>
       )}
       {canToggle && (

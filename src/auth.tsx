@@ -95,7 +95,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.fetch = async (...args) => {
       const res = await originalFetch(...args);
       if (res.status === 401) {
-        const url = typeof args[0] === "string" ? args[0] : args[0] instanceof Request ? args[0].url : "";
+        const url =
+          typeof args[0] === "string"
+            ? args[0]
+            : args[0] instanceof Request
+              ? args[0].url
+              : "";
         // Don't trigger on auth endpoints to avoid loops
         if (url.includes("/api/") && !url.includes("/api/auth/")) {
           setUser(null);

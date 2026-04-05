@@ -18,7 +18,7 @@ todos.get("/api/teams/:teamId/sets/:setId/todos", requireAuth, async (c) => {
   }
 
   const result = await c.env.DB.prepare(
-    "SELECT id, user_id, parent_id, title, completed, sort_order, created_at, updated_at FROM todos WHERE set_id = ? AND team_id = ? ORDER BY sort_order ASC, created_at ASC",
+    "SELECT id, user_id, parent_id, title, completed, sort_order, claimed_by, created_at, updated_at FROM todos WHERE set_id = ? AND team_id = ? ORDER BY sort_order ASC, created_at ASC",
   )
     .bind(setId, teamId)
     .all();
@@ -48,6 +48,7 @@ todos.get("/api/teams/:teamId/sets/:setId/todos", requireAuth, async (c) => {
       completed: row.completed === 1,
       sortOrder: row.sort_order as number,
       commentCount: countMap[row.id as string] ?? 0,
+      claimedBy: (row.claimed_by as string) || null,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
     })),
@@ -118,6 +119,7 @@ todos.post("/api/teams/:teamId/sets/:setId/todos", requireAuth, async (c) => {
         completed: false,
         sortOrder,
         commentCount: 0,
+        claimedBy: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
@@ -260,6 +262,48 @@ todos.delete("/api/teams/:teamId/todos/:id", requireAuth, async (c) => {
     .run();
 
   return c.json({ ok: true });
+});
+
+todos.post("/api/teams/:teamId/todos/:id/claim", requireAuth, async (c) => {
+  const teamId = c.req.param("teamId");
+  const todoId = c.req.param("id");
+  const session = c.get("session");
+  const role = getTeamRole(session, teamId);
+  if (!role) return c.json({ error: "Not a member of this team" }, 403);
+
+  const existing = await c.env.DB.prepare(
+    "SELECT id, set_id, claimed_by FROM todos WHERE id = ? AND team_id = ?",
+  )
+    .bind(todoId, teamId)
+    .first<{ id: string; set_id: string; claimed_by: string | null }>();
+  if (!existing) return c.json({ error: "Not found" }, 404);
+
+  if (
+    !(await hasPermission(
+      c.env.DB,
+      teamId,
+      role,
+      "claim_todos",
+      existing.set_id,
+    ))
+  ) {
+    return c.json({ error: "No permission to claim todos" }, 403);
+  }
+
+  if (existing.claimed_by && existing.claimed_by !== session.userId) {
+    return c.json({ error: "Already claimed by another user" }, 409);
+  }
+
+  const claimedBy =
+    existing.claimed_by === session.userId ? null : session.userId;
+
+  await c.env.DB.prepare(
+    "UPDATE todos SET claimed_by = ?, updated_at = datetime('now') WHERE id = ? AND team_id = ?",
+  )
+    .bind(claimedBy, todoId, teamId)
+    .run();
+
+  return c.json({ ok: true, claimedBy });
 });
 
 export default todos;
