@@ -53,6 +53,7 @@ init.put("/api/init/config", async (c) => {
     "prism_redirect_uri",
     "use_pkce",
     "allowed_team_id",
+    "session_ttl",
   ];
   const patch: Partial<AppConfig> = {};
   for (const key of allowed) {

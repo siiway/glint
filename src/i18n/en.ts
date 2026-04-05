@@ -236,6 +236,9 @@ export default {
     "Enable for public clients (no secret). Disable for confidential clients.",
   appConfigClientSecret: "Client Secret",
   appConfigRedirectUri: "Redirect URI",
+  appConfigSessionTtl: "Session Duration (seconds)",
+  appConfigSessionTtlHint:
+    "How long a login session lasts. Set to 0 to use the OAuth provider's default.",
   appConfigAccessControl: "Access Control",
   appConfigAllowedTeamId: "Allowed Team ID",
   appConfigAllowedTeamIdHint:

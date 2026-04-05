@@ -228,6 +228,9 @@ const zh: typeof en = {
   appConfigUsePkceHint: "为公开客户端（无密钥）启用。为机密客户端禁用。",
   appConfigClientSecret: "客户端密钥",
   appConfigRedirectUri: "重定向 URI",
+  appConfigSessionTtl: "会话有效期（秒）",
+  appConfigSessionTtlHint:
+    "登录会话的持续时间。设为 0 则使用 OAuth 提供商的默认值。",
   appConfigAccessControl: "访问控制",
   appConfigAllowedTeamId: "允许的团队 ID",
   appConfigAllowedTeamIdHint: "如果设置，只有该 Prism 团队的成员才能登录。",

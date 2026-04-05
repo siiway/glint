@@ -74,6 +74,8 @@ auth.post("/api/auth/callback", async (c) => {
     return c.json({ error: "You are not a member of the allowed team" }, 403);
   }
 
+  const ttl = config.session_ttl || tokens.expires_in || 3600;
+
   const sessionId = crypto.randomUUID();
   const session: SessionData = {
     userId: userInfo.sub,
@@ -81,12 +83,12 @@ auth.post("/api/auth/callback", async (c) => {
     displayName: userInfo.name,
     avatarUrl: userInfo.picture,
     accessToken: tokens.access_token,
-    expiresAt: Date.now() + (tokens.expires_in || 3600) * 1000,
+    expiresAt: Date.now() + ttl * 1000,
     teams,
   };
 
   await c.env.KV.put(`session:${sessionId}`, JSON.stringify(session), {
-    expirationTtl: tokens.expires_in || 3600,
+    expirationTtl: ttl,
   });
 
   setCookie(c, "session", sessionId, {
@@ -94,7 +96,7 @@ auth.post("/api/auth/callback", async (c) => {
     secure: true,
     sameSite: "Lax",
     path: "/",
-    maxAge: tokens.expires_in || 3600,
+    maxAge: ttl,
   });
 
   return c.json({

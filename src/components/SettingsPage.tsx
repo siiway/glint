@@ -38,6 +38,7 @@ type AppConfig = {
   prism_redirect_uri: string;
   use_pkce: boolean;
   allowed_team_id: string;
+  session_ttl: number;
 };
 
 type TeamSettings = {
@@ -825,6 +826,38 @@ export function SettingsPage({
                 style={{ fontSize: 12, color: tokens.colorNeutralForeground4 }}
               >
                 {t.appConfigAllowedTeamIdHint}
+              </Body1>
+            </div>
+
+            <Divider style={{ margin: "16px 0" }} />
+
+            <Title3 className={styles.sectionTitle}>
+              {t.appConfigSessionTtl}
+            </Title3>
+
+            <div className={styles.field}>
+              <Body2 className={styles.fieldLabel}>
+                {t.appConfigSessionTtl}
+              </Body2>
+              <Input
+                type="number"
+                value={String(editAppConfig.session_ttl ?? 0)}
+                onChange={(_, d) =>
+                  setEditAppConfig(
+                    (c) =>
+                      c && {
+                        ...c,
+                        session_ttl: Math.max(0, parseInt(d.value) || 0),
+                      },
+                  )
+                }
+                placeholder="0"
+                min="0"
+              />
+              <Body1
+                style={{ fontSize: 12, color: tokens.colorNeutralForeground4 }}
+              >
+                {t.appConfigSessionTtlHint}
               </Body1>
             </div>
 

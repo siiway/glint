@@ -10,6 +10,7 @@ export type AppConfig = {
   prism_redirect_uri: string;
   use_pkce: boolean;
   allowed_team_id: string;
+  session_ttl: number;
 };
 
 export const DEFAULT_APP_CONFIG: AppConfig = {
@@ -19,6 +20,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   prism_redirect_uri: "",
   use_pkce: true,
   allowed_team_id: "",
+  session_ttl: 0,
 };
 
 export type TeamRole = "owner" | "admin" | "member";
