@@ -191,6 +191,12 @@ const useStyles = makeStyles({
     color: tokens.colorPaletteGreenForeground1,
     fontSize: "12px",
   },
+  claimedAvatar: {
+    width: "16px",
+    height: "16px",
+    borderRadius: "50%",
+    objectFit: "cover" as const,
+  },
   empty: {
     textAlign: "center" as const,
     padding: "48px 0",
@@ -425,9 +431,23 @@ export function TodoPage() {
   };
 
   const claimTodo = async (todo: Todo) => {
-    const newClaimed = todo.claimedBy === user?.id ? null : (user?.id ?? null);
+    const unclaiming = todo.claimedBy === user?.id;
+    const newClaimed = unclaiming ? null : (user?.id ?? null);
+    const newName = unclaiming
+      ? null
+      : user?.displayName || user?.username || null;
+    const newAvatar = unclaiming ? null : user?.avatarUrl || null;
     setTodos((prev) =>
-      prev.map((t) => (t.id === todo.id ? { ...t, claimedBy: newClaimed } : t)),
+      prev.map((t) =>
+        t.id === todo.id
+          ? {
+              ...t,
+              claimedBy: newClaimed,
+              claimedByName: newName,
+              claimedByAvatar: newAvatar,
+            }
+          : t,
+      ),
     );
     await fetch(`/api/teams/${selectedTeamId}/todos/${todo.id}/claim`, {
       method: "POST",
@@ -865,14 +885,20 @@ export function TodoPage() {
                   <Tooltip
                     content={t.actionClaimedBy.replace(
                       "{name}",
-                      todo.claimedBy === user?.id
-                        ? user?.displayName || user?.username || todo.claimedBy
-                        : todo.claimedBy,
+                      todo.claimedByName || todo.claimedBy,
                     )}
                     relationship="label"
                   >
                     <span className={styles.claimedBadge}>
-                      <PersonAvailable24Regular style={{ fontSize: 14 }} />
+                      {todo.claimedByAvatar ? (
+                        <img
+                          src={todo.claimedByAvatar}
+                          alt=""
+                          className={styles.claimedAvatar}
+                        />
+                      ) : (
+                        <PersonAvailable24Regular style={{ fontSize: 14 }} />
+                      )}
                     </span>
                   </Tooltip>
                 )}

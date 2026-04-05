@@ -7,6 +7,9 @@ export type Todo = {
   sortOrder: number;
   commentCount: number;
   claimedBy: string | null;
+  claimedByName: string | null;
+  claimedByAvatar: string | null;
+
   createdAt: string;
   updatedAt: string;
 };

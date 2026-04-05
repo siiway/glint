@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import type { Bindings, Variables, PermissionKey } from "../types";
 import { PERMISSION_KEYS } from "../types";
-import { requireAuth, getTeamRole } from "../auth";
+import { requireAuth, getTeamRole, getPrism } from "../auth";
+import { getAppConfig } from "../config";
 import { hasPermission } from "../permissions";
 
 const todos = new Hono<{ Bindings: Bindings; Variables: Variables }>();
@@ -39,19 +40,48 @@ todos.get("/api/teams/:teamId/sets/:setId/todos", requireAuth, async (c) => {
     perms[key] = await hasPermission(c.env.DB, teamId, role, key, setId);
   }
 
+  // Resolve claimed_by user IDs to display names via Prism
+  const claimedIds = new Set(
+    result.results
+      .map((r) => r.claimed_by as string | null)
+      .filter((id): id is string => !!id),
+  );
+  const nameMap: Record<string, string> = {};
+  const avatarMap: Record<string, string> = {};
+  if (claimedIds.size > 0) {
+    try {
+      const config = await getAppConfig(c.env.KV);
+      const prism = getPrism(config);
+      const { members } = await prism.teams.get(session.accessToken, teamId);
+      for (const m of members) {
+        if (claimedIds.has(m.user_id)) {
+          nameMap[m.user_id] = m.display_name || m.username;
+          if (m.avatar_url) avatarMap[m.user_id] = m.avatar_url;
+        }
+      }
+    } catch {
+      // Fallback: leave names unresolved
+    }
+  }
+
   return c.json({
-    todos: result.results.map((row) => ({
-      id: row.id as string,
-      userId: row.user_id as string,
-      parentId: (row.parent_id as string) || null,
-      title: row.title as string,
-      completed: row.completed === 1,
-      sortOrder: row.sort_order as number,
-      commentCount: countMap[row.id as string] ?? 0,
-      claimedBy: (row.claimed_by as string) || null,
-      createdAt: row.created_at as string,
-      updatedAt: row.updated_at as string,
-    })),
+    todos: result.results.map((row) => {
+      const claimedBy = (row.claimed_by as string) || null;
+      return {
+        id: row.id as string,
+        userId: row.user_id as string,
+        parentId: (row.parent_id as string) || null,
+        title: row.title as string,
+        completed: row.completed === 1,
+        sortOrder: row.sort_order as number,
+        commentCount: countMap[row.id as string] ?? 0,
+        claimedBy,
+        claimedByName: claimedBy ? (nameMap[claimedBy] ?? null) : null,
+        claimedByAvatar: claimedBy ? (avatarMap[claimedBy] ?? null) : null,
+        createdAt: row.created_at as string,
+        updatedAt: row.updated_at as string,
+      };
+    }),
     role,
     permissions: perms,
   });
@@ -120,6 +150,8 @@ todos.post("/api/teams/:teamId/sets/:setId/todos", requireAuth, async (c) => {
         sortOrder,
         commentCount: 0,
         claimedBy: null,
+        claimedByName: null,
+        claimedByAvatar: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
@@ -303,7 +335,12 @@ todos.post("/api/teams/:teamId/todos/:id/claim", requireAuth, async (c) => {
     .bind(claimedBy, todoId, teamId)
     .run();
 
-  return c.json({ ok: true, claimedBy });
+  const claimedByName = claimedBy
+    ? session.displayName || session.username
+    : null;
+  const claimedByAvatar = claimedBy ? session.avatarUrl || null : null;
+
+  return c.json({ ok: true, claimedBy, claimedByName, claimedByAvatar });
 });
 
 export default todos;
