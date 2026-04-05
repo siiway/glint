@@ -62,13 +62,14 @@ export type ShareLinkPermissions = {
   canReorder: boolean;
 };
 
-export type TeamRole = "owner" | "admin" | "member";
+export type TeamRole = "owner" | "co-owner" | "admin" | "member";
 
 export const ROLE_COLORS: Record<
   TeamRole,
-  "brand" | "success" | "informative"
+  "brand" | "success" | "informative" | "warning"
 > = {
   owner: "brand",
+  "co-owner": "warning",
   admin: "success",
   member: "informative",
 };

@@ -175,9 +175,11 @@ export function SettingsPage({
   const [deletingLinkId, setDeletingLinkId] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  const canManage = permsData?.role === "owner" || false;
+  const canManage =
+    permsData?.role === "owner" || permsData?.role === "co-owner" || false;
   const canManagePerms =
     permsData?.role === "owner" ||
+    permsData?.role === "co-owner" ||
     (permsData?.global?.[(permsData?.role as string) ?? ""]
       ?.manage_permissions ??
       false);
@@ -540,6 +542,9 @@ export function SettingsPage({
                   <th className={styles.permTh}>
                     {t.permissionsHeaderPermission}
                   </th>
+                  <th className={styles.permTh}>
+                    {t.permissionsHeaderCoOwner}
+                  </th>
                   <th className={styles.permTh}>{t.permissionsHeaderAdmin}</th>
                   <th className={styles.permTh}>{t.permissionsHeaderMember}</th>
                 </tr>
@@ -563,12 +568,25 @@ export function SettingsPage({
                       </td>
                       <td className={styles.permTd}>
                         <Switch
+                          checked={editPerms["co-owner"]?.[key] ?? false}
+                          onChange={() => togglePerm("co-owner", key)}
+                          disabled={
+                            !canManagePerms ||
+                            (key === "manage_permissions" &&
+                              permsData.role !== "owner" &&
+                              permsData.role !== "co-owner")
+                          }
+                        />
+                      </td>
+                      <td className={styles.permTd}>
+                        <Switch
                           checked={editPerms.admin?.[key] ?? false}
                           onChange={() => togglePerm("admin", key)}
                           disabled={
                             !canManagePerms ||
                             (key === "manage_permissions" &&
-                              permsData.role !== "owner")
+                              permsData.role !== "owner" &&
+                              permsData.role !== "co-owner")
                           }
                         />
                       </td>
@@ -579,7 +597,8 @@ export function SettingsPage({
                           disabled={
                             !canManagePerms ||
                             (key === "manage_permissions" &&
-                              permsData.role !== "owner")
+                              permsData.role !== "owner" &&
+                              permsData.role !== "co-owner")
                           }
                         />
                       </td>

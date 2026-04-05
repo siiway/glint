@@ -12,7 +12,7 @@ import { PrismClient } from "@siiway/prism";
 export type TeamInfo = {
   id: string;
   name: string;
-  role: "owner" | "admin" | "member";
+  role: "owner" | "co-owner" | "admin" | "member";
 };
 
 export type User = {

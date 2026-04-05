@@ -23,7 +23,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   session_ttl: 0,
 };
 
-export type TeamRole = "owner" | "admin" | "member";
+export type TeamRole = "owner" | "co-owner" | "admin" | "member";
 
 export type TeamInfo = {
   id: string;
@@ -87,9 +87,27 @@ export const PERMISSION_KEYS = [
 export type PermissionKey = (typeof PERMISSION_KEYS)[number];
 
 export const DEFAULT_PERMISSIONS: Record<
-  "admin" | "member",
+  "co-owner" | "admin" | "member",
   Record<PermissionKey, boolean>
 > = {
+  "co-owner": {
+    manage_settings: true,
+    manage_permissions: true,
+    manage_sets: true,
+    create_todos: true,
+    edit_own_todos: true,
+    edit_any_todo: true,
+    delete_own_todos: true,
+    delete_any_todo: true,
+    complete_any_todo: true,
+    add_subtodos: true,
+    claim_todos: true,
+    reorder_todos: true,
+    comment: true,
+    delete_own_comments: true,
+    delete_any_comment: true,
+    view_todos: true,
+  },
   admin: {
     manage_settings: false,
     manage_permissions: false,

@@ -215,6 +215,7 @@ const zh: typeof en = {
   permissionsSetOverrideHint: "分组级覆盖优先于全局规则。",
   permissionsOwnerNote: "所有者始终拥有完全访问权（未显示）。",
   permissionsHeaderPermission: "权限",
+  permissionsHeaderCoOwner: "共同所有者",
   permissionsHeaderAdmin: "管理员",
   permissionsHeaderMember: "成员",
   permissionsSave: "保存权限",

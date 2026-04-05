@@ -358,7 +358,7 @@ export function TodoPage() {
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
   const hasPerm = (key: string) =>
-    teamRole === "owner" || (perms[key] ?? false);
+    teamRole === "owner" || teamRole === "co-owner" || (perms[key] ?? false);
   const canModify = (todo: Todo) =>
     todo.userId === user?.id
       ? hasPerm("edit_own_todos")

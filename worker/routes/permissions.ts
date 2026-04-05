@@ -90,12 +90,15 @@ permissions.put("/api/teams/:teamId/permissions", requireAuth, async (c) => {
     return c.json({ error: "Invalid scope" }, 400);
   }
 
-  if (role !== "owner") {
+  if (role !== "owner" && role !== "co-owner") {
     const forbidden = perms.filter(
       (p) => p.permission === "manage_permissions" && p.allowed,
     );
     if (forbidden.length > 0) {
-      return c.json({ error: "Only owners can grant manage_permissions" }, 403);
+      return c.json(
+        { error: "Only owners and co-owners can grant manage_permissions" },
+        403,
+      );
     }
   }
 

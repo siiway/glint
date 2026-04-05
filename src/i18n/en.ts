@@ -222,6 +222,7 @@ export default {
     "Per-set overrides take priority over global rules.",
   permissionsOwnerNote: "Owner always has full access (not shown).",
   permissionsHeaderPermission: "Permission",
+  permissionsHeaderCoOwner: "Co-owner",
   permissionsHeaderAdmin: "Admin",
   permissionsHeaderMember: "Member",
   permissionsSave: "Save Permissions",

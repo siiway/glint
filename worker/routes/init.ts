@@ -119,7 +119,7 @@ init.post("/api/init/setup", async (c) => {
       id TEXT PRIMARY KEY,
       team_id TEXT NOT NULL,
       scope TEXT NOT NULL DEFAULT 'global',
-      role TEXT NOT NULL CHECK (role IN ('admin', 'member')),
+      role TEXT NOT NULL CHECK (role IN ('co-owner', 'admin', 'member')),
       permission TEXT NOT NULL,
       allowed INTEGER NOT NULL DEFAULT 1,
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),

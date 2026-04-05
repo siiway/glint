@@ -14,6 +14,7 @@ export async function getPermissions(
     .all();
 
   const result: Record<string, Record<string, boolean>> = {
+    "co-owner": { ...DEFAULT_PERMISSIONS["co-owner"] },
     admin: { ...DEFAULT_PERMISSIONS.admin },
     member: { ...DEFAULT_PERMISSIONS.member },
   };
@@ -21,7 +22,7 @@ export async function getPermissions(
   for (const row of rows.results) {
     const role = row.role as string;
     const perm = row.permission as string;
-    if (result[role] && perm in DEFAULT_PERMISSIONS.admin) {
+    if (result[role] && perm in DEFAULT_PERMISSIONS["co-owner"]) {
       result[role][perm] = row.allowed === 1;
     }
   }
@@ -36,7 +37,7 @@ export async function hasPermission(
   permission: PermissionKey,
   setId?: string,
 ): Promise<boolean> {
-  if (role === "owner") return true;
+  if (role === "owner" || role === "co-owner") return true;
 
   // Check per-set override first
   if (setId) {
