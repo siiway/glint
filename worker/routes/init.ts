@@ -98,6 +98,7 @@ init.post("/api/init/setup", async (c) => {
       parent_id TEXT REFERENCES todos(id) ON DELETE CASCADE,
       title TEXT NOT NULL,
       completed INTEGER NOT NULL DEFAULT 0,
+      claimed_by TEXT DEFAULT NULL,
       sort_order REAL NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))

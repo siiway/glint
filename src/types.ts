@@ -64,6 +64,13 @@ export type ShareLinkPermissions = {
 
 export type TeamRole = "owner" | "co-owner" | "admin" | "member";
 
+export type TodoSpace = {
+  id: string;
+  name: string;
+  kind: "personal" | "team";
+  role: TeamRole;
+};
+
 export const ROLE_COLORS: Record<
   TeamRole,
   "brand" | "success" | "informative" | "warning"
