@@ -11,6 +11,15 @@ import {
 
 const shares = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
+let hasClaimedByColumn: boolean | null = null;
+
+async function supportsClaimedBy(db: D1Database): Promise<boolean> {
+  if (hasClaimedByColumn !== null) return hasClaimedByColumn;
+  const info = await db.prepare("PRAGMA table_info(todos)").all();
+  hasClaimedByColumn = info.results.some((r) => r.name === "claimed_by");
+  return hasClaimedByColumn;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 type ShareRow = {
@@ -341,8 +350,10 @@ shares.get("/api/shared/:token", async (c) => {
 
   if (!set) return c.json({ error: "Set not found" }, 404);
 
+  const claimSupported = await supportsClaimedBy(c.env.DB);
+
   const result = await c.env.DB.prepare(
-    "SELECT id, user_id, parent_id, title, completed, sort_order, claimed_by, created_at, updated_at FROM todos WHERE set_id = ? AND team_id = ? ORDER BY sort_order ASC, created_at ASC",
+    `SELECT id, user_id, parent_id, title, completed, sort_order, ${claimSupported ? "claimed_by" : "NULL AS claimed_by"}, created_at, updated_at FROM todos WHERE set_id = ? AND team_id = ? ORDER BY sort_order ASC, created_at ASC`,
   )
     .bind(link.set_id, link.team_id)
     .all();

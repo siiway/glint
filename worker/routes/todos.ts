@@ -1,11 +1,25 @@
 import { Hono } from "hono";
 import type { Bindings, Variables, PermissionKey } from "../types";
 import { PERMISSION_KEYS } from "../types";
-import { requireAuth, getTeamRole, getPrism } from "../auth";
+import {
+  requireAuth,
+  getTeamRole,
+  getPrism,
+  isPersonalSpaceId,
+} from "../auth";
 import { getAppConfig } from "../config";
 import { hasPermission } from "../permissions";
 
 const todos = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+
+let hasClaimedByColumn: boolean | null = null;
+
+async function supportsClaimedBy(db: D1Database): Promise<boolean> {
+  if (hasClaimedByColumn !== null) return hasClaimedByColumn;
+  const info = await db.prepare("PRAGMA table_info(todos)").all();
+  hasClaimedByColumn = info.results.some((r) => r.name === "claimed_by");
+  return hasClaimedByColumn;
+}
 
 todos.get("/api/teams/:teamId/sets/:setId/todos", requireAuth, async (c) => {
   const teamId = c.req.param("teamId");
@@ -18,8 +32,10 @@ todos.get("/api/teams/:teamId/sets/:setId/todos", requireAuth, async (c) => {
     return c.json({ error: "No permission to view todos in this set" }, 403);
   }
 
+  const claimSupported = await supportsClaimedBy(c.env.DB);
+
   const result = await c.env.DB.prepare(
-    "SELECT id, user_id, parent_id, title, completed, sort_order, claimed_by, created_at, updated_at FROM todos WHERE set_id = ? AND team_id = ? ORDER BY sort_order ASC, created_at ASC",
+    `SELECT id, user_id, parent_id, title, completed, sort_order, ${claimSupported ? "claimed_by" : "NULL AS claimed_by"}, created_at, updated_at FROM todos WHERE set_id = ? AND team_id = ? ORDER BY sort_order ASC, created_at ASC`,
   )
     .bind(setId, teamId)
     .all();
@@ -48,7 +64,7 @@ todos.get("/api/teams/:teamId/sets/:setId/todos", requireAuth, async (c) => {
   );
   const nameMap: Record<string, string> = {};
   const avatarMap: Record<string, string> = {};
-  if (claimedIds.size > 0) {
+  if (claimedIds.size > 0 && !isPersonalSpaceId(teamId, session.userId)) {
     try {
       const config = await getAppConfig(c.env.KV);
       const prism = getPrism(config);
@@ -302,6 +318,13 @@ todos.post("/api/teams/:teamId/todos/:id/claim", requireAuth, async (c) => {
   const session = c.get("session");
   const role = getTeamRole(session, teamId);
   if (!role) return c.json({ error: "Not a member of this team" }, 403);
+
+  if (!(await supportsClaimedBy(c.env.DB))) {
+    return c.json(
+      { error: "Claim feature unavailable: database migration required" },
+      503,
+    );
+  }
 
   const existing = await c.env.DB.prepare(
     "SELECT id, set_id, claimed_by FROM todos WHERE id = ? AND team_id = ?",

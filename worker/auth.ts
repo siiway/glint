@@ -10,6 +10,16 @@ import type {
   TeamRole,
 } from "./types";
 
+export const PERSONAL_SPACE_PREFIX = "personal:";
+
+export function getPersonalSpaceId(userId: string): string {
+  return `${PERSONAL_SPACE_PREFIX}${userId}`;
+}
+
+export function isPersonalSpaceId(spaceId: string, userId: string): boolean {
+  return spaceId === getPersonalSpaceId(userId);
+}
+
 export function getPrism(config: AppConfig) {
   return new PrismClient({
     baseUrl: config.prism_base_url,
@@ -64,5 +74,6 @@ export function getTeamRole(
   session: SessionData,
   teamId: string,
 ): TeamRole | null {
+  if (isPersonalSpaceId(teamId, session.userId)) return "owner";
   return session.teams.find((t) => t.id === teamId)?.role ?? null;
 }

@@ -43,9 +43,8 @@ import {
   Settings24Regular,
   Link24Regular,
 } from "@fluentui/react-icons";
-import type { TodoSet } from "../types";
+import type { TodoSet, TodoSpace } from "../types";
 import { ROLE_COLORS } from "../types";
-import type { TeamInfo } from "../auth";
 import { Footer } from "./Footer";
 import { useI18n } from "../i18n";
 import { LocalLanguage24Regular } from "@fluentui/react-icons";
@@ -143,9 +142,9 @@ type Props = {
   isMobile: boolean;
   drawerOpen: boolean;
   onDrawerChange: (open: boolean) => void;
-  teams: TeamInfo[];
-  selectedTeamId: string;
-  onTeamChange: (id: string) => void;
+  spaces: TodoSpace[];
+  selectedSpaceId: string;
+  onSpaceChange: (id: string) => void;
   sets: TodoSet[];
   selectedSetId: string;
   onSetSelect: (id: string) => void;
@@ -169,9 +168,9 @@ export function Sidebar({
   isMobile,
   drawerOpen,
   onDrawerChange,
-  teams,
-  selectedTeamId,
-  onTeamChange,
+  spaces,
+  selectedSpaceId,
+  onSpaceChange,
   sets,
   selectedSetId,
   onSetSelect,
@@ -252,7 +251,7 @@ export function Sidebar({
     setAddingSet(false);
   };
 
-  const selectedTeam = teams.find((t) => t.id === selectedTeamId);
+  const selectedSpace = spaces.find((s) => s.id === selectedSpaceId);
 
   function renderSetsList() {
     return (
@@ -309,12 +308,14 @@ export function Sidebar({
                   >
                     {t.sidebarSetSettings}
                   </MenuItem>
-                  <MenuItem
-                    icon={<Link24Regular />}
-                    onClick={() => setLinksSetId(s.id)}
-                  >
-                    {t.shareManageLinks}
-                  </MenuItem>
+                  {selectedSpace?.kind === "team" && (
+                    <MenuItem
+                      icon={<Link24Regular />}
+                      onClick={() => setLinksSetId(s.id)}
+                    >
+                      {t.shareManageLinks}
+                    </MenuItem>
+                  )}
                   <MenuItem
                     icon={<Delete24Regular />}
                     onClick={() => onDeleteSet(s.id)}
@@ -382,13 +383,19 @@ export function Sidebar({
           >
             {user?.displayName || user?.username}
           </Body2>
-          {selectedTeam && (
+          {selectedSpace && (
             <Badge
               appearance="filled"
               size="small"
-              color={ROLE_COLORS[selectedTeam.role]}
+              color={
+                selectedSpace.kind === "personal"
+                  ? "brand"
+                  : ROLE_COLORS[selectedSpace.role]
+              }
             >
-              {selectedTeam.role}
+              {selectedSpace.kind === "personal"
+                ? "personal"
+                : selectedSpace.role}
             </Badge>
           )}
           <Tooltip
@@ -416,18 +423,20 @@ export function Sidebar({
     );
   }
 
-  function renderTeamSelector(className?: string) {
-    if (teams.length <= 1) return null;
+  function renderSpaceSelector(className?: string) {
+    if (spaces.length <= 1) return null;
     return (
       <Select
         className={className ?? styles.teamSelect}
         size="small"
-        value={selectedTeamId}
-        onChange={(_, d) => onTeamChange(d.value)}
+        value={selectedSpaceId}
+        onChange={(_, d) => onSpaceChange(d.value)}
       >
-        {teams.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.name}
+        {spaces.map((space) => (
+          <option key={space.id} value={space.id}>
+            {space.kind === "personal"
+              ? `Personal - ${space.name}`
+              : space.name}
           </option>
         ))}
       </Select>
@@ -580,7 +589,7 @@ export function Sidebar({
     <ManageLinksDialog
       open
       onClose={() => setLinksSetId(null)}
-      teamId={selectedTeamId}
+      teamId={selectedSpaceId}
       setId={linksSetId}
       setName={sets.find((s) => s.id === linksSetId)?.name ?? ""}
       canManage={canManageSets}
@@ -637,9 +646,9 @@ export function Sidebar({
               padding: 0,
             }}
           >
-            {teams.length > 1 && (
+            {spaces.length > 1 && (
               <div style={{ padding: "8px 16px" }}>
-                {renderTeamSelector(styles.teamSelectMobile)}
+                {renderSpaceSelector(styles.teamSelectMobile)}
               </div>
             )}
             <div className={styles.drawerSets}>
@@ -684,7 +693,7 @@ export function Sidebar({
               />
             </Tooltip>
           )}
-          {renderTeamSelector()}
+          {renderSpaceSelector()}
         </div>
         <div className={styles.sidebarContent}>
           {loadingSets ? (

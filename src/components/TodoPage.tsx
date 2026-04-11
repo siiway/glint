@@ -2,6 +2,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   useRef,
   type ReactNode,
 } from "react";
@@ -47,7 +48,7 @@ import {
   PersonDelete24Regular,
 } from "@fluentui/react-icons";
 import { useAuth } from "../auth";
-import type { Todo, TodoSet, TeamRole, Comment } from "../types";
+import type { Todo, TodoSet, TeamRole, Comment, TodoSpace } from "../types";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { Sidebar } from "./Sidebar";
 import { CommentsDialog } from "./CommentsDialog";
@@ -212,8 +213,27 @@ export function TodoPage() {
   const isMobile = useIsMobile();
   const { t } = useI18n();
 
-  const teams = user?.teams ?? [];
-  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const spaces: TodoSpace[] = useMemo(
+    () =>
+      user
+        ? [
+            {
+              id: `personal:${user.id}`,
+              name: user.displayName || user.username,
+              kind: "personal",
+              role: "owner",
+            },
+            ...user.teams.map((team) => ({
+              id: team.id,
+              name: team.name,
+              kind: "team" as const,
+              role: team.role,
+            })),
+          ]
+        : [],
+    [user],
+  );
+  const [selectedSpaceId, setSelectedSpaceId] = useState("");
   const [sets, setSets] = useState<TodoSet[]>([]);
   const [selectedSetId, setSelectedSetId] = useState("");
   const [teamRole, setTeamRole] = useState<TeamRole | null>(null);
@@ -226,6 +246,8 @@ export function TodoPage() {
   const [siteLogo, setSiteLogo] = useState("");
   const [perms, setPerms] = useState<Record<string, boolean>>({});
   const [defaultTimezone, setDefaultTimezone] = useState("UTC");
+
+  const selectedSpace = spaces.find((space) => space.id === selectedSpaceId);
 
   // Todo UI state
   const [newTitle, setNewTitle] = useState("");
@@ -277,12 +299,18 @@ export function TodoPage() {
   }, [contextMenu]);
 
   useEffect(() => {
-    if (teams.length > 0 && !selectedTeamId) setSelectedTeamId(teams[0].id);
-  }, [teams, selectedTeamId]);
+    if (spaces.length > 0 && !selectedSpaceId) setSelectedSpaceId(spaces[0].id);
+  }, [spaces, selectedSpaceId]);
 
   useEffect(() => {
-    if (!selectedTeamId) return;
-    fetch(`/api/teams/${selectedTeamId}/settings`)
+    if (!selectedSpaceId) return;
+    if (selectedSpace?.kind !== "team") {
+      setSiteName("Glint");
+      setSiteLogo("");
+      setDefaultTimezone("UTC");
+      return;
+    }
+    fetch(`/api/teams/${selectedSpaceId}/settings`)
       .then((r) => r.json())
       .then(
         (data: {
@@ -298,28 +326,26 @@ export function TodoPage() {
         },
       )
       .catch(() => {});
-  }, [selectedTeamId]);
+  }, [selectedSpaceId, selectedSpace?.kind]);
 
   const fetchSets = useCallback(async () => {
-    if (!selectedTeamId) return;
+    if (!selectedSpaceId) return;
     setLoadingSets(true);
     try {
-      const res = await fetch(`/api/teams/${selectedTeamId}/sets`);
+      const res = await fetch(`/api/teams/${selectedSpaceId}/sets`);
       if (res.ok) {
         const data: { sets: TodoSet[]; role: TeamRole } = await res.json();
         setSets(data.sets);
         setTeamRole(data.role);
-        if (
-          data.sets.length > 0 &&
-          !data.sets.find((s) => s.id === selectedSetId)
-        )
-          setSelectedSetId(data.sets[0].id);
-        else if (data.sets.length === 0) setSelectedSetId("");
+        setSelectedSetId((prev) => {
+          if (data.sets.length === 0) return "";
+          return data.sets.some((s) => s.id === prev) ? prev : data.sets[0].id;
+        });
       }
     } finally {
       setLoadingSets(false);
     }
-  }, [selectedTeamId]);
+  }, [selectedSpaceId]);
 
   useEffect(() => {
     setSelectedSetId("");
@@ -329,11 +355,11 @@ export function TodoPage() {
   }, [fetchSets]);
 
   const fetchTodos = useCallback(async () => {
-    if (!selectedTeamId || !selectedSetId) return;
+    if (!selectedSpaceId || !selectedSetId) return;
     setLoadingTodos(true);
     try {
       const res = await fetch(
-        `/api/teams/${selectedTeamId}/sets/${selectedSetId}/todos`,
+        `/api/teams/${selectedSpaceId}/sets/${selectedSetId}/todos`,
       );
       if (res.ok) {
         const data: {
@@ -348,7 +374,7 @@ export function TodoPage() {
     } finally {
       setLoadingTodos(false);
     }
-  }, [selectedTeamId, selectedSetId]);
+  }, [selectedSpaceId, selectedSetId]);
 
   useEffect(() => {
     setTodos([]);
@@ -383,10 +409,10 @@ export function TodoPage() {
 
   const addTodo = async (parentId?: string) => {
     const title = parentId ? subTitle : newTitle;
-    if (!title.trim() || adding || !selectedTeamId || !selectedSetId) return;
+    if (!title.trim() || adding || !selectedSpaceId || !selectedSetId) return;
     setAdding(true);
     const res = await fetch(
-      `/api/teams/${selectedTeamId}/sets/${selectedSetId}/todos`,
+      `/api/teams/${selectedSpaceId}/sets/${selectedSetId}/todos`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -410,7 +436,7 @@ export function TodoPage() {
     setTodos((prev) =>
       prev.map((t) => (t.id === todo.id ? { ...t, completed } : t)),
     );
-    await fetch(`/api/teams/${selectedTeamId}/todos/${todo.id}`, {
+    await fetch(`/api/teams/${selectedSpaceId}/todos/${todo.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ completed }),
@@ -425,7 +451,7 @@ export function TodoPage() {
     };
     collect(id);
     setTodos((prev) => prev.filter((t) => !toRemove.has(t.id)));
-    await fetch(`/api/teams/${selectedTeamId}/todos/${id}`, {
+    await fetch(`/api/teams/${selectedSpaceId}/todos/${id}`, {
       method: "DELETE",
     });
   };
@@ -449,7 +475,7 @@ export function TodoPage() {
           : t,
       ),
     );
-    await fetch(`/api/teams/${selectedTeamId}/todos/${todo.id}/claim`, {
+    await fetch(`/api/teams/${selectedSpaceId}/todos/${todo.id}/claim`, {
       method: "POST",
     });
   };
@@ -462,7 +488,7 @@ export function TodoPage() {
       ),
     );
     setEditingId(null);
-    await fetch(`/api/teams/${selectedTeamId}/todos/${todoId}`, {
+    await fetch(`/api/teams/${selectedSpaceId}/todos/${todoId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: editTitle.trim() }),
@@ -485,7 +511,8 @@ export function TodoPage() {
           return next;
         }
       }
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -501,7 +528,7 @@ export function TodoPage() {
     setSelected(new Set());
     await Promise.all(
       ids.map((id) =>
-        fetch(`/api/teams/${selectedTeamId}/todos/${id}`, {
+        fetch(`/api/teams/${selectedSpaceId}/todos/${id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ completed }),
@@ -522,7 +549,7 @@ export function TodoPage() {
     setSelected(new Set());
     await Promise.all(
       ids.map((id) =>
-        fetch(`/api/teams/${selectedTeamId}/todos/${id}`, { method: "DELETE" }),
+        fetch(`/api/teams/${selectedSpaceId}/todos/${id}`, { method: "DELETE" }),
       ),
     );
   };
@@ -559,7 +586,7 @@ export function TodoPage() {
       ),
     );
     setDragIndex(null);
-    await fetch(`/api/teams/${selectedTeamId}/todos/reorder`, {
+    await fetch(`/api/teams/${selectedSpaceId}/todos/reorder`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ items }),
@@ -574,7 +601,7 @@ export function TodoPage() {
   // ─── Sidebar callbacks ───────────────────────────────────────────────────
 
   const handleAddSet = async (name: string) => {
-    const res = await fetch(`/api/teams/${selectedTeamId}/sets`, {
+    const res = await fetch(`/api/teams/${selectedSpaceId}/sets`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
@@ -592,14 +619,14 @@ export function TodoPage() {
       const remaining = sets.filter((s) => s.id !== setId);
       setSelectedSetId(remaining.length > 0 ? remaining[0].id : "");
     }
-    await fetch(`/api/teams/${selectedTeamId}/sets/${setId}`, {
+    await fetch(`/api/teams/${selectedSpaceId}/sets/${setId}`, {
       method: "DELETE",
     });
   };
 
   const handleRenameSet = async (setId: string, name: string) => {
     setSets((prev) => prev.map((s) => (s.id === setId ? { ...s, name } : s)));
-    await fetch(`/api/teams/${selectedTeamId}/sets/${setId}`, {
+    await fetch(`/api/teams/${selectedSpaceId}/sets/${setId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
@@ -610,7 +637,7 @@ export function TodoPage() {
     setSets((prev) =>
       prev.map((s) => (s.id === setId ? { ...s, ...patch } : s)),
     );
-    await fetch(`/api/teams/${selectedTeamId}/sets/${setId}`, {
+    await fetch(`/api/teams/${selectedSpaceId}/sets/${setId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
@@ -628,7 +655,7 @@ export function TodoPage() {
         .map((s) => ({ ...s, sortOrder: orderMap[s.id] ?? s.sortOrder }))
         .sort((a, b) => a.sortOrder - b.sortOrder),
     );
-    await fetch(`/api/teams/${selectedTeamId}/sets/reorder`, {
+    await fetch(`/api/teams/${selectedSpaceId}/sets/reorder`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ items }),
@@ -636,7 +663,7 @@ export function TodoPage() {
   };
 
   const refreshBranding = () => {
-    fetch(`/api/teams/${selectedTeamId}/settings`)
+    fetch(`/api/teams/${selectedSpaceId}/settings`)
       .then((r) => r.json())
       .then(
         (data: {
@@ -822,7 +849,8 @@ export function TodoPage() {
                 e.stopPropagation();
                 setExpanded((p) => {
                   const n = new Set(p);
-                  n.has(todo.id) ? n.delete(todo.id) : n.add(todo.id);
+                  if (n.has(todo.id)) n.delete(todo.id);
+                  else n.add(todo.id);
                   return n;
                 });
               }}
@@ -978,10 +1006,10 @@ export function TodoPage() {
 
   // ─── Settings page ───────────────────────────────────────────────────────
 
-  if (showSettings && selectedTeamId) {
+  if (showSettings && selectedSpace?.kind === "team") {
     return (
       <SettingsPage
-        teamId={selectedTeamId}
+        teamId={selectedSpaceId}
         onBack={() => {
           setShowSettings(false);
           refreshBranding();
@@ -990,9 +1018,9 @@ export function TodoPage() {
     );
   }
 
-  // ─── No teams ────────────────────────────────────────────────────────────
+  // ─── No spaces ───────────────────────────────────────────────────────────
 
-  if (teams.length === 0) {
+  if (spaces.length === 0) {
     return (
       <div className={styles.layout}>
         <div
@@ -1036,16 +1064,18 @@ export function TodoPage() {
           isMobile={isMobile}
           drawerOpen={drawerOpen}
           onDrawerChange={setDrawerOpen}
-          teams={teams}
-          selectedTeamId={selectedTeamId}
-          onTeamChange={setSelectedTeamId}
+          spaces={spaces}
+          selectedSpaceId={selectedSpaceId}
+          onSpaceChange={setSelectedSpaceId}
           sets={sets}
           selectedSetId={selectedSetId}
           onSetSelect={setSelectedSetId}
           loadingSets={loadingSets}
           siteName={siteName}
           siteLogo={siteLogo}
-          canManageSettings={hasPerm("manage_settings")}
+          canManageSettings={
+            selectedSpace?.kind === "team" && hasPerm("manage_settings")
+          }
           canManageSets={hasPerm("manage_sets")}
           onOpenSettings={() => setShowSettings(true)}
           onAddSet={handleAddSet}
@@ -1225,7 +1255,7 @@ export function TodoPage() {
         open={commentTodoId !== null}
         onClose={() => setCommentTodoId(null)}
         todoTitle={commentTodo?.title}
-        teamId={selectedTeamId}
+        teamId={selectedSpaceId}
         todoId={commentTodoId}
         canDelete={canDeleteComment}
         onCommentCountChange={(todoId, delta) => {
@@ -1242,7 +1272,7 @@ export function TodoPage() {
       <ImportMarkdownDialog
         open={importOpen}
         onClose={() => setImportOpen(false)}
-        teamId={selectedTeamId}
+        teamId={selectedSpaceId}
         setId={selectedSetId}
         onImported={fetchTodos}
       />
