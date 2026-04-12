@@ -269,6 +269,9 @@ export function TodoPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   // Import dialog
+  const [transferMode, setTransferMode] = useState<"import" | "export">(
+    "import",
+  );
   const [transferOpen, setTransferOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{
     message: string;
@@ -1192,20 +1195,26 @@ export function TodoPage() {
                     <Button
                       appearance="subtle"
                       icon={<ArrowImport24Regular />}
-                      onClick={() => setTransferOpen(true)}
-                      title={t.todoImportMarkdown}
+                      onClick={() => {
+                        setTransferMode("import");
+                        setTransferOpen(true);
+                      }}
+                      title={t.todoImport}
                     >
-                      {isMobile ? undefined : t.todoImportMarkdown}
+                      {isMobile ? undefined : t.todoImport}
                     </Button>
                   )}
                   {hasPerm("view_todos") && (
                     <Button
                       appearance="subtle"
                       icon={<ArrowExport24Regular />}
-                      onClick={() => setTransferOpen(true)}
-                      title="Export"
+                      onClick={() => {
+                        setTransferMode("export");
+                        setTransferOpen(true);
+                      }}
+                      title={t.todoExport}
                     >
-                      {isMobile ? undefined : "Export"}
+                      {isMobile ? undefined : t.todoExport}
                     </Button>
                   )}
                 </div>
@@ -1283,6 +1292,7 @@ export function TodoPage() {
       <SetTransferDialog
         open={transferOpen}
         onClose={() => setTransferOpen(false)}
+        mode={transferMode}
         teamId={selectedSpaceId}
         setId={selectedSetId}
         setName={selectedSet?.name}
