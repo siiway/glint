@@ -425,7 +425,11 @@ export function SharedPage({ token }: Props) {
               onClick={() => {
                 setExpanded((p) => {
                   const n = new Set(p);
-                  n.has(todo.id) ? n.delete(todo.id) : n.add(todo.id);
+                  if (n.has(todo.id)) {
+                    n.delete(todo.id);
+                  } else {
+                    n.add(todo.id);
+                  }
                   return n;
                 });
               }}

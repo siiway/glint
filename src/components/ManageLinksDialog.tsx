@@ -212,7 +212,10 @@ export function ManageLinksDialog({
   }, [teamId, setId]);
 
   useEffect(() => {
-    if (open) fetchLinks();
+    if (!open) return;
+    queueMicrotask(() => {
+      void fetchLinks();
+    });
   }, [open, fetchLinks]);
 
   const createLink = async () => {

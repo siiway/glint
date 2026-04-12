@@ -51,7 +51,8 @@ export function LoginPage() {
   const styles = useStyles();
   const { login, handleCallback } = useAuth();
   const { t } = useI18n();
-  const [processing, setProcessing] = useState(false);
+  const hasCallbackCode = new URLSearchParams(window.location.search).has("code");
+  const [processing, setProcessing] = useState(hasCallbackCode);
   const [siteName, setSiteName] = useState("Glint");
   const [siteLogo, setSiteLogo] = useState("");
 
@@ -66,18 +67,20 @@ export function LoginPage() {
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.has("code")) {
-      setProcessing(true);
-      handleCallback().then((ok) => {
-        if (ok) {
-          window.history.replaceState({}, "", "/");
-        } else {
-          setProcessing(false);
-        }
-      });
-    }
-  }, [handleCallback]);
+    if (!hasCallbackCode) return;
+    let cancelled = false;
+    void handleCallback().then((ok) => {
+      if (cancelled) return;
+      if (ok) {
+        window.history.replaceState({}, "", "/");
+      } else {
+        setProcessing(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [handleCallback, hasCallbackCode]);
 
   if (processing) {
     return (

@@ -17,6 +17,11 @@ function toAvatarProxyUrl(url?: string): string | undefined {
   return `/api/auth/avatar?url=${encodeURIComponent(url)}`;
 }
 
+function isAllowedAvatarPath(pathname: string): boolean {
+  const lowered = pathname.toLowerCase();
+  return /(^|\/)avatars?(\/|$)/.test(lowered);
+}
+
 auth.get("/api/auth/config", async (c) => {
   const config = await getAppConfig(c.env.KV);
   return c.json({
@@ -105,9 +110,6 @@ auth.get("/api/auth/avatar", async (c) => {
   const rawUrl = c.req.query("url");
   if (!rawUrl) return c.json({ error: "Missing url" }, 400);
 
-  const config = await getAppConfig(c.env.KV);
-  const prismHost = new URL(config.prism_base_url).host;
-
   let avatarUrl: URL;
   try {
     avatarUrl = new URL(rawUrl);
@@ -115,15 +117,30 @@ auth.get("/api/auth/avatar", async (c) => {
     return c.json({ error: "Invalid url" }, 400);
   }
 
-  if (avatarUrl.host !== prismHost) {
+  const config = await getAppConfig(c.env.KV);
+  const prismOrigin = new URL(config.prism_base_url).origin;
+  if (avatarUrl.origin !== prismOrigin) {
     return c.json({ error: "Avatar host not allowed" }, 403);
   }
 
+  const sessionAvatar = activeSession.avatarUrl;
+  const exactSessionAvatar = sessionAvatar === avatarUrl.toString();
+  if (!exactSessionAvatar && !isAllowedAvatarPath(avatarUrl.pathname)) {
+    return c.json({ error: "Avatar path not allowed" }, 403);
+  }
+
   const upstream = await fetch(avatarUrl.toString(), {
-    headers: { Authorization: `Bearer ${activeSession.accessToken}` },
+    headers: activeSession.accessToken
+      ? { Authorization: `Bearer ${activeSession.accessToken}` }
+      : undefined,
   });
   if (!upstream.ok) {
-    return c.json({ error: "Avatar fetch failed" }, upstream.status as 404 | 502);
+    return new Response(JSON.stringify({ error: "Avatar fetch failed" }), {
+      status: upstream.status,
+      headers: {
+        "content-type": "application/json",
+      },
+    });
   }
 
   const contentType = upstream.headers.get("content-type") || "image/png";

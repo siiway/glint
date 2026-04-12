@@ -224,15 +224,19 @@ export function SettingsPage({
   }, [teamId]);
 
   useEffect(() => {
-    fetchData();
+    queueMicrotask(() => {
+      void fetchData();
+    });
   }, [fetchData]);
 
   // When scope changes, load the right perms
   useEffect(() => {
     if (!permsData) return;
-    if (permScope === "global") {
-      setEditPerms(permsData.global);
-    } else {
+    queueMicrotask(() => {
+      if (permScope === "global") {
+        setEditPerms(permsData.global);
+        return;
+      }
       const setId = permScope;
       const overrides = permsData.sets[setId] ?? {};
       // Merge defaults with overrides
@@ -241,7 +245,7 @@ export function SettingsPage({
         member: { ...permsData.global.member, ...overrides.member },
       };
       setEditPerms(merged);
-    }
+    });
   }, [permScope, permsData]);
 
   const saveSettings = async () => {
