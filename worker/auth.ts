@@ -1,4 +1,4 @@
-import { getCookie, deleteCookie } from "hono/cookie";
+import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { createMiddleware } from "hono/factory";
 import { PrismClient } from "@siiway/prism";
 import type {
@@ -11,6 +11,36 @@ import type {
 } from "./types";
 
 export const PERSONAL_SPACE_PREFIX = "personal:";
+export const SESSION_MIN_TTL_SECONDS = 24 * 60 * 60;
+export const SESSION_RENEW_WINDOW_SECONDS = 30 * 60;
+
+export function resolveSessionTtl(configTtl: number, tokenExpiresIn?: number) {
+  return Math.max(
+    configTtl || tokenExpiresIn || SESSION_MIN_TTL_SECONDS,
+    SESSION_MIN_TTL_SECONDS,
+  );
+}
+
+export async function renewSessionIfExpiring(
+  kv: KVNamespace,
+  sessionId: string,
+  session: SessionData,
+): Promise<{ session: SessionData; renewed: boolean }> {
+  if (session.expiresAt - Date.now() > SESSION_RENEW_WINDOW_SECONDS * 1000) {
+    return { session, renewed: false };
+  }
+
+  const renewedSession: SessionData = {
+    ...session,
+    expiresAt: Date.now() + SESSION_MIN_TTL_SECONDS * 1000,
+  };
+
+  await kv.put(`session:${sessionId}`, JSON.stringify(renewedSession), {
+    expirationTtl: SESSION_MIN_TTL_SECONDS,
+  });
+
+  return { session: renewedSession, renewed: true };
+}
 
 export function getPersonalSpaceId(userId: string): string {
   return `${PERSONAL_SPACE_PREFIX}${userId}`;
@@ -66,7 +96,22 @@ export const requireAuth = createMiddleware<{
     return c.json({ error: "Session expired" }, 401);
   }
 
-  c.set("session", session);
+  const { session: activeSession, renewed } = await renewSessionIfExpiring(
+    c.env.KV,
+    sessionId,
+    session,
+  );
+  if (renewed) {
+    setCookie(c, "session", sessionId, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "Lax",
+      path: "/",
+      maxAge: SESSION_MIN_TTL_SECONDS,
+    });
+  }
+
+  c.set("session", activeSession);
   await next();
 });
 

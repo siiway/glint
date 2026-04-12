@@ -19,6 +19,9 @@ const zh: typeof en = {
   signInWithPrism: "使用 Prism 登录",
   signOut: "退出登录",
   tagline: "简单好用的团队待办事项管理工具。",
+  sessionExpiredTitle: "登录已过期",
+  sessionExpiredBody: "当前页面输入仍保留。请先复制内容，然后点击按钮重新登录。",
+  sessionExpiredGoLogin: "前往登录",
 
   // Footer
   footerGitHub: "GitHub",
