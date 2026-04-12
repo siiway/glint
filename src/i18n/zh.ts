@@ -43,8 +43,8 @@ const zh: typeof en = {
     "必须与 Prism 中配置的重定向 URI 一致。默认为 {origin}/callback。",
   initAccessControl: "访问控制",
   initAllowedTeamId: "允许的团队 ID（可选）",
-  initAllowedTeamIdPlaceholder: "留空则允许所有团队",
-  initAllowedTeamIdHint: "如果设置，只有该 Prism 团队的成员才能登录。",
+  initAllowedTeamIdPlaceholder: "team_a, team_b（留空则允许所有团队）",
+  initAllowedTeamIdHint: "支持多个团队 ID，用逗号、分号或空格分隔。",
   initContinue: "继续",
   initReview: "确认配置",
   initAuthFlow: "认证方式",
@@ -234,7 +234,8 @@ const zh: typeof en = {
     "登录会话的持续时间。设为 0 则使用 OAuth 提供商的默认值。",
   appConfigAccessControl: "访问控制",
   appConfigAllowedTeamId: "允许的团队 ID",
-  appConfigAllowedTeamIdHint: "如果设置，只有该 Prism 团队的成员才能登录。",
+  appConfigAllowedTeamIdHint:
+    "支持多个团队 ID，用逗号、分号或空格分隔。",
   appConfigSave: "保存应用配置",
 
   // Permission labels

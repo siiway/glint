@@ -44,6 +44,7 @@ import {
   Navigation24Regular,
   DismissCircle24Regular,
   ArrowImport24Regular,
+  ArrowExport24Regular,
   PersonAvailable24Regular,
   PersonDelete24Regular,
 } from "@fluentui/react-icons";
@@ -55,7 +56,7 @@ import { CommentsDialog } from "./CommentsDialog";
 import { SelectionBar } from "./SelectionBar";
 import { TodoContextMenu } from "./TodoContextMenu";
 import { SettingsPage } from "./SettingsPage";
-import { ImportMarkdownDialog } from "./ImportMarkdownDialog";
+import { SetTransferDialog } from "./SetTransferDialog";
 import { useI18n } from "../i18n";
 import { ConfirmDialog } from "./ConfirmDialog";
 
@@ -268,7 +269,7 @@ export function TodoPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   // Import dialog
-  const [importOpen, setImportOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{
     message: string;
     action: () => void;
@@ -1191,10 +1192,20 @@ export function TodoPage() {
                     <Button
                       appearance="subtle"
                       icon={<ArrowImport24Regular />}
-                      onClick={() => setImportOpen(true)}
+                      onClick={() => setTransferOpen(true)}
                       title={t.todoImportMarkdown}
                     >
                       {isMobile ? undefined : t.todoImportMarkdown}
+                    </Button>
+                  )}
+                  {hasPerm("view_todos") && (
+                    <Button
+                      appearance="subtle"
+                      icon={<ArrowExport24Regular />}
+                      onClick={() => setTransferOpen(true)}
+                      title="Export"
+                    >
+                      {isMobile ? undefined : "Export"}
                     </Button>
                   )}
                 </div>
@@ -1269,11 +1280,12 @@ export function TodoPage() {
         }}
       />
 
-      <ImportMarkdownDialog
-        open={importOpen}
-        onClose={() => setImportOpen(false)}
+      <SetTransferDialog
+        open={transferOpen}
+        onClose={() => setTransferOpen(false)}
         teamId={selectedSpaceId}
         setId={selectedSetId}
+        setName={selectedSet?.name}
         onImported={fetchTodos}
       />
 

@@ -3,8 +3,208 @@ import type { Bindings, Variables } from "../types";
 import { requireAuth, getTeamRole } from "../auth";
 import { ensureDefaultSet } from "../config";
 import { hasPermission } from "../permissions";
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 
 const sets = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+
+type TransferTodo = {
+  title: string;
+  completed: boolean;
+  comments?: string[];
+  children?: TransferTodo[];
+};
+
+type TransferPayload = {
+  version: 1;
+  set: { id: string; name: string };
+  todos: TransferTodo[];
+};
+
+function parseMarkdownChecklist(md: string): TransferTodo[] {
+  const lines = md.split("\n");
+  const roots: TransferTodo[] = [];
+  const stack: Array<{ indent: number; node: TransferTodo }> = [];
+
+  for (const raw of lines) {
+    const item = raw.match(/^(\s*)[-*]\s+\[([xX ])]\s+(.+)$/);
+    if (item) {
+      const [, spaces, check, title] = item;
+      const node: TransferTodo = {
+        title: title.trim(),
+        completed: check.toLowerCase() === "x",
+      };
+      const indent = spaces.length;
+      while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
+        stack.pop();
+      }
+      const parent = stack[stack.length - 1]?.node;
+      if (parent) {
+        parent.children ??= [];
+        parent.children.push(node);
+      } else {
+        roots.push(node);
+      }
+      stack.push({ indent, node });
+      continue;
+    }
+
+    const comment = raw.match(/^\s*>\s?(.*)$/);
+    if (comment && stack.length > 0) {
+      const current = stack[stack.length - 1].node;
+      current.comments ??= [];
+      current.comments.push(comment[1]);
+    }
+  }
+
+  return roots;
+}
+
+function renderMarkdown(nodes: TransferTodo[], depth = 0): string {
+  const lines: string[] = [];
+  const pad = "  ".repeat(depth);
+  for (const node of nodes) {
+    lines.push(`${pad}- [${node.completed ? "x" : " "}] ${node.title}`);
+    for (const comment of node.comments ?? []) {
+      lines.push(`${pad}  > ${comment}`);
+    }
+    if (node.children?.length) {
+      lines.push(renderMarkdown(node.children, depth + 1));
+    }
+  }
+  return lines.filter(Boolean).join("\n");
+}
+
+async function buildTransferPayload(
+  db: D1Database,
+  teamId: string,
+  setId: string,
+  includeComments: boolean,
+): Promise<TransferPayload | null> {
+  const set = await db
+    .prepare("SELECT id, name FROM todo_sets WHERE id = ? AND team_id = ?")
+    .bind(setId, teamId)
+    .first<{ id: string; name: string }>();
+  if (!set) return null;
+
+  const todoRows = await db
+    .prepare(
+      "SELECT id, parent_id, title, completed FROM todos WHERE set_id = ? AND team_id = ? ORDER BY sort_order ASC, created_at ASC",
+    )
+    .bind(setId, teamId)
+    .all();
+
+  const commentsMap: Record<string, string[]> = {};
+  if (includeComments) {
+    const commentRows = await db
+      .prepare(
+        "SELECT c.todo_id, c.body FROM comments c JOIN todos t ON t.id = c.todo_id WHERE t.set_id = ? AND t.team_id = ? ORDER BY c.created_at ASC",
+      )
+      .bind(setId, teamId)
+      .all();
+    for (const row of commentRows.results) {
+      const todoId = row.todo_id as string;
+      commentsMap[todoId] ??= [];
+      commentsMap[todoId].push(row.body as string);
+    }
+  }
+
+  const byId = new Map<string, TransferTodo>();
+  const parentOf = new Map<string, string | null>();
+  for (const row of todoRows.results) {
+    const id = row.id as string;
+    byId.set(id, {
+      title: row.title as string,
+      completed: row.completed === 1,
+      comments: commentsMap[id],
+    });
+    parentOf.set(id, (row.parent_id as string) || null);
+  }
+
+  const roots: TransferTodo[] = [];
+  for (const [id, todo] of byId) {
+    const parentId = parentOf.get(id);
+    if (!parentId) {
+      roots.push(todo);
+      continue;
+    }
+    const parent = byId.get(parentId);
+    if (!parent) {
+      roots.push(todo);
+      continue;
+    }
+    parent.children ??= [];
+    parent.children.push(todo);
+  }
+
+  return {
+    version: 1,
+    set: { id: set.id, name: set.name },
+    todos: roots,
+  };
+}
+
+async function insertTransferTodo(
+  db: D1Database,
+  teamId: string,
+  setId: string,
+  userId: string,
+  username: string,
+  node: TransferTodo,
+  includeComments: boolean,
+  parentId?: string,
+) {
+  const maxRow = await db
+    .prepare(
+      `SELECT COALESCE(MAX(sort_order), 0) as m FROM todos WHERE ${
+        parentId ? "parent_id = ?" : "set_id = ? AND parent_id IS NULL"
+      } AND team_id = ?`,
+    )
+    .bind(parentId ?? setId, teamId)
+    .first<{ m: number }>();
+  const sortOrder = (maxRow?.m ?? 0) + 1;
+  const id = crypto.randomUUID();
+
+  await db
+    .prepare(
+      "INSERT INTO todos (id, set_id, team_id, user_id, parent_id, title, completed, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(
+      id,
+      setId,
+      teamId,
+      userId,
+      parentId ?? null,
+      node.title.trim(),
+      node.completed ? 1 : 0,
+      sortOrder,
+    )
+    .run();
+
+  if (includeComments) {
+    for (const body of node.comments ?? []) {
+      if (!body.trim()) continue;
+      await db
+        .prepare(
+          "INSERT INTO comments (id, todo_id, user_id, username, body) VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(crypto.randomUUID(), id, userId, username, body)
+        .run();
+    }
+  }
+
+  for (const child of node.children ?? []) {
+    await insertTransferTodo(
+      db,
+      teamId,
+      setId,
+      userId,
+      username,
+      child,
+      includeComments,
+      id,
+    );
+  }
+}
 
 sets.get("/api/teams/:teamId/sets", requireAuth, async (c) => {
   const teamId = c.req.param("teamId");
@@ -190,6 +390,104 @@ sets.post("/api/teams/:teamId/sets/reorder", requireAuth, async (c) => {
     ),
   );
   return c.json({ ok: true });
+});
+
+sets.get("/api/teams/:teamId/sets/:setId/export", requireAuth, async (c) => {
+  const teamId = c.req.param("teamId");
+  const setId = c.req.param("setId");
+  const session = c.get("session");
+  const role = getTeamRole(session, teamId);
+  if (!role) return c.json({ error: "Not a member of this team" }, 403);
+
+  if (!(await hasPermission(c.env.DB, teamId, role, "view_todos", setId))) {
+    return c.json({ error: "No permission to export this set" }, 403);
+  }
+
+  const format = (c.req.query("format") || "md").toLowerCase();
+  const includeComments = c.req.query("includeComments") === "1";
+  const payload = await buildTransferPayload(
+    c.env.DB,
+    teamId,
+    setId,
+    includeComments,
+  );
+  if (!payload) return c.json({ error: "Set not found" }, 404);
+
+  const content =
+    format === "json"
+      ? JSON.stringify(payload, null, 2)
+      : format === "yaml" || format === "yml"
+        ? stringifyYaml(payload)
+        : renderMarkdown(payload.todos);
+
+  const ext = format === "json" ? "json" : format === "yaml" ? "yaml" : "md";
+  return c.json({
+    format: ext,
+    fileName: `${payload.set.name.replace(/[^a-zA-Z0-9-_]/g, "_")}.${ext}`,
+    content,
+  });
+});
+
+sets.post("/api/teams/:teamId/sets/:setId/import", requireAuth, async (c) => {
+  const teamId = c.req.param("teamId");
+  const setId = c.req.param("setId");
+  const session = c.get("session");
+  const role = getTeamRole(session, teamId);
+  if (!role) return c.json({ error: "Not a member of this team" }, 403);
+
+  if (!(await hasPermission(c.env.DB, teamId, role, "create_todos", setId))) {
+    return c.json({ error: "No permission to import into this set" }, 403);
+  }
+
+  const body = await c.req.json<{
+    format?: "md" | "json" | "yaml";
+    content: string;
+    mode?: "append" | "replace";
+    includeComments?: boolean;
+  }>();
+  if (!body.content?.trim()) return c.json({ error: "Content is required" }, 400);
+
+  const format = (body.format || "md").toLowerCase();
+  const includeComments = body.includeComments ?? false;
+  const mode = body.mode || "append";
+
+  if (mode === "replace") {
+    if (!(await hasPermission(c.env.DB, teamId, role, "manage_sets"))) {
+      return c.json({ error: "No permission to replace set content" }, 403);
+    }
+    await c.env.DB.prepare("DELETE FROM todos WHERE set_id = ? AND team_id = ?")
+      .bind(setId, teamId)
+      .run();
+  }
+
+  let todosToImport: TransferTodo[] = [];
+  try {
+    if (format === "json") {
+      const parsed = JSON.parse(body.content) as Partial<TransferPayload>;
+      todosToImport = parsed.todos ?? [];
+    } else if (format === "yaml" || format === "yml") {
+      const parsed = parseYaml(body.content) as Partial<TransferPayload>;
+      todosToImport = parsed.todos ?? [];
+    } else {
+      todosToImport = parseMarkdownChecklist(body.content);
+    }
+  } catch {
+    return c.json({ error: "Failed to parse import content" }, 400);
+  }
+
+  for (const todo of todosToImport) {
+    await insertTransferTodo(
+      c.env.DB,
+      teamId,
+      setId,
+      session.userId,
+      session.username,
+      todo,
+      includeComments,
+    );
+  }
+
+  return c.json({ ok: true, imported: todosToImport.length });
 });
 
 export default sets;

@@ -93,7 +93,10 @@ todos.get("/api/teams/:teamId/sets/:setId/todos", requireAuth, async (c) => {
         commentCount: countMap[row.id as string] ?? 0,
         claimedBy,
         claimedByName: claimedBy ? (nameMap[claimedBy] ?? null) : null,
-        claimedByAvatar: claimedBy ? (avatarMap[claimedBy] ?? null) : null,
+        claimedByAvatar:
+          claimedBy && avatarMap[claimedBy]
+            ? `/api/auth/avatar?url=${encodeURIComponent(avatarMap[claimedBy])}`
+            : null,
         createdAt: row.created_at as string,
         updatedAt: row.updated_at as string,
       };

@@ -1,7 +1,12 @@
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
 import type { Bindings, Variables, AppConfig, SessionData } from "../types";
-import { getAppConfig, setAppConfig, getTeamSettings } from "../config";
+import {
+  getAppConfig,
+  setAppConfig,
+  getTeamSettings,
+  parseAllowedTeamIds,
+} from "../config";
 import { getTeamRole } from "../auth";
 
 const init = new Hono<{ Bindings: Bindings; Variables: Variables }>();
@@ -13,8 +18,9 @@ init.get("/api/init/status", async (c) => {
 
 init.get("/api/init/branding", async (c) => {
   const config = await getAppConfig(c.env.KV);
-  if (config.allowed_team_id) {
-    const settings = await getTeamSettings(c.env.KV, config.allowed_team_id);
+  const allowedTeamIds = parseAllowedTeamIds(config.allowed_team_id);
+  if (allowedTeamIds.length > 0) {
+    const settings = await getTeamSettings(c.env.KV, allowedTeamIds[0]);
     return c.json({
       site_name: settings.site_name,
       site_logo_url: settings.site_logo_url,
@@ -38,9 +44,12 @@ init.put("/api/init/config", async (c) => {
     if (!cached) return c.json({ error: "Unauthorized" }, 401);
     const session = cached as SessionData;
     const config = await getAppConfig(c.env.KV);
-    if (config.allowed_team_id) {
-      const role = getTeamRole(session, config.allowed_team_id);
-      if (role !== "owner")
+    const allowedTeamIds = parseAllowedTeamIds(config.allowed_team_id);
+    if (allowedTeamIds.length > 0) {
+      const isOwnerInAllowedTeam = allowedTeamIds.some(
+        (teamId) => getTeamRole(session, teamId) === "owner",
+      );
+      if (!isOwnerInAllowedTeam)
         return c.json({ error: "Only team owner can change app config" }, 403);
     }
   }

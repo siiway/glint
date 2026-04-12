@@ -43,8 +43,10 @@ export default {
     "Must match the redirect URI configured in Prism. Defaults to {origin}/callback.",
   initAccessControl: "Access Control",
   initAllowedTeamId: "Allowed Team ID (optional)",
-  initAllowedTeamIdPlaceholder: "Leave empty to allow all teams",
-  initAllowedTeamIdHint: "If set, only members of this Prism team can sign in.",
+  initAllowedTeamIdPlaceholder:
+    "team_a, team_b (leave empty to allow all teams)",
+  initAllowedTeamIdHint:
+    "Supports multiple team IDs separated by comma, semicolon, or spaces.",
   initContinue: "Continue",
   initReview: "Review Configuration",
   initAuthFlow: "Auth Flow",
@@ -243,7 +245,7 @@ export default {
   appConfigAccessControl: "Access Control",
   appConfigAllowedTeamId: "Allowed Team ID",
   appConfigAllowedTeamIdHint:
-    "If set, only members of this Prism team can sign in.",
+    "Supports multiple team IDs separated by comma, semicolon, or spaces.",
   appConfigSave: "Save App Config",
 
   // Permission labels
