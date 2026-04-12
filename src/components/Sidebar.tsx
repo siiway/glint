@@ -51,6 +51,7 @@ import { useI18n } from "../i18n";
 import { LocalLanguage24Regular } from "@fluentui/react-icons";
 import { ManageLinksDialog } from "./ManageLinksDialog";
 import { ImportSetDialog } from "./ImportSetDialog";
+import { CreateSetDialog } from "./CreateSetDialog";
 
 const useStyles = makeStyles({
   sidebar: {
@@ -208,11 +209,9 @@ export function Sidebar({
   const { t, locale, setLocale } = useI18n();
   const canDrag = !isMobile;
 
-  const [newSetName, setNewSetName] = useState("");
-  const [addingSet, setAddingSet] = useState(false);
-  const [showAddSet, setShowAddSet] = useState(false);
   const [renameSetId, setRenameSetId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [createSetOpen, setCreateSetOpen] = useState(false);
   const [importSetOpen, setImportSetOpen] = useState(false);
 
   // Set settings dialog
@@ -256,15 +255,6 @@ export function Sidebar({
     setDragIndex(null);
     setDragOverIndex(null);
     dragCounter.current = 0;
-  };
-
-  const handleAddSet = async () => {
-    if (!newSetName.trim() || addingSet) return;
-    setAddingSet(true);
-    await onAddSet(newSetName.trim());
-    setNewSetName("");
-    setShowAddSet(false);
-    setAddingSet(false);
   };
 
   const selectedSpace = spaces.find((s) => s.id === selectedSpaceId);
@@ -344,48 +334,22 @@ export function Sidebar({
           </div>
         ))}
 
-        {showAddSet ? (
-          <div className={styles.addSetRow}>
-            <Input
-              size="small"
-              placeholder={t.sidebarSetPlaceholder}
-              value={newSetName}
-              onChange={(_, d) => setNewSetName(d.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleAddSet();
-                if (e.key === "Escape") setShowAddSet(false);
-              }}
-              autoFocus
-              style={{ flex: 1 }}
-            />
-            <Button
-              appearance="primary"
-              size="small"
-              icon={<Add24Regular />}
-              onClick={handleAddSet}
-              disabled={!newSetName.trim() || addingSet}
-            />
-          </div>
-        ) : (
-          <>
-            <Button
-              appearance="transparent"
-              icon={<Add24Regular />}
-              onClick={() => setShowAddSet(true)}
-              style={{ width: "100%", justifyContent: "flex-start" }}
-            >
-              {t.sidebarNewSet}
-            </Button>
-            <Button
-              appearance="transparent"
-              icon={<ArrowImport24Regular />}
-              onClick={() => setImportSetOpen(true)}
-              style={{ width: "100%", justifyContent: "flex-start" }}
-            >
-              {t.sidebarImportSet}
-            </Button>
-          </>
-        )}
+        <Button
+          appearance="transparent"
+          icon={<Add24Regular />}
+          onClick={() => setCreateSetOpen(true)}
+          style={{ width: "100%", justifyContent: "flex-start" }}
+        >
+          {t.sidebarNewSet}
+        </Button>
+        <Button
+          appearance="transparent"
+          icon={<ArrowImport24Regular />}
+          onClick={() => setImportSetOpen(true)}
+          style={{ width: "100%", justifyContent: "flex-start" }}
+        >
+          {t.sidebarImportSet}
+        </Button>
       </>
     );
   }
@@ -635,6 +599,14 @@ export function Sidebar({
     />
   );
 
+  const createSetDialog = (
+    <CreateSetDialog
+      open={createSetOpen}
+      onClose={() => setCreateSetOpen(false)}
+      onCreate={onAddSet}
+    />
+  );
+
   if (isMobile) {
     return (
       <>
@@ -705,6 +677,7 @@ export function Sidebar({
         {renameDialog}
         {setSettingsDialog}
         {linksDialog}
+        {createSetDialog}
         {importSetDialog}
       </>
     );
@@ -751,6 +724,7 @@ export function Sidebar({
       {renameDialog}
       {setSettingsDialog}
       {linksDialog}
+      {createSetDialog}
       {importSetDialog}
     </>
   );

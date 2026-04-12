@@ -60,6 +60,30 @@ import { SetTransferDialog } from "./SetTransferDialog";
 import { useI18n } from "../i18n";
 import { ConfirmDialog } from "./ConfirmDialog";
 
+type TodoView = "todos" | "settings";
+
+function readTodoLocation() {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    spaceId: params.get("space") ?? "",
+    setId: params.get("set") ?? "",
+    view: params.get("view") === "settings" ? ("settings" as const) : ("todos" as const),
+  };
+}
+
+function buildTodoUrl(location: {
+  spaceId: string;
+  setId: string;
+  view: TodoView;
+}) {
+  const params = new URLSearchParams();
+  if (location.spaceId) params.set("space", location.spaceId);
+  if (location.setId) params.set("set", location.setId);
+  if (location.view === "settings") params.set("view", "settings");
+  const query = params.toString();
+  return `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
+}
+
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const useStyles = makeStyles({
@@ -214,6 +238,8 @@ export function TodoPage() {
   const isMobile = useIsMobile();
   const { t } = useI18n();
 
+  const initialLocation = useMemo(() => readTodoLocation(), []);
+
   const spaces: TodoSpace[] = useMemo(
     () =>
       user
@@ -234,15 +260,19 @@ export function TodoPage() {
         : [],
     [user],
   );
-  const [selectedSpaceId, setSelectedSpaceId] = useState("");
+  const [selectedSpaceId, setSelectedSpaceId] = useState(
+    initialLocation.spaceId,
+  );
   const [sets, setSets] = useState<TodoSet[]>([]);
-  const [selectedSetId, setSelectedSetId] = useState("");
+  const [selectedSetId, setSelectedSetId] = useState(initialLocation.setId);
   const [teamRole, setTeamRole] = useState<TeamRole | null>(null);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loadingSets, setLoadingSets] = useState(false);
   const [loadingTodos, setLoadingTodos] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showSettings, setShowSettings] = useState(
+    initialLocation.view === "settings",
+  );
   const [siteName, setSiteName] = useState("Glint");
   const [siteLogo, setSiteLogo] = useState("");
   const [perms, setPerms] = useState<Record<string, boolean>>({});
@@ -303,8 +333,41 @@ export function TodoPage() {
   }, [contextMenu]);
 
   useEffect(() => {
-    if (spaces.length > 0 && !selectedSpaceId) setSelectedSpaceId(spaces[0].id);
+    const syncFromUrl = () => {
+      const next = readTodoLocation();
+      setSelectedSpaceId(next.spaceId);
+      setSelectedSetId(next.setId);
+      setShowSettings(next.view === "settings");
+    };
+
+    window.addEventListener("popstate", syncFromUrl);
+    return () => window.removeEventListener("popstate", syncFromUrl);
+  }, []);
+
+  useEffect(() => {
+    const nextUrl = buildTodoUrl({
+      spaceId: selectedSpaceId,
+      setId: selectedSetId,
+      view: showSettings ? "settings" : "todos",
+    });
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (currentUrl !== nextUrl) {
+      window.history.replaceState({}, "", nextUrl);
+    }
+  }, [selectedSpaceId, selectedSetId, showSettings]);
+
+  useEffect(() => {
+    if (spaces.length === 0) return;
+    if (!selectedSpaceId || !spaces.some((space) => space.id === selectedSpaceId)) {
+      setSelectedSpaceId(spaces[0].id);
+    }
   }, [spaces, selectedSpaceId]);
+
+  useEffect(() => {
+    if (selectedSpace?.kind !== "team" && showSettings) {
+      setShowSettings(false);
+    }
+  }, [selectedSpace?.kind, showSettings]);
 
   useEffect(() => {
     if (!selectedSpaceId) return;
