@@ -152,16 +152,20 @@ async function insertTransferTodo(
   node: TransferTodo,
   includeComments: boolean,
   parentId?: string,
+  sortOrderOverride?: number,
 ) {
-  const maxRow = await db
-    .prepare(
-      `SELECT COALESCE(MAX(sort_order), 0) as m FROM todos WHERE ${
-        parentId ? "parent_id = ?" : "set_id = ? AND parent_id IS NULL"
-      } AND team_id = ?`,
-    )
-    .bind(parentId ?? setId, teamId)
-    .first<{ m: number }>();
-  const sortOrder = (maxRow?.m ?? 0) + 1;
+  let sortOrder = sortOrderOverride;
+  if (sortOrder == null) {
+    const maxRow = await db
+      .prepare(
+        `SELECT COALESCE(MAX(sort_order), 0) as m FROM todos WHERE ${
+          parentId ? "parent_id = ?" : "set_id = ? AND parent_id IS NULL"
+        } AND team_id = ?`,
+      )
+      .bind(parentId ?? setId, teamId)
+      .first<{ m: number }>();
+    sortOrder = (maxRow?.m ?? 0) + 1;
+  }
   const id = crypto.randomUUID();
 
   await db
@@ -204,6 +208,31 @@ async function insertTransferTodo(
       id,
     );
   }
+}
+
+function parseImportContent(
+  format: string,
+  content: string,
+): { todos: TransferTodo[]; setId?: string; setName?: string } {
+  if (format === "json") {
+    const parsed = JSON.parse(content) as Partial<TransferPayload>;
+    return {
+      todos: parsed.todos ?? [],
+      setId: parsed.set?.id,
+      setName: parsed.set?.name,
+    };
+  }
+  if (format === "yaml" || format === "yml") {
+    const parsed = parseYaml(content) as Partial<TransferPayload>;
+    return {
+      todos: parsed.todos ?? [],
+      setId: parsed.set?.id,
+      setName: parsed.set?.name,
+    };
+  }
+  return {
+    todos: parseMarkdownChecklist(content),
+  };
 }
 
 sets.get("/api/teams/:teamId/sets", requireAuth, async (c) => {
@@ -444,12 +473,14 @@ sets.post("/api/teams/:teamId/sets/:setId/import", requireAuth, async (c) => {
     content: string;
     mode?: "append" | "replace";
     includeComments?: boolean;
+    insertAt?: "top" | "bottom";
   }>();
   if (!body.content?.trim()) return c.json({ error: "Content is required" }, 400);
 
   const format = (body.format || "md").toLowerCase();
   const includeComments = body.includeComments ?? false;
   const mode = body.mode || "append";
+  const insertAt = body.insertAt === "top" ? "top" : "bottom";
 
   if (mode === "replace") {
     if (!(await hasPermission(c.env.DB, teamId, role, "manage_sets"))) {
@@ -462,20 +493,98 @@ sets.post("/api/teams/:teamId/sets/:setId/import", requireAuth, async (c) => {
 
   let todosToImport: TransferTodo[] = [];
   try {
-    if (format === "json") {
-      const parsed = JSON.parse(body.content) as Partial<TransferPayload>;
-      todosToImport = parsed.todos ?? [];
-    } else if (format === "yaml" || format === "yml") {
-      const parsed = parseYaml(body.content) as Partial<TransferPayload>;
-      todosToImport = parsed.todos ?? [];
-    } else {
-      todosToImport = parseMarkdownChecklist(body.content);
-    }
+    todosToImport = parseImportContent(format, body.content).todos;
   } catch {
     return c.json({ error: "Failed to parse import content" }, 400);
   }
 
-  for (const todo of todosToImport) {
+  if (insertAt === "top" && todosToImport.length > 0) {
+    await c.env.DB.prepare(
+      "UPDATE todos SET sort_order = sort_order + ? WHERE set_id = ? AND team_id = ? AND parent_id IS NULL",
+    )
+      .bind(todosToImport.length, setId, teamId)
+      .run();
+  }
+
+  for (let i = 0; i < todosToImport.length; i++) {
+    const todo = todosToImport[i];
+    await insertTransferTodo(
+      c.env.DB,
+      teamId,
+      setId,
+      session.userId,
+      session.username,
+      todo,
+      includeComments,
+      undefined,
+      insertAt === "top" ? i + 1 : undefined,
+    );
+  }
+
+  return c.json({ ok: true, imported: todosToImport.length });
+});
+
+sets.post("/api/teams/:teamId/sets/import", requireAuth, async (c) => {
+  const teamId = c.req.param("teamId");
+  const session = c.get("session");
+  const role = getTeamRole(session, teamId);
+  if (!role) return c.json({ error: "Not a member of this team" }, 403);
+
+  if (!(await hasPermission(c.env.DB, teamId, role, "manage_sets"))) {
+    return c.json({ error: "No permission to manage sets" }, 403);
+  }
+
+  const body = await c.req.json<{
+    format?: "md" | "json" | "yaml";
+    content: string;
+    includeComments?: boolean;
+    setId?: string;
+    setName?: string;
+  }>();
+  if (!body.content?.trim()) return c.json({ error: "Content is required" }, 400);
+
+  const format = (body.format || "md").toLowerCase();
+  const includeComments = body.includeComments ?? false;
+
+  let parsed: { todos: TransferTodo[]; setId?: string; setName?: string };
+  try {
+    parsed = parseImportContent(format, body.content);
+  } catch {
+    return c.json({ error: "Failed to parse import content" }, 400);
+  }
+
+  const setName =
+    (body.setName || parsed.setName || (format === "md" ? "Imported Set" : "Imported"))
+      .trim();
+  if (!setName) return c.json({ error: "Set name is required" }, 400);
+
+  const setId =
+    format === "md"
+      ? crypto.randomUUID()
+      : (body.setId || parsed.setId || crypto.randomUUID()).trim();
+  if (!setId) return c.json({ error: "Set id is required" }, 400);
+
+  const existing = await c.env.DB.prepare(
+    "SELECT id FROM todo_sets WHERE id = ? AND team_id = ?",
+  )
+    .bind(setId, teamId)
+    .first<{ id: string }>();
+  if (existing) return c.json({ error: "Set id already exists" }, 409);
+
+  const maxRow = await c.env.DB.prepare(
+    "SELECT COALESCE(MAX(sort_order), 0) as m FROM todo_sets WHERE team_id = ?",
+  )
+    .bind(teamId)
+    .first<{ m: number }>();
+  const sortOrder = (maxRow?.m ?? 0) + 1;
+
+  await c.env.DB.prepare(
+    "INSERT INTO todo_sets (id, team_id, user_id, name, sort_order) VALUES (?, ?, ?, ?, ?)",
+  )
+    .bind(setId, teamId, session.userId, setName, sortOrder)
+    .run();
+
+  for (const todo of parsed.todos) {
     await insertTransferTodo(
       c.env.DB,
       teamId,
@@ -487,7 +596,24 @@ sets.post("/api/teams/:teamId/sets/:setId/import", requireAuth, async (c) => {
     );
   }
 
-  return c.json({ ok: true, imported: todosToImport.length });
+  return c.json(
+    {
+      ok: true,
+      imported: parsed.todos.length,
+      set: {
+        id: setId,
+        userId: session.userId,
+        name: setName,
+        sortOrder,
+        autoRenew: false,
+        renewTime: "00:00",
+        timezone: "",
+        lastRenewedAt: null,
+        createdAt: new Date().toISOString(),
+      },
+    },
+    201,
+  );
 });
 
 export default sets;

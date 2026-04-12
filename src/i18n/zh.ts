@@ -92,6 +92,11 @@ const zh: typeof en = {
   transferCopy: "复制",
   transferCopied: "已复制！",
   transferDownload: "下载",
+  transferInsertTop: "插入到顶部",
+  transferInsertBottom: "插入到底部",
+  transferSetId: "分组 ID",
+  transferSetName: "分组名称",
+  transferSetNameRequired: "分组名称不能为空",
 
   // Context menu / actions
   actionAddSubTodo: "添加子任务",
@@ -118,6 +123,7 @@ const zh: typeof en = {
 
   // Sidebar
   sidebarNewSet: "新建分组",
+  sidebarImportSet: "导入分组",
   sidebarSetPlaceholder: "分组名称...",
   sidebarRenameSet: "重命名分组",
   sidebarSetSettings: "分组设置",

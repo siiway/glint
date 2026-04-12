@@ -1083,6 +1083,12 @@ export function TodoPage() {
           canManageSets={hasPerm("manage_sets")}
           onOpenSettings={() => setShowSettings(true)}
           onAddSet={handleAddSet}
+          onImportSet={(set) => {
+            setSets((prev) =>
+              [...prev, set].sort((a, b) => a.sortOrder - b.sortOrder),
+            );
+            setSelectedSetId(set.id);
+          }}
           onDeleteSet={(setId) =>
             setConfirmAction({
               message: t.confirmDeleteSet,

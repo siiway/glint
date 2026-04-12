@@ -1,12 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Button,
   Checkbox,
   Switch,
   Select,
+  Input,
+  Textarea,
   Body2,
   Caption1,
-  Textarea,
   Dialog,
   DialogSurface,
   DialogBody,
@@ -19,12 +20,13 @@ import {
 import { Dismiss24Regular } from "@fluentui/react-icons";
 import { parse as parseYaml } from "yaml";
 import { useI18n } from "../i18n";
+import type { TodoSet } from "../types";
 
 const useStyles = makeStyles({
   textarea: {
     width: "100%",
     "& textarea": {
-      minHeight: "240px",
+      minHeight: "220px",
       fontFamily: "monospace",
       fontSize: "13px",
     },
@@ -45,7 +47,7 @@ const useStyles = makeStyles({
   },
   preview: {
     marginTop: "8px",
-    maxHeight: "260px",
+    maxHeight: "240px",
     overflowY: "auto",
     border: `1px solid ${tokens.colorNeutralStroke2}`,
     borderRadius: tokens.borderRadiusMedium,
@@ -82,6 +84,12 @@ type TransferTodo = {
   completed: boolean;
   comments?: string[];
   children?: TransferTodo[];
+};
+
+type TransferPayload = {
+  version?: number;
+  set?: { id?: string; name?: string };
+  todos?: TransferTodo[];
 };
 
 function parseMarkdownChecklist(md: string): TransferTodo[] {
@@ -125,7 +133,11 @@ function parseMarkdownChecklist(md: string): TransferTodo[] {
 
 function normalizeParsedTodos(raw: unknown): TransferTodo[] {
   if (Array.isArray(raw)) return raw as TransferTodo[];
-  if (raw && typeof raw === "object" && Array.isArray((raw as { todos?: unknown }).todos)) {
+  if (
+    raw &&
+    typeof raw === "object" &&
+    Array.isArray((raw as { todos?: unknown }).todos)
+  ) {
     return (raw as { todos: TransferTodo[] }).todos;
   }
   return [];
@@ -135,140 +147,146 @@ function collectStats(nodes: TransferTodo[]) {
   let todoCount = 0;
   let commentCount = 0;
 
-  const walk = (list: TransferTodo[], depth: number) => {
+  const walk = (list: TransferTodo[]) => {
     for (const node of list) {
       todoCount++;
       commentCount += node.comments?.length ?? 0;
-      void depth;
-      if (node.children?.length) walk(node.children, depth + 1);
+      if (node.children?.length) walk(node.children);
     }
   };
 
-  walk(nodes, 0);
+  walk(nodes);
   return { todoCount, commentCount };
 }
 
 type Props = {
   open: boolean;
   onClose: () => void;
-  mode: "import" | "export";
   teamId: string;
-  setId: string;
-  setName?: string;
-  onImported: () => void;
+  onImported: (set: TodoSet) => void;
 };
 
-export function SetTransferDialog({
+export function ImportSetDialog({
   open,
   onClose,
-  mode,
   teamId,
-  setId,
-  setName,
   onImported,
 }: Props) {
   const styles = useStyles();
   const { t } = useI18n();
 
-  const [format, setFormat] = useState<TransferFormat>("md");
+  const [format, setFormat] = useState<TransferFormat>("json");
   const [includeComments, setIncludeComments] = useState(false);
-  const [replaceSet, setReplaceSet] = useState(false);
-  const [insertAt, setInsertAt] = useState<"top" | "bottom">("bottom");
   const [content, setContent] = useState("");
+  const [generatedSetId, setGeneratedSetId] = useState(crypto.randomUUID());
+  const [setId, setSetId] = useState("");
+  const [setName, setSetName] = useState("");
   const [busy, setBusy] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const importPreview = useMemo(() => {
-    if (mode !== "import") return { parseError: null as string | null, todos: [] as TransferTodo[] };
-    if (!content.trim()) return { parseError: null as string | null, todos: [] as TransferTodo[] };
+  useEffect(() => {
+    if (!open) return;
+    const id = crypto.randomUUID();
+    setGeneratedSetId(id);
+    if (format === "md") setSetId(id);
+  }, [open, format]);
+
+  const parsed = useMemo(() => {
+    if (!content.trim()) {
+      return {
+        parseError: null as string | null,
+        todos: [] as TransferTodo[],
+        parsedSetId: "",
+        parsedSetName: "",
+      };
+    }
+
     try {
       if (format === "md") {
-        return { parseError: null as string | null, todos: parseMarkdownChecklist(content) };
+        return {
+          parseError: null as string | null,
+          todos: parseMarkdownChecklist(content),
+          parsedSetId: generatedSetId,
+          parsedSetName: "",
+        };
       }
+
       if (format === "json") {
-        const parsed = JSON.parse(content) as unknown;
-        return { parseError: null as string | null, todos: normalizeParsedTodos(parsed) };
+        const payload = JSON.parse(content) as TransferPayload;
+        return {
+          parseError: null as string | null,
+          todos: normalizeParsedTodos(payload),
+          parsedSetId: payload.set?.id ?? "",
+          parsedSetName: payload.set?.name ?? "",
+        };
       }
-      const parsed = parseYaml(content) as unknown;
-      return { parseError: null as string | null, todos: normalizeParsedTodos(parsed) };
+
+      const payload = parseYaml(content) as TransferPayload;
+      return {
+        parseError: null as string | null,
+        todos: normalizeParsedTodos(payload),
+        parsedSetId: payload.set?.id ?? "",
+        parsedSetName: payload.set?.name ?? "",
+      };
     } catch {
       return {
         parseError: t.transferParseError,
         todos: [] as TransferTodo[],
+        parsedSetId: "",
+        parsedSetName: "",
       };
     }
-  }, [mode, format, content, t.transferParseError]);
+  }, [content, format, generatedSetId, t.transferParseError]);
 
-  const stats = useMemo(
-    () => collectStats(importPreview.todos),
-    [importPreview.todos],
-  );
-
-  const loadExport = async () => {
-    setBusy(true);
-    setCopied(false);
-    setError(null);
-    const res = await fetch(
-      `/api/teams/${teamId}/sets/${setId}/export?format=${format}&includeComments=${includeComments ? "1" : "0"}`,
-    );
-    if (!res.ok) {
-      setError(t.transferExportFailed);
-      setBusy(false);
+  useEffect(() => {
+    if (format === "md") {
+      setSetId(generatedSetId);
       return;
     }
-    const data: { content: string } = await res.json();
-    setContent(data.content);
-    setBusy(false);
-  };
+    setSetId(parsed.parsedSetId || generatedSetId);
+  }, [format, parsed.parsedSetId, generatedSetId]);
+
+  useEffect(() => {
+    if (format === "md") return;
+    setSetName(parsed.parsedSetName || "");
+  }, [format, parsed.parsedSetName]);
+
+  const stats = useMemo(() => collectStats(parsed.todos), [parsed.todos]);
 
   const runImport = async () => {
     if (!content.trim()) return;
+    if (!setName.trim()) {
+      setError(t.transferSetNameRequired);
+      return;
+    }
+
     setBusy(true);
-    setCopied(false);
     setError(null);
-    const res = await fetch(`/api/teams/${teamId}/sets/${setId}/import`, {
+
+    const res = await fetch(`/api/teams/${teamId}/sets/import`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         format,
         content,
         includeComments,
-        insertAt,
-        mode: replaceSet ? "replace" : "append",
+        setId,
+        setName,
       }),
     });
+
     if (!res.ok) {
       const data = await res.json().catch(() => ({ error: t.transferImportFailed }));
       setError((data as { error?: string }).error || t.transferImportFailed);
       setBusy(false);
       return;
     }
+
+    const data = (await res.json()) as { set: TodoSet };
     setBusy(false);
     setContent("");
-    onImported();
+    onImported(data.set);
     onClose();
-  };
-
-  const download = () => {
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${setName || "set"}.${format === "yaml" ? "yaml" : format}`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const copyExport = async () => {
-    if (!content.trim()) return;
-    try {
-      await navigator.clipboard.writeText(content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch {
-      setError(t.transferCopyFailed);
-    }
   };
 
   const renderPreviewTodos = (nodes: TransferTodo[], depth = 0) => {
@@ -318,7 +336,7 @@ export function SetTransferDialog({
               />
             }
           >
-            {mode === "import" ? t.transferImportTitle : t.transferExportTitle}
+            {t.sidebarImportSet}
           </DialogTitle>
           <DialogContent>
             <div className={styles.row}>
@@ -326,121 +344,100 @@ export function SetTransferDialog({
                 value={format}
                 onChange={(_, d) => setFormat(d.value as TransferFormat)}
               >
-                <option value="md">Markdown</option>
                 <option value="json">JSON</option>
                 <option value="yaml">YAML</option>
+                <option value="md">Markdown</option>
               </Select>
               <Switch
                 label={t.transferIncludeComments}
                 checked={includeComments}
                 onChange={(_, d) => setIncludeComments(d.checked)}
               />
-              {mode === "import" && (
-                <Switch
-                  label={t.transferReplaceExisting}
-                  checked={replaceSet}
-                  onChange={(_, d) => setReplaceSet(d.checked)}
-                />
-              )}
-              {mode === "import" && !replaceSet && (
-                <Select
-                  value={insertAt}
-                  onChange={(_, d) =>
-                    setInsertAt(d.value as "top" | "bottom")
-                  }
-                >
-                  <option value="bottom">{t.transferInsertBottom}</option>
-                  <option value="top">{t.transferInsertTop}</option>
-                </Select>
-              )}
             </div>
 
             {error && (
-              <div style={{ color: tokens.colorPaletteRedForeground1, marginBottom: 8 }}>
+              <div
+                style={{
+                  color: tokens.colorPaletteRedForeground1,
+                  marginBottom: 8,
+                }}
+              >
                 {error}
               </div>
             )}
 
-            {mode === "import" && (
-              <>
-                {importPreview.parseError && (
-                  <div style={{ color: tokens.colorPaletteRedForeground1, marginBottom: 8 }}>
-                    {importPreview.parseError}
-                  </div>
-                )}
-                <div className={styles.stats}>
-                  <span>
-                    {t.transferTodosCount.replace(
-                      "{count}",
-                      String(stats.todoCount),
-                    )}
-                  </span>
-                  <span>
-                    {t.transferCommentsCount.replace(
-                      "{count}",
-                      String(stats.commentCount),
-                    )}
-                  </span>
-                </div>
-                <div className={styles.preview}>
-                  {stats.todoCount > 0
-                    ? renderPreviewTodos(importPreview.todos)
-                    : t.transferPreviewPlaceholder}
-                </div>
-              </>
+            {parsed.parseError && (
+              <div
+                style={{
+                  color: tokens.colorPaletteRedForeground1,
+                  marginBottom: 8,
+                }}
+              >
+                {parsed.parseError}
+              </div>
             )}
 
             <Textarea
               className={styles.textarea}
               value={content}
               onChange={(_, d) => setContent(d.value)}
-              placeholder={
-                mode === "import"
-                  ? t.transferImportPlaceholder
-                  : t.transferExportPlaceholder
-              }
+              placeholder={t.transferImportPlaceholder}
               disabled={busy}
             />
+
+            <div className={styles.row} style={{ marginTop: 12 }}>
+              <Input
+                value={setId}
+                onChange={(_, d) => setSetId(d.value)}
+                disabled
+                style={{ flex: 1, minWidth: 220 }}
+                placeholder={t.transferSetId}
+              />
+              <Input
+                value={setName}
+                onChange={(_, d) => setSetName(d.value)}
+                style={{ flex: 1, minWidth: 220 }}
+                placeholder={t.transferSetName}
+              />
+            </div>
+
+            <div className={styles.stats}>
+              <span>{t.transferTodosCount.replace("{count}", String(stats.todoCount))}</span>
+              <span>
+                {t.transferCommentsCount.replace(
+                  "{count}",
+                  String(stats.commentCount),
+                )}
+              </span>
+            </div>
+
+            <div className={styles.preview}>
+              {stats.todoCount > 0
+                ? renderPreviewTodos(parsed.todos)
+                : t.transferPreviewPlaceholder}
+            </div>
           </DialogContent>
           <DialogActions>
             <Button appearance="secondary" onClick={onClose}>
               {t.close}
             </Button>
-            {mode === "export" ? (
-              <>
-                <Button appearance="secondary" onClick={loadExport} disabled={busy}>
-                  {busy ? t.saving : t.transferGenerate}
-                </Button>
-                <Button
-                  appearance="secondary"
-                  onClick={copyExport}
-                  disabled={!content.trim()}
-                >
-                  {copied ? t.transferCopied : t.transferCopy}
-                </Button>
-                <Button appearance="primary" onClick={download} disabled={!content.trim()}>
-                  {t.transferDownload}
-                </Button>
-              </>
-            ) : (
-              <Button
-                appearance="primary"
-                onClick={runImport}
-                disabled={
-                  busy ||
-                  !content.trim() ||
-                  !!importPreview.parseError ||
-                  stats.todoCount === 0
-                }
-              >
-                {busy ? t.saving : t.todoImport}
-              </Button>
-            )}
+            <Button
+              appearance="primary"
+              onClick={runImport}
+              disabled={
+                busy ||
+                !content.trim() ||
+                !!parsed.parseError ||
+                stats.todoCount === 0 ||
+                !setName.trim() ||
+                !setId.trim()
+              }
+            >
+              {busy ? t.saving : t.todoImport}
+            </Button>
           </DialogActions>
         </DialogBody>
       </DialogSurface>
     </Dialog>
   );
 }
-
-

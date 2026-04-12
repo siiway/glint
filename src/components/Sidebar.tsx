@@ -34,6 +34,7 @@ import {
 } from "@fluentui/react-components";
 import {
   Add24Regular,
+  ArrowImport24Regular,
   Delete24Regular,
   SignOut24Regular,
   Edit24Regular,
@@ -49,6 +50,7 @@ import { Footer } from "./Footer";
 import { useI18n } from "../i18n";
 import { LocalLanguage24Regular } from "@fluentui/react-icons";
 import { ManageLinksDialog } from "./ManageLinksDialog";
+import { ImportSetDialog } from "./ImportSetDialog";
 
 const useStyles = makeStyles({
   sidebar: {
@@ -166,6 +168,7 @@ type Props = {
   canManageSets: boolean;
   onOpenSettings: () => void;
   onAddSet: (name: string) => Promise<void>;
+  onImportSet: (set: TodoSet) => void;
   onDeleteSet: (id: string) => void;
   onRenameSet: (id: string, name: string) => void;
   onUpdateSet: (id: string, patch: Partial<TodoSet>) => void;
@@ -192,6 +195,7 @@ export function Sidebar({
   canManageSets,
   onOpenSettings,
   onAddSet,
+  onImportSet,
   onDeleteSet,
   onRenameSet,
   onUpdateSet,
@@ -209,6 +213,7 @@ export function Sidebar({
   const [showAddSet, setShowAddSet] = useState(false);
   const [renameSetId, setRenameSetId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [importSetOpen, setImportSetOpen] = useState(false);
 
   // Set settings dialog
   const [settingsSetId, setSettingsSetId] = useState<string | null>(null);
@@ -362,14 +367,24 @@ export function Sidebar({
             />
           </div>
         ) : (
-          <Button
-            appearance="transparent"
-            icon={<Add24Regular />}
-            onClick={() => setShowAddSet(true)}
-            style={{ width: "100%", justifyContent: "flex-start" }}
-          >
-            {t.sidebarNewSet}
-          </Button>
+          <>
+            <Button
+              appearance="transparent"
+              icon={<Add24Regular />}
+              onClick={() => setShowAddSet(true)}
+              style={{ width: "100%", justifyContent: "flex-start" }}
+            >
+              {t.sidebarNewSet}
+            </Button>
+            <Button
+              appearance="transparent"
+              icon={<ArrowImport24Regular />}
+              onClick={() => setImportSetOpen(true)}
+              style={{ width: "100%", justifyContent: "flex-start" }}
+            >
+              {t.sidebarImportSet}
+            </Button>
+          </>
         )}
       </>
     );
@@ -607,6 +622,19 @@ export function Sidebar({
     />
   ) : null;
 
+  const importSetDialog = (
+    <ImportSetDialog
+      open={importSetOpen}
+      onClose={() => setImportSetOpen(false)}
+      teamId={selectedSpaceId}
+      onImported={(set) => {
+        onImportSet(set);
+        setImportSetOpen(false);
+        if (isMobile) onDrawerChange(false);
+      }}
+    />
+  );
+
   if (isMobile) {
     return (
       <>
@@ -677,6 +705,7 @@ export function Sidebar({
         {renameDialog}
         {setSettingsDialog}
         {linksDialog}
+        {importSetDialog}
       </>
     );
   }
@@ -722,6 +751,7 @@ export function Sidebar({
       {renameDialog}
       {setSettingsDialog}
       {linksDialog}
+      {importSetDialog}
     </>
   );
 }
