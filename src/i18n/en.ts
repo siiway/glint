@@ -97,6 +97,11 @@ export default {
   transferCopy: "Copy",
   transferCopied: "Copied!",
   transferDownload: "Download",
+  transferInsertTop: "Insert at top",
+  transferInsertBottom: "Insert at bottom",
+  transferSetId: "Set ID",
+  transferSetName: "Set name",
+  transferSetNameRequired: "Set name is required",
 
   // Context menu / actions
   actionAddSubTodo: "Add sub-todo",
@@ -123,6 +128,7 @@ export default {
 
   // Sidebar
   sidebarNewSet: "New set",
+  sidebarImportSet: "Import set",
   sidebarSetPlaceholder: "Set name...",
   sidebarRenameSet: "Rename Set",
   sidebarSetSettings: "Set Settings",
