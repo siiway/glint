@@ -136,6 +136,7 @@ function collectStats(nodes: TransferTodo[]) {
 type Props = {
   open: boolean;
   onClose: () => void;
+  mode: "import" | "export";
   teamId: string;
   setId: string;
   setName?: string;
@@ -145,6 +146,7 @@ type Props = {
 export function SetTransferDialog({
   open,
   onClose,
+  mode,
   teamId,
   setId,
   setName,
@@ -153,12 +155,12 @@ export function SetTransferDialog({
   const styles = useStyles();
   const { t } = useI18n();
 
-  const [mode, setMode] = useState<"import" | "export">("import");
   const [format, setFormat] = useState<TransferFormat>("md");
   const [includeComments, setIncludeComments] = useState(false);
   const [replaceSet, setReplaceSet] = useState(false);
   const [content, setContent] = useState("");
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const importPreview = useMemo(() => {
@@ -175,9 +177,12 @@ export function SetTransferDialog({
       const parsed = parseYaml(content) as unknown;
       return { parseError: null as string | null, todos: normalizeParsedTodos(parsed) };
     } catch {
-      return { parseError: "Parse failed. Please check the format.", todos: [] as TransferTodo[] };
+      return {
+        parseError: t.transferParseError,
+        todos: [] as TransferTodo[],
+      };
     }
-  }, [mode, format, content]);
+  }, [mode, format, content, t.transferParseError]);
 
   const stats = useMemo(
     () => collectStats(importPreview.todos),
@@ -186,12 +191,13 @@ export function SetTransferDialog({
 
   const loadExport = async () => {
     setBusy(true);
+    setCopied(false);
     setError(null);
     const res = await fetch(
       `/api/teams/${teamId}/sets/${setId}/export?format=${format}&includeComments=${includeComments ? "1" : "0"}`,
     );
     if (!res.ok) {
-      setError("Failed to export set");
+      setError(t.transferExportFailed);
       setBusy(false);
       return;
     }
@@ -203,6 +209,7 @@ export function SetTransferDialog({
   const runImport = async () => {
     if (!content.trim()) return;
     setBusy(true);
+    setCopied(false);
     setError(null);
     const res = await fetch(`/api/teams/${teamId}/sets/${setId}/import`, {
       method: "POST",
@@ -215,8 +222,8 @@ export function SetTransferDialog({
       }),
     });
     if (!res.ok) {
-      const data = await res.json().catch(() => ({ error: "Import failed" }));
-      setError((data as { error?: string }).error || "Import failed");
+      const data = await res.json().catch(() => ({ error: t.transferImportFailed }));
+      setError((data as { error?: string }).error || t.transferImportFailed);
       setBusy(false);
       return;
     }
@@ -236,6 +243,17 @@ export function SetTransferDialog({
     URL.revokeObjectURL(url);
   };
 
+  const copyExport = async () => {
+    if (!content.trim()) return;
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch {
+      setError(t.transferCopyFailed);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={(_, d) => !d.open && onClose()}>
       <DialogSurface style={{ maxWidth: 700 }}>
@@ -249,17 +267,10 @@ export function SetTransferDialog({
               />
             }
           >
-            Import / Export
+            {mode === "import" ? t.transferImportTitle : t.transferExportTitle}
           </DialogTitle>
           <DialogContent>
             <div className={styles.row}>
-              <Select
-                value={mode}
-                onChange={(_, d) => setMode(d.value as "import" | "export")}
-              >
-                <option value="import">Import</option>
-                <option value="export">Export</option>
-              </Select>
               <Select
                 value={format}
                 onChange={(_, d) => setFormat(d.value as TransferFormat)}
@@ -269,13 +280,13 @@ export function SetTransferDialog({
                 <option value="yaml">YAML</option>
               </Select>
               <Switch
-                label="Include comments"
+                label={t.transferIncludeComments}
                 checked={includeComments}
                 onChange={(_, d) => setIncludeComments(d.checked)}
               />
               {mode === "import" && (
                 <Switch
-                  label="Replace existing todos"
+                  label={t.transferReplaceExisting}
                   checked={replaceSet}
                   onChange={(_, d) => setReplaceSet(d.checked)}
                 />
@@ -296,13 +307,23 @@ export function SetTransferDialog({
                   </div>
                 )}
                 <div className={styles.stats}>
-                  <span>Todos: {stats.todoCount}</span>
-                  <span>Comments: {stats.commentCount}</span>
+                  <span>
+                    {t.transferTodosCount.replace(
+                      "{count}",
+                      String(stats.todoCount),
+                    )}
+                  </span>
+                  <span>
+                    {t.transferCommentsCount.replace(
+                      "{count}",
+                      String(stats.commentCount),
+                    )}
+                  </span>
                 </div>
                 <div className={styles.preview}>
                   {stats.previewLines.length > 0
                     ? stats.previewLines.join("\n")
-                    : "Preview will appear here after parsing content."}
+                    : t.transferPreviewPlaceholder}
                 </div>
               </>
             )}
@@ -313,8 +334,8 @@ export function SetTransferDialog({
               onChange={(_, d) => setContent(d.value)}
               placeholder={
                 mode === "import"
-                  ? "Paste markdown/json/yaml content here"
-                  : "Click Export to generate content"
+                  ? t.transferImportPlaceholder
+                  : t.transferExportPlaceholder
               }
               disabled={busy}
             />
@@ -326,10 +347,17 @@ export function SetTransferDialog({
             {mode === "export" ? (
               <>
                 <Button appearance="secondary" onClick={loadExport} disabled={busy}>
-                  {busy ? t.saving : "Generate"}
+                  {busy ? t.saving : t.transferGenerate}
+                </Button>
+                <Button
+                  appearance="secondary"
+                  onClick={copyExport}
+                  disabled={!content.trim()}
+                >
+                  {copied ? t.transferCopied : t.transferCopy}
                 </Button>
                 <Button appearance="primary" onClick={download} disabled={!content.trim()}>
-                  Download
+                  {t.transferDownload}
                 </Button>
               </>
             ) : (
@@ -343,7 +371,7 @@ export function SetTransferDialog({
                   stats.todoCount === 0
                 }
               >
-                {busy ? t.saving : "Import"}
+                {busy ? t.saving : t.todoImport}
               </Button>
             )}
           </DialogActions>
