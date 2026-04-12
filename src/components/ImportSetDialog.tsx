@@ -21,6 +21,10 @@ import { Dismiss24Regular } from "@fluentui/react-icons";
 import { parse as parseYaml } from "yaml";
 import { useI18n } from "../i18n";
 import type { TodoSet } from "../types";
+import {
+  parseMarkdownChecklist,
+  type MarkdownChecklistTodo,
+} from "../../shared/markdownChecklist";
 
 const useStyles = makeStyles({
   textarea: {
@@ -79,57 +83,13 @@ const useStyles = makeStyles({
 
 type TransferFormat = "md" | "json" | "yaml";
 
-type TransferTodo = {
-  title: string;
-  completed: boolean;
-  comments?: string[];
-  children?: TransferTodo[];
-};
+type TransferTodo = MarkdownChecklistTodo;
 
 type TransferPayload = {
   version?: number;
   set?: { id?: string; name?: string };
   todos?: TransferTodo[];
 };
-
-function parseMarkdownChecklist(md: string): TransferTodo[] {
-  const lines = md.split("\n");
-  const roots: TransferTodo[] = [];
-  const stack: Array<{ indent: number; node: TransferTodo }> = [];
-
-  for (const raw of lines) {
-    const item = raw.match(/^(\s*)[-*]\s+\[([xX ])]\s+(.+)$/);
-    if (item) {
-      const [, spaces, check, title] = item;
-      const node: TransferTodo = {
-        title: title.trim(),
-        completed: check.toLowerCase() === "x",
-      };
-      const indent = spaces.length;
-      while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
-        stack.pop();
-      }
-      const parent = stack[stack.length - 1]?.node;
-      if (parent) {
-        parent.children ??= [];
-        parent.children.push(node);
-      } else {
-        roots.push(node);
-      }
-      stack.push({ indent, node });
-      continue;
-    }
-
-    const comment = raw.match(/^\s*>\s?(.*)$/);
-    if (comment && stack.length > 0) {
-      const current = stack[stack.length - 1].node;
-      current.comments ??= [];
-      current.comments.push(comment[1]);
-    }
-  }
-
-  return roots;
-}
 
 function normalizeParsedTodos(raw: unknown): TransferTodo[] {
   if (Array.isArray(raw)) return raw as TransferTodo[];
@@ -263,30 +223,37 @@ export function ImportSetDialog({
     setBusy(true);
     setError(null);
 
-    const res = await fetch(`/api/teams/${teamId}/sets/import`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        format,
-        content,
-        includeComments,
-        setId,
-        setName,
-      }),
-    });
+    try {
+      const res = await fetch(`/api/teams/${teamId}/sets/import`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          format,
+          content,
+          includeComments,
+          setId,
+          setName,
+        }),
+      });
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({ error: t.transferImportFailed }));
-      setError((data as { error?: string }).error || t.transferImportFailed);
+      if (!res.ok) {
+        const data = await res
+          .json()
+          .catch(() => ({ error: t.transferImportFailed }));
+        setError((data as { error?: string }).error || t.transferImportFailed);
+        setBusy(false);
+        return;
+      }
+
+      const data = (await res.json()) as { set: TodoSet };
+      setContent("");
+      onImported(data.set);
+      onClose();
+    } catch {
+      setError(t.transferImportFailed);
+    } finally {
       setBusy(false);
-      return;
     }
-
-    const data = (await res.json()) as { set: TodoSet };
-    setBusy(false);
-    setContent("");
-    onImported(data.set);
-    onClose();
   };
 
   const renderPreviewTodos = (nodes: TransferTodo[], depth = 0) => {

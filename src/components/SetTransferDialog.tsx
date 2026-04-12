@@ -19,6 +19,10 @@ import {
 import { Dismiss24Regular } from "@fluentui/react-icons";
 import { parse as parseYaml } from "yaml";
 import { useI18n } from "../i18n";
+import {
+  parseMarkdownChecklist,
+  type MarkdownChecklistTodo,
+} from "../../shared/markdownChecklist";
 
 const useStyles = makeStyles({
   textarea: {
@@ -77,51 +81,7 @@ const useStyles = makeStyles({
 
 type TransferFormat = "md" | "json" | "yaml";
 
-type TransferTodo = {
-  title: string;
-  completed: boolean;
-  comments?: string[];
-  children?: TransferTodo[];
-};
-
-function parseMarkdownChecklist(md: string): TransferTodo[] {
-  const lines = md.split("\n");
-  const roots: TransferTodo[] = [];
-  const stack: Array<{ indent: number; node: TransferTodo }> = [];
-
-  for (const raw of lines) {
-    const item = raw.match(/^(\s*)[-*]\s+\[([xX ])]\s+(.+)$/);
-    if (item) {
-      const [, spaces, check, title] = item;
-      const node: TransferTodo = {
-        title: title.trim(),
-        completed: check.toLowerCase() === "x",
-      };
-      const indent = spaces.length;
-      while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
-        stack.pop();
-      }
-      const parent = stack[stack.length - 1]?.node;
-      if (parent) {
-        parent.children ??= [];
-        parent.children.push(node);
-      } else {
-        roots.push(node);
-      }
-      stack.push({ indent, node });
-      continue;
-    }
-
-    const comment = raw.match(/^\s*>\s?(.*)$/);
-    if (comment && stack.length > 0) {
-      const current = stack[stack.length - 1].node;
-      current.comments ??= [];
-      current.comments.push(comment[1]);
-    }
-  }
-
-  return roots;
-}
+type TransferTodo = MarkdownChecklistTodo;
 
 function normalizeParsedTodos(raw: unknown): TransferTodo[] {
   if (Array.isArray(raw)) return raw as TransferTodo[];
@@ -206,48 +166,60 @@ export function SetTransferDialog({
   );
 
   const loadExport = async () => {
+    if (!teamId || !setId) return;
+
     setBusy(true);
     setCopied(false);
     setError(null);
-    const res = await fetch(
-      `/api/teams/${teamId}/sets/${setId}/export?format=${format}&includeComments=${includeComments ? "1" : "0"}`,
-    );
-    if (!res.ok) {
+    try {
+      const res = await fetch(
+        `/api/teams/${teamId}/sets/${setId}/export?format=${format}&includeComments=${includeComments ? "1" : "0"}`,
+      );
+      if (!res.ok) {
+        setError(t.transferExportFailed);
+        setBusy(false);
+        return;
+      }
+      const data: { content: string } = await res.json();
+      setContent(data.content);
+    } catch {
       setError(t.transferExportFailed);
+    } finally {
       setBusy(false);
-      return;
     }
-    const data: { content: string } = await res.json();
-    setContent(data.content);
-    setBusy(false);
   };
 
   const runImport = async () => {
-    if (!content.trim()) return;
+    if (!content.trim() || !teamId || !setId) return;
     setBusy(true);
     setCopied(false);
     setError(null);
-    const res = await fetch(`/api/teams/${teamId}/sets/${setId}/import`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        format,
-        content,
-        includeComments,
-        insertAt,
-        mode: replaceSet ? "replace" : "append",
-      }),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({ error: t.transferImportFailed }));
-      setError((data as { error?: string }).error || t.transferImportFailed);
+    try {
+      const res = await fetch(`/api/teams/${teamId}/sets/${setId}/import`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          format,
+          content,
+          includeComments,
+          insertAt,
+          mode: replaceSet ? "replace" : "append",
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: t.transferImportFailed }));
+        setError((data as { error?: string }).error || t.transferImportFailed);
+        setBusy(false);
+        return;
+      }
+      setContent("");
+      onImported();
+      onClose();
+    } catch {
+      setError(t.transferImportFailed);
+    } finally {
       setBusy(false);
-      return;
     }
-    setBusy(false);
-    setContent("");
-    onImported();
-    onClose();
   };
 
   const download = () => {
@@ -408,7 +380,11 @@ export function SetTransferDialog({
             </Button>
             {mode === "export" ? (
               <>
-                <Button appearance="secondary" onClick={loadExport} disabled={busy}>
+                <Button
+                  appearance="secondary"
+                  onClick={loadExport}
+                  disabled={busy || !teamId || !setId}
+                >
                   {busy ? t.saving : t.transferGenerate}
                 </Button>
                 <Button

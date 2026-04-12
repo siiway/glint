@@ -12,13 +12,15 @@ import { hasPermission } from "../permissions";
 
 const todos = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-let hasClaimedByColumn: boolean | null = null;
+const claimedBySupportCache = new WeakMap<D1Database, boolean>();
 
 async function supportsClaimedBy(db: D1Database): Promise<boolean> {
-  if (hasClaimedByColumn !== null) return hasClaimedByColumn;
+  const cached = claimedBySupportCache.get(db);
+  if (cached !== undefined) return cached;
   const info = await db.prepare("PRAGMA table_info(todos)").all();
-  hasClaimedByColumn = info.results.some((r) => r.name === "claimed_by");
-  return hasClaimedByColumn;
+  const supported = info.results.some((r) => r.name === "claimed_by");
+  claimedBySupportCache.set(db, supported);
+  return supported;
 }
 
 todos.get("/api/teams/:teamId/sets/:setId/todos", requireAuth, async (c) => {

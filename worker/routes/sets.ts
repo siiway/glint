@@ -4,60 +4,20 @@ import { requireAuth, getTeamRole } from "../auth";
 import { ensureDefaultSet } from "../config";
 import { hasPermission } from "../permissions";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+import {
+  parseMarkdownChecklist,
+  type MarkdownChecklistTodo,
+} from "../../shared/markdownChecklist";
 
 const sets = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-type TransferTodo = {
-  title: string;
-  completed: boolean;
-  comments?: string[];
-  children?: TransferTodo[];
-};
+type TransferTodo = MarkdownChecklistTodo;
 
 type TransferPayload = {
   version: 1;
   set: { id: string; name: string };
   todos: TransferTodo[];
 };
-
-function parseMarkdownChecklist(md: string): TransferTodo[] {
-  const lines = md.split("\n");
-  const roots: TransferTodo[] = [];
-  const stack: Array<{ indent: number; node: TransferTodo }> = [];
-
-  for (const raw of lines) {
-    const item = raw.match(/^(\s*)[-*]\s+\[([xX ])]\s+(.+)$/);
-    if (item) {
-      const [, spaces, check, title] = item;
-      const node: TransferTodo = {
-        title: title.trim(),
-        completed: check.toLowerCase() === "x",
-      };
-      const indent = spaces.length;
-      while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
-        stack.pop();
-      }
-      const parent = stack[stack.length - 1]?.node;
-      if (parent) {
-        parent.children ??= [];
-        parent.children.push(node);
-      } else {
-        roots.push(node);
-      }
-      stack.push({ indent, node });
-      continue;
-    }
-
-    const comment = raw.match(/^\s*>\s?(.*)$/);
-    if (comment && stack.length > 0) {
-      const current = stack[stack.length - 1].node;
-      current.comments ??= [];
-      current.comments.push(comment[1]);
-    }
-  }
-
-  return roots;
-}
 
 function renderMarkdown(nodes: TransferTodo[], depth = 0): string {
   const lines: string[] = [];

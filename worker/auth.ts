@@ -14,7 +14,7 @@ export const PERSONAL_SPACE_PREFIX = "personal:";
 export const SESSION_MIN_TTL_SECONDS = 24 * 60 * 60;
 export const SESSION_RENEW_WINDOW_SECONDS = 30 * 60;
 
-export function resolveSessionTtl(configTtl: number, tokenExpiresIn?: number) {
+export function resolveSessionTtl(configTtl?: number, tokenExpiresIn?: number) {
   return Math.max(
     configTtl || tokenExpiresIn || SESSION_MIN_TTL_SECONDS,
     SESSION_MIN_TTL_SECONDS,
