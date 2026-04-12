@@ -92,7 +92,9 @@ export function CommentsDialog({
   }, [teamId, todoId]);
 
   useEffect(() => {
-    if (open && todoId) fetchComments();
+    if (open && todoId) {
+      void Promise.resolve().then(fetchComments);
+    }
   }, [open, todoId, fetchComments]);
 
   const addComment = async () => {
@@ -169,7 +171,7 @@ export function CommentsDialog({
                             {new Date(c.createdAt).toLocaleString()}
                           </Caption1>
                         </div>
-                        <Body1>{c.body}</Body1>
+                        <Body1 style={{ whiteSpace: "pre-wrap" }}>{c.body}</Body1>
                       </div>
                       {canDelete(c) && (
                         <Button

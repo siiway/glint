@@ -1,6 +1,13 @@
 import type { AppConfig, TeamSettings } from "./types";
 import { DEFAULT_APP_CONFIG, DEFAULT_SETTINGS } from "./types";
 
+export function parseAllowedTeamIds(raw: string): string[] {
+  return raw
+    .split(/[\s,;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export async function getAppConfig(kv: KVNamespace): Promise<AppConfig> {
   const raw = await kv.get("config:app", "json");
   if (!raw) return { ...DEFAULT_APP_CONFIG };
