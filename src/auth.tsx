@@ -33,8 +33,10 @@ type AuthConfig = {
 type AuthContextType = {
   user: User | null;
   loading: boolean;
+  sessionExpiredNotice: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
+  goToLogin: () => Promise<void>;
   handleCallback: () => Promise<boolean>;
 };
 
@@ -76,6 +78,7 @@ function getPrism(): Promise<PrismClient> {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionExpiredNotice, setSessionExpiredNotice] = useState(false);
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -89,12 +92,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  // Auto-logout on 401 from any API call (expired session)
+  // Show persistent session-expired notice on 401; let users decide when to re-login.
   useEffect(() => {
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
       const res = await originalFetch(...args);
-      if (res.status === 401) {
+      if (res.status === 401 && user) {
         const url =
           typeof args[0] === "string"
             ? args[0]
@@ -103,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               : "";
         // Don't trigger on auth endpoints to avoid loops
         if (url.includes("/api/") && !url.includes("/api/auth/")) {
-          setUser(null);
+          setSessionExpiredNotice(true);
         }
       }
       return res;
@@ -111,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       window.fetch = originalFetch;
     };
-  }, []);
+  }, [user]);
 
   const login = useCallback(async () => {
     const cfg = await getConfig();
@@ -165,6 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const data: { user: User } = await res.json();
     setUser(data.user);
+    setSessionExpiredNotice(false);
 
     sessionStorage.removeItem("pkce_verifier");
     sessionStorage.removeItem("pkce_state");
@@ -174,10 +178,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     setUser(null);
+    setSessionExpiredNotice(false);
+  }, []);
+
+  const goToLogin = useCallback(async () => {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    setUser(null);
+    setSessionExpiredNotice(false);
   }, []);
 
   return (
-    <AuthContext value={{ user, loading, login, logout, handleCallback }}>
+    <AuthContext
+      value={{
+        user,
+        loading,
+        sessionExpiredNotice,
+        login,
+        logout,
+        goToLogin,
+        handleCallback,
+      }}
+    >
       {children}
     </AuthContext>
   );

@@ -17,6 +17,10 @@ export default {
   signInWithPrism: "Sign in with Prism",
   signOut: "Sign out",
   tagline: "A simple todo list to keep you on track.",
+  sessionExpiredTitle: "Session expired",
+  sessionExpiredBody:
+    "Your edits are still on this page. Copy what you need, then sign in again.",
+  sessionExpiredGoLogin: "Go to login",
 
   // Footer
   footerGitHub: "GitHub",

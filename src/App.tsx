@@ -4,6 +4,11 @@ import {
   webLightTheme,
   webDarkTheme,
   Spinner,
+  MessageBar,
+  MessageBarBody,
+  MessageBarTitle,
+  MessageBarActions,
+  Button,
 } from "@fluentui/react-components";
 import { AuthProvider, useAuth } from "./auth";
 import { I18nProvider, useI18n } from "./i18n";
@@ -56,7 +61,7 @@ function useSharedToken(): string | null {
 }
 
 function AppContent() {
-  const { user, loading } = useAuth();
+  const { user, loading, sessionExpiredNotice, goToLogin } = useAuth();
   const { configured, markConfigured } = useInitStatus();
   const { t } = useI18n();
   const sharedToken = useSharedToken();
@@ -104,6 +109,21 @@ function AppContent() {
 
   return (
     <PageLayout footer={false}>
+      {sessionExpiredNotice && (
+        <MessageBar intent="error" style={{ margin: "12px 16px 0" }}>
+          <MessageBarBody>
+            <MessageBarTitle>{t.sessionExpiredTitle}</MessageBarTitle>
+            {t.sessionExpiredBody}
+          </MessageBarBody>
+          <MessageBarActions
+            containerAction={
+              <Button appearance="primary" onClick={() => void goToLogin()}>
+                {t.sessionExpiredGoLogin}
+              </Button>
+            }
+          />
+        </MessageBar>
+      )}
       <TodoPage />
     </PageLayout>
   );

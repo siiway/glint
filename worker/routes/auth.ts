@@ -2,7 +2,13 @@ import { Hono } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import type { Bindings, Variables, SessionData } from "../types";
 import { getAppConfig, parseAllowedTeamIds } from "../config";
-import { getPrism, fetchUserTeams } from "../auth";
+import {
+  getPrism,
+  fetchUserTeams,
+  resolveSessionTtl,
+  renewSessionIfExpiring,
+  SESSION_MIN_TTL_SECONDS,
+} from "../auth";
 
 const auth = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -38,13 +44,28 @@ auth.get("/api/auth/me", async (c) => {
     return c.json({ user: null });
   }
 
+  const { session: activeSession, renewed } = await renewSessionIfExpiring(
+    c.env.KV,
+    sessionId,
+    session,
+  );
+  if (renewed) {
+    setCookie(c, "session", sessionId, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "Lax",
+      path: "/",
+      maxAge: SESSION_MIN_TTL_SECONDS,
+    });
+  }
+
   return c.json({
     user: {
-      id: session.userId,
-      username: session.username,
-      displayName: session.displayName,
-      avatarUrl: toAvatarProxyUrl(session.avatarUrl),
-      teams: session.teams,
+      id: activeSession.userId,
+      username: activeSession.username,
+      displayName: activeSession.displayName,
+      avatarUrl: toAvatarProxyUrl(activeSession.avatarUrl),
+      teams: activeSession.teams,
     },
   });
 });
@@ -66,6 +87,21 @@ auth.get("/api/auth/avatar", async (c) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
+  const { session: activeSession, renewed } = await renewSessionIfExpiring(
+    c.env.KV,
+    sessionId,
+    session,
+  );
+  if (renewed) {
+    setCookie(c, "session", sessionId, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "Lax",
+      path: "/",
+      maxAge: SESSION_MIN_TTL_SECONDS,
+    });
+  }
+
   const rawUrl = c.req.query("url");
   if (!rawUrl) return c.json({ error: "Missing url" }, 400);
 
@@ -84,7 +120,7 @@ auth.get("/api/auth/avatar", async (c) => {
   }
 
   const upstream = await fetch(avatarUrl.toString(), {
-    headers: { Authorization: `Bearer ${session.accessToken}` },
+    headers: { Authorization: `Bearer ${activeSession.accessToken}` },
   });
   if (!upstream.ok) {
     return c.json({ error: "Avatar fetch failed" }, upstream.status as 404 | 502);
@@ -134,7 +170,7 @@ auth.post("/api/auth/callback", async (c) => {
     );
   }
 
-  const ttl = config.session_ttl || tokens.expires_in || 3600;
+  const ttl = resolveSessionTtl(config.session_ttl, tokens.expires_in);
 
   const sessionId = crypto.randomUUID();
   const session: SessionData = {
