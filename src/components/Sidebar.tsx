@@ -63,9 +63,16 @@ const useStyles = makeStyles({
   sidebarHeader: {
     padding: "16px",
     display: "flex",
+    flexDirection: "column",
+    alignItems: "stretch",
+    gap: "8px",
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+  },
+  sidebarHeaderMain: {
+    display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    gap: "8px",
   },
   sidebarContent: {
     flex: 1,
@@ -114,6 +121,10 @@ const useStyles = makeStyles({
   },
   teamSelect: {
     minWidth: "180px",
+  },
+  teamSelectDesktop: {
+    width: "100%",
+    minWidth: 0,
   },
   teamSelectMobile: {
     minWidth: "0",
@@ -674,26 +685,28 @@ export function Sidebar({
     <>
       <div className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
-          {siteLogo ? (
-            <img
-              src={siteLogo}
-              alt={siteName}
-              style={{ maxHeight: 28, objectFit: "contain" }}
-            />
-          ) : (
-            <Title3>{siteName}</Title3>
-          )}
-          {canManageSettings && (
-            <Tooltip content={t.sidebarSettings} relationship="label">
-              <Button
-                appearance="transparent"
-                size="small"
-                icon={<Settings24Regular />}
-                onClick={onOpenSettings}
+          <div className={styles.sidebarHeaderMain}>
+            {siteLogo ? (
+              <img
+                src={siteLogo}
+                alt={siteName}
+                style={{ maxHeight: 28, objectFit: "contain" }}
               />
-            </Tooltip>
-          )}
-          {renderSpaceSelector()}
+            ) : (
+              <Title3>{siteName}</Title3>
+            )}
+            {canManageSettings && (
+              <Tooltip content={t.sidebarSettings} relationship="label">
+                <Button
+                  appearance="transparent"
+                  size="small"
+                  icon={<Settings24Regular />}
+                  onClick={onOpenSettings}
+                />
+              </Tooltip>
+            )}
+          </div>
+          {renderSpaceSelector(styles.teamSelectDesktop)}
         </div>
         <div className={styles.sidebarContent}>
           {loadingSets ? (
