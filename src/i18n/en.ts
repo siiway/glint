@@ -222,6 +222,11 @@ export default {
   setLastRenewed: "Last renewed",
   setNeverRenewed: "Never",
 
+  // Per-set display options
+  setSplitCompleted: "Show completed separately",
+  setSplitCompletedHint: "When enabled, completed root todos are shown in their own section.",
+  completedSection: "Completed ({count})",
+
   // Global timezone
   settingsDefaultTimezone: "Default Timezone",
 

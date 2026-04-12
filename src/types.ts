@@ -23,6 +23,8 @@ export type TodoSet = {
   renewTime: string;
   timezone: string;
   lastRenewedAt: string | null;
+  // If true, show incomplete and completed root todos separately in the UI
+  splitCompleted?: boolean;
   createdAt: string;
 };
 

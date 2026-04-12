@@ -552,6 +552,25 @@ export function Sidebar({
                   </Caption1>
                 </div>
 
+                <div>
+                  <Switch
+                    label={t.setSplitCompleted}
+                    checked={settingsSet.splitCompleted ?? false}
+                    onChange={(_, d) =>
+                      onUpdateSet(settingsSet.id, { splitCompleted: d.checked })
+                    }
+                  />
+                  <Caption1
+                    style={{
+                      color: tokens.colorNeutralForeground4,
+                      display: "block",
+                      marginTop: 4,
+                    }}
+                  >
+                    {t.setSplitCompletedHint}
+                  </Caption1>
+                </div>
+
                 {settingsSet.lastRenewedAt && (
                   <div>
                     <Body1 style={{ fontWeight: 600, marginBottom: 4 }}>

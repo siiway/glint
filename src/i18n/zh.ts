@@ -213,6 +213,11 @@ const zh: typeof en = {
   setLastRenewed: "上次续期",
   setNeverRenewed: "从未",
 
+  // 分组显示选项
+  setSplitCompleted: "将已完成与未完成分开显示",
+  setSplitCompletedHint: "启用后，已完成的根任务会在单独的区域显示。",
+  completedSection: "已完成 ({count})",
+
   // Global timezone
   settingsDefaultTimezone: "默认时区",
 

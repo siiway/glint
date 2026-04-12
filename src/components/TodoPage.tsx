@@ -289,6 +289,8 @@ export function TodoPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [commentTodoId, setCommentTodoId] = useState<string | null>(null);
+  // Per-set UI state: whether the completed section is collapsed for a given set
+  const [completedCollapsed, setCompletedCollapsed] = useState<Record<string, boolean>>({});
 
   // Drag state
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -471,6 +473,11 @@ export function TodoPage() {
   const selectedSet = sets.find((s) => s.id === selectedSetId);
   const commentTodo = todos.find((t) => t.id === commentTodoId);
   const canDrag = !isMobile;
+
+  // Split lists when set is configured to show completed separately
+  const splitCompleted = selectedSet?.splitCompleted ?? false;
+  const incompleteRootTodos = rootTodos.filter((t) => !t.completed);
+  const completedRootTodos = rootTodos.filter((t) => t.completed);
 
   // ─── Actions ─────────────────────────────────────────────────────────────
 
@@ -1297,7 +1304,70 @@ export function TodoPage() {
                     <Body1>{t.todoEmpty}</Body1>
                   </div>
                 ) : (
-                  rootTodos.map((todo, index) => renderTodo(todo, index, true))
+                  (() => {
+                    if (!splitCompleted) {
+                      return rootTodos.map((todo, index) => renderTodo(todo, index, true));
+                    }
+
+                    // When splitCompleted is enabled, render incomplete first, then a header and completed
+                    const displayOrder = [...incompleteRootTodos, ...completedRootTodos];
+                    const completedCount = completedRootTodos.length;
+                    const collapsed = selectedSetId
+                      ? completedCollapsed[selectedSetId] ?? false
+                      : false;
+
+                    return displayOrder.map((todo, i) => {
+                      // original index among rootTodos (used for drag indices)
+                      const origIndex = rootTodos.findIndex((t) => t.id === todo.id);
+
+                      // insert header before first completed item
+                      const insertHeader =
+                        todo.completed && (i === 0 || !displayOrder[i - 1].completed);
+
+                      const elems: any[] = [];
+                      if (insertHeader) {
+                        elems.push(
+                          <div
+                            key={`completed-header-${todo.id}`}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              marginTop: 8,
+                              marginBottom: 8,
+                            }}
+                          >
+                            <Caption1>
+                              {t.completedSection.replace("{count}", String(completedCount))}
+                            </Caption1>
+                            <Button
+                              appearance="transparent"
+                              size="small"
+                              className={styles.expandBtn}
+                              icon={
+                                collapsed ? <ChevronRight20Regular /> : <ChevronDown20Regular />
+                              }
+                              onClick={() => {
+                                if (!selectedSetId) return;
+                                setCompletedCollapsed((p) => ({
+                                  ...p,
+                                  [selectedSetId]: !collapsed,
+                                }));
+                              }}
+                            />
+                          </div>,
+                        );
+                      }
+
+                      if (!todo.completed || !collapsed) {
+                        elems.push(
+                          <div key={todo.id}>{renderTodo(todo, origIndex, true)}</div>,
+                        );
+                      }
+
+                      return <>{elems}</>;
+                    });
+                  })()
                 )}
               </div>
             </>
