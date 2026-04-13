@@ -16,7 +16,7 @@ export const SESSION_RENEW_WINDOW_SECONDS = 30 * 60;
 
 export function resolveSessionTtl(configTtl?: number, tokenExpiresIn?: number) {
   return Math.max(
-    configTtl || tokenExpiresIn || SESSION_MIN_TTL_SECONDS,
+    configTtl != null ? configTtl : (tokenExpiresIn ?? SESSION_MIN_TTL_SECONDS),
     SESSION_MIN_TTL_SECONDS,
   );
 }

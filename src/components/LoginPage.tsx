@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Button,
   Title1,
@@ -68,20 +68,18 @@ export function LoginPage() {
       .catch(() => {});
   }, []);
 
+  const callbackFired = useRef(false);
   useEffect(() => {
     if (!hasCallbackCode) return;
-    let cancelled = false;
+    if (callbackFired.current) return;
+    callbackFired.current = true;
     void handleCallback().then((ok) => {
-      if (cancelled) return;
       if (ok) {
         window.history.replaceState({}, "", "/");
       } else {
         setProcessing(false);
       }
     });
-    return () => {
-      cancelled = true;
-    };
   }, [handleCallback, hasCallbackCode]);
 
   if (processing) {

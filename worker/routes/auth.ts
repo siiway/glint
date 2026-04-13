@@ -164,13 +164,10 @@ auth.post("/api/auth/callback", async (c) => {
 
   let tokens;
   try {
-    tokens = await prism.exchangeCode(code, codeVerifier ?? "");
+    tokens = await prism.exchangeCode(code, codeVerifier);
   } catch (e) {
     console.error("exchangeCode failed:", e);
-    return c.json(
-      { error: e instanceof Error ? e.message : "Token exchange failed" },
-      401,
-    );
+    return c.json({ error: "Token exchange failed" }, 401);
   }
 
   const userInfo = await prism.getUserInfo(tokens.access_token);

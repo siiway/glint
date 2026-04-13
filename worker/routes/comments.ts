@@ -99,6 +99,13 @@ comments.delete(
     const role = getTeamRole(session, teamId);
     if (!role) return c.json({ error: "Not a member of this team" }, 403);
 
+    const todo = await c.env.DB.prepare(
+      "SELECT set_id FROM todos WHERE id = ? AND team_id = ?",
+    )
+      .bind(todoId, teamId)
+      .first<{ set_id: string }>();
+    if (!todo) return c.json({ error: "Not found" }, 404);
+
     const existing = await c.env.DB.prepare(
       "SELECT user_id FROM comments WHERE id = ? AND todo_id = ?",
     )
@@ -107,16 +114,10 @@ comments.delete(
     if (!existing) return c.json({ error: "Not found" }, 404);
 
     const isOwner = existing.user_id === session.userId;
-    const todo = await c.env.DB.prepare(
-      "SELECT set_id FROM todos WHERE id = ? AND team_id = ?",
-    )
-      .bind(todoId, teamId)
-      .first<{ set_id: string }>();
-
     const perm: PermissionKey = isOwner
       ? "delete_own_comments"
       : "delete_any_comment";
-    if (!(await hasPermission(c.env.DB, teamId, role, perm, todo?.set_id))) {
+    if (!(await hasPermission(c.env.DB, teamId, role, perm, todo.set_id))) {
       return c.json({ error: "No permission to delete comment" }, 403);
     }
 

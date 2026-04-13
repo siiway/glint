@@ -737,15 +737,21 @@ shares.get("/api/shared/:token/todo-list.svg", async (c) => {
 
   const q = c.req.query();
   const theme = q.theme === "dark" ? "dark" : "light";
-  const width = q.width
-    ? Math.min(Math.max(parseInt(q.width, 10), 200), 1000)
-    : undefined;
-  const fontSize = q.fontSize
-    ? Math.min(Math.max(parseInt(q.fontSize, 10), 10), 24)
-    : undefined;
-  const maxItems = q.maxItems
-    ? Math.min(Math.max(parseInt(q.maxItems, 10), 1), 100)
-    : undefined;
+  const _width = parseInt(q.width, 10);
+  const width =
+    q.width && !isNaN(_width)
+      ? Math.min(Math.max(_width, 200), 1000)
+      : undefined;
+  const _fontSize = parseInt(q.fontSize, 10);
+  const fontSize =
+    q.fontSize && !isNaN(_fontSize)
+      ? Math.min(Math.max(_fontSize, 10), 24)
+      : undefined;
+  const _maxItems = parseInt(q.maxItems, 10);
+  const maxItems =
+    q.maxItems && !isNaN(_maxItems)
+      ? Math.min(Math.max(_maxItems, 1), 100)
+      : undefined;
   const showProgress = q.showProgress !== "false";
   const title = q.title ?? set.name;
 

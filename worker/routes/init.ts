@@ -30,8 +30,29 @@ init.get("/api/init/branding", async (c) => {
 });
 
 init.get("/api/init/config", async (c) => {
+  const configured = await c.env.KV.get("init:configured");
+  if (configured === "true") {
+    const sessionId = getCookie(c, "session");
+    if (!sessionId) return c.json({ error: "Unauthorized" }, 401);
+    const cached = await c.env.KV.get(`session:${sessionId}`, "json");
+    if (!cached) return c.json({ error: "Unauthorized" }, 401);
+    const session = cached as SessionData;
+    const config = await getAppConfig(c.env.KV, c.env);
+    const allowedTeamIds = parseAllowedTeamIds(config.allowed_team_id);
+    if (allowedTeamIds.length > 0) {
+      const isOwnerInAllowedTeam = allowedTeamIds.some(
+        (teamId) => getTeamRole(session, teamId) === "owner",
+      );
+      if (!isOwnerInAllowedTeam)
+        return c.json({ error: "Only team owner can view app config" }, 403);
+    }
+  }
   const config = await getAppConfig(c.env.KV, c.env);
-  return c.json({ config });
+  const safeConfig = {
+    ...config,
+    prism_client_secret: config.prism_client_secret ? "**redacted**" : "",
+  };
+  return c.json({ config: safeConfig });
 });
 
 init.put("/api/init/config", async (c) => {
@@ -68,11 +89,19 @@ init.put("/api/init/config", async (c) => {
   ];
   const patch: Partial<AppConfig> = {};
   for (const key of allowed) {
-    if (key in body) (patch as Record<string, unknown>)[key] = body[key];
+    if (key in body) {
+      if (key === "prism_client_secret" && body[key] === "**redacted**")
+        continue;
+      (patch as Record<string, unknown>)[key] = body[key];
+    }
   }
 
   const updated = await setAppConfig(c.env.KV, patch);
-  return c.json({ config: updated });
+  const safeUpdated = {
+    ...updated,
+    prism_client_secret: updated.prism_client_secret ? "**redacted**" : "",
+  };
+  return c.json({ config: safeUpdated });
 });
 
 init.post("/api/init/setup", async (c) => {
