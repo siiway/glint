@@ -289,6 +289,8 @@ export function TodoPage() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loadingSets, setLoadingSets] = useState(false);
   const [loadingTodos, setLoadingTodos] = useState(false);
+  const fetchSetsAbort = useRef<AbortController | null>(null);
+  const fetchTodosAbort = useRef<AbortController | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [switchingSpace, setSwitchingSpace] = useState(false);
   const [siteName, setSiteName] = useState("Glint");
@@ -395,9 +397,14 @@ export function TodoPage() {
 
   const fetchSets = useCallback(async () => {
     if (!selectedSpaceId) return;
+    fetchSetsAbort.current?.abort();
+    const ctrl = new AbortController();
+    fetchSetsAbort.current = ctrl;
     setLoadingSets(true);
     try {
-      const res = await fetch(`/api/teams/${selectedSpaceId}/sets`);
+      const res = await fetch(`/api/teams/${selectedSpaceId}/sets`, {
+        signal: ctrl.signal,
+      });
       if (res.ok) {
         const data: { sets: TodoSet[]; role: TeamRole } = await res.json();
         setSets(data.sets);
@@ -419,31 +426,27 @@ export function TodoPage() {
           { replace: true },
         );
       }
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
     } finally {
-      setLoadingSets(false);
+      if (!ctrl.signal.aborted) setLoadingSets(false);
     }
   }, [selectedSpaceId, setSearchParams]);
 
   useEffect(() => {
-    setSearchParams(
-      (p) => {
-        const n = new URLSearchParams(p);
-        n.delete("set");
-        return n;
-      },
-      { replace: true },
-    );
-    setSets([]);
-    setTodos([]);
     fetchSets();
-  }, [fetchSets, setSearchParams]);
+  }, [fetchSets]);
 
   const fetchTodos = useCallback(async () => {
     if (!selectedSpaceId || !selectedSetId) return;
+    fetchTodosAbort.current?.abort();
+    const ctrl = new AbortController();
+    fetchTodosAbort.current = ctrl;
     setLoadingTodos(true);
     try {
       const res = await fetch(
         `/api/teams/${selectedSpaceId}/sets/${selectedSetId}/todos`,
+        { signal: ctrl.signal },
       );
       if (res.ok) {
         const data: {
@@ -455,13 +458,14 @@ export function TodoPage() {
         setTeamRole(data.role);
         if (data.permissions) setPerms(data.permissions);
       }
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
     } finally {
-      setLoadingTodos(false);
+      if (!ctrl.signal.aborted) setLoadingTodos(false);
     }
   }, [selectedSpaceId, selectedSetId]);
 
   useEffect(() => {
-    setTodos([]);
     fetchTodos();
   }, [fetchTodos]);
 
