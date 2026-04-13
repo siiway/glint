@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Routes, Route, useParams } from "react-router-dom";
 import {
   FluentProvider,
   webLightTheme,
@@ -17,6 +18,7 @@ import { InitPage } from "./components/InitPage";
 import { LoginPage } from "./components/LoginPage";
 import { TodoPage } from "./components/TodoPage";
 import { SharedPage } from "./components/SharedPage";
+import { CallbackPage } from "./components/CallbackPage";
 
 function useColorScheme() {
   const [dark, setDark] = useState(
@@ -44,35 +46,19 @@ function useInitStatus() {
   return { configured, markConfigured: () => setConfigured(true) };
 }
 
-function useSharedToken(): string | null {
-  const [token, setToken] = useState<string | null>(() => {
-    const match = window.location.pathname.match(/^\/shared\/([a-f0-9]+)$/);
-    return match ? match[1] : null;
-  });
-  useEffect(() => {
-    const handler = () => {
-      const match = window.location.pathname.match(/^\/shared\/([a-f0-9]+)$/);
-      setToken(match ? match[1] : null);
-    };
-    window.addEventListener("popstate", handler);
-    return () => window.removeEventListener("popstate", handler);
-  }, []);
-  return token;
+function SharedRoute() {
+  const { token } = useParams<{ token: string }>();
+  return (
+    <PageLayout>
+      <SharedPage token={token!} />
+    </PageLayout>
+  );
 }
 
-function AppContent() {
+function AppShell() {
   const { user, loading, sessionExpiredNotice, goToLogin } = useAuth();
   const { configured, markConfigured } = useInitStatus();
   const { t } = useI18n();
-  const sharedToken = useSharedToken();
-
-  if (sharedToken) {
-    return (
-      <PageLayout>
-        <SharedPage token={sharedToken} />
-      </PageLayout>
-    );
-  }
 
   if (loading || configured === null) {
     return (
@@ -139,7 +125,11 @@ export default function App() {
     >
       <I18nProvider>
         <AuthProvider>
-          <AppContent />
+          <Routes>
+            <Route path="/shared/:token" element={<SharedRoute />} />
+            <Route path="/callback" element={<CallbackPage />} />
+            <Route path="*" element={<AppShell />} />
+          </Routes>
         </AuthProvider>
       </I18nProvider>
     </FluentProvider>

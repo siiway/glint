@@ -37,7 +37,7 @@ type AuthContextType = {
   login: () => Promise<void>;
   logout: () => Promise<void>;
   goToLogin: () => Promise<void>;
-  handleCallback: () => Promise<boolean>;
+  handleCallback: (code: string, codeVerifier?: string) => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -140,40 +140,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const handleCallback = useCallback(async (): Promise<boolean> => {
-    const cfg = await getConfig();
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
-    const state = params.get("state");
-    const storedState = sessionStorage.getItem("pkce_state");
+  const handleCallback = useCallback(
+    async (code: string, codeVerifier?: string): Promise<boolean> => {
+      const body: { code: string; codeVerifier?: string } = { code };
+      if (codeVerifier) body.codeVerifier = codeVerifier;
 
-    if (!code) return false;
-    if (state !== storedState) return false;
+      const res = await fetch("/api/auth/callback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-    const body: { code: string; codeVerifier?: string } = { code };
+      if (!res.ok) return false;
 
-    if (cfg.usePkce) {
-      const codeVerifier = sessionStorage.getItem("pkce_verifier");
-      if (!codeVerifier) return false;
-      body.codeVerifier = codeVerifier;
-    }
-
-    const res = await fetch("/api/auth/callback", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) return false;
-
-    const data: { user: User } = await res.json();
-    setUser(data.user);
-    setSessionExpiredNotice(false);
-
-    sessionStorage.removeItem("pkce_verifier");
-    sessionStorage.removeItem("pkce_state");
-    return true;
-  }, []);
+      const data: { user: User } = await res.json();
+      setUser(data.user);
+      setSessionExpiredNotice(false);
+      return true;
+    },
+    [],
+  );
 
   const logout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" });

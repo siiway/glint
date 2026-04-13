@@ -6,6 +6,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Input,
   Button,
@@ -62,31 +63,6 @@ import { useI18n } from "../i18n";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 type TodoView = "todos" | "settings";
-
-function readTodoLocation() {
-  const params = new URLSearchParams(window.location.search);
-  return {
-    spaceId: params.get("space") ?? "",
-    setId: params.get("set") ?? "",
-    view:
-      params.get("view") === "settings"
-        ? ("settings" as const)
-        : ("todos" as const),
-  };
-}
-
-function buildTodoUrl(location: {
-  spaceId: string;
-  setId: string;
-  view: TodoView;
-}) {
-  const params = new URLSearchParams();
-  if (location.spaceId) params.set("space", location.spaceId);
-  if (location.setId) params.set("set", location.setId);
-  if (location.view === "settings") params.set("view", "settings");
-  const query = params.toString();
-  return `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
-}
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -242,7 +218,51 @@ export function TodoPage() {
   const isMobile = useIsMobile();
   const { t } = useI18n();
 
-  const initialLocation = useMemo(() => readTodoLocation(), []);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedSpaceId = searchParams.get("space") ?? "";
+  const selectedSetId = searchParams.get("set") ?? "";
+  const showSettings = searchParams.get("view") === "settings";
+
+  const setSpace = useCallback(
+    (id: string) =>
+      setSearchParams(
+        (p) => {
+          const n = new URLSearchParams(p);
+          id ? n.set("space", id) : n.delete("space");
+          n.delete("set");
+          n.delete("view");
+          return n;
+        },
+        { replace: true },
+      ),
+    [setSearchParams],
+  );
+
+  const setSet = useCallback(
+    (id: string) =>
+      setSearchParams(
+        (p) => {
+          const n = new URLSearchParams(p);
+          id ? n.set("set", id) : n.delete("set");
+          return n;
+        },
+        { replace: true },
+      ),
+    [setSearchParams],
+  );
+
+  const setView = useCallback(
+    (view: TodoView) =>
+      setSearchParams(
+        (p) => {
+          const n = new URLSearchParams(p);
+          view === "settings" ? n.set("view", "settings") : n.delete("view");
+          return n;
+        },
+        { replace: true },
+      ),
+    [setSearchParams],
+  );
 
   const spaces: TodoSpace[] = useMemo(
     () =>
@@ -264,20 +284,13 @@ export function TodoPage() {
         : [],
     [user],
   );
-  const [selectedSpaceId, setSelectedSpaceId] = useState(
-    initialLocation.spaceId,
-  );
   const [sets, setSets] = useState<TodoSet[]>([]);
-  const [selectedSetId, setSelectedSetId] = useState(initialLocation.setId);
   const [teamRole, setTeamRole] = useState<TeamRole | null>(null);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loadingSets, setLoadingSets] = useState(false);
   const [loadingTodos, setLoadingTodos] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [switchingSpace, setSwitchingSpace] = useState(false);
-  const [showSettings, setShowSettings] = useState(
-    initialLocation.view === "settings",
-  );
   const [siteName, setSiteName] = useState("Glint");
   const [siteLogo, setSiteLogo] = useState("");
   const [perms, setPerms] = useState<Record<string, boolean>>({});
@@ -342,44 +355,17 @@ export function TodoPage() {
   }, [contextMenu]);
 
   useEffect(() => {
-    const syncFromUrl = () => {
-      const next = readTodoLocation();
-      setSelectedSpaceId(next.spaceId);
-      setSelectedSetId(next.setId);
-      setShowSettings(next.view === "settings");
-    };
-
-    window.addEventListener("popstate", syncFromUrl);
-    return () => window.removeEventListener("popstate", syncFromUrl);
-  }, []);
-
-  useEffect(() => {
-    const nextUrl = buildTodoUrl({
-      spaceId: selectedSpaceId,
-      setId: selectedSetId,
-      view: showSettings ? "settings" : "todos",
-    });
-    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    if (currentUrl !== nextUrl) {
-      window.history.replaceState({}, "", nextUrl);
-    }
-  }, [selectedSpaceId, selectedSetId, showSettings]);
-
-  useEffect(() => {
     if (spaces.length === 0) return;
-    if (
-      !selectedSpaceId ||
-      !spaces.some((space) => space.id === selectedSpaceId)
-    ) {
-      setSelectedSpaceId(spaces[0].id);
+    if (!selectedSpaceId || !spaces.some((s) => s.id === selectedSpaceId)) {
+      setSpace(spaces[0].id);
     }
-  }, [spaces, selectedSpaceId]);
+  }, [spaces, selectedSpaceId, setSpace]);
 
   useEffect(() => {
     if (selectedSpace?.kind !== "team" && showSettings) {
-      setShowSettings(false);
+      setView("todos");
     }
-  }, [selectedSpace?.kind, showSettings]);
+  }, [selectedSpace?.kind, showSettings, setView]);
 
   useEffect(() => {
     if (!selectedSpaceId) return;
@@ -416,22 +402,41 @@ export function TodoPage() {
         const data: { sets: TodoSet[]; role: TeamRole } = await res.json();
         setSets(data.sets);
         setTeamRole(data.role);
-        setSelectedSetId((prev) => {
-          if (data.sets.length === 0) return "";
-          return data.sets.some((s) => s.id === prev) ? prev : data.sets[0].id;
-        });
+        setSearchParams(
+          (p) => {
+            const prev = p.get("set") ?? "";
+            const n = new URLSearchParams(p);
+            if (data.sets.length === 0) {
+              n.delete("set");
+            } else {
+              const newId = data.sets.some((s) => s.id === prev)
+                ? prev
+                : data.sets[0].id;
+              newId ? n.set("set", newId) : n.delete("set");
+            }
+            return n;
+          },
+          { replace: true },
+        );
       }
     } finally {
       setLoadingSets(false);
     }
-  }, [selectedSpaceId]);
+  }, [selectedSpaceId, setSearchParams]);
 
   useEffect(() => {
-    setSelectedSetId("");
+    setSearchParams(
+      (p) => {
+        const n = new URLSearchParams(p);
+        n.delete("set");
+        return n;
+      },
+      { replace: true },
+    );
     setSets([]);
     setTodos([]);
     fetchSets();
-  }, [fetchSets]);
+  }, [fetchSets, setSearchParams]);
 
   const fetchTodos = useCallback(async () => {
     if (!selectedSpaceId || !selectedSetId) return;
@@ -695,7 +700,7 @@ export function TodoPage() {
     if (res.ok) {
       const data: { set: TodoSet } = await res.json();
       setSets((prev) => [...prev, data.set]);
-      setSelectedSetId(data.set.id);
+      setSet(data.set.id);
     }
   };
 
@@ -703,7 +708,7 @@ export function TodoPage() {
     setSets((prev) => prev.filter((s) => s.id !== setId));
     if (selectedSetId === setId) {
       const remaining = sets.filter((s) => s.id !== setId);
-      setSelectedSetId(remaining.length > 0 ? remaining[0].id : "");
+      setSet(remaining.length > 0 ? remaining[0].id : "");
     }
     await fetch(`/api/teams/${selectedSpaceId}/sets/${setId}`, {
       method: "DELETE",
@@ -1097,7 +1102,7 @@ export function TodoPage() {
       <SettingsPage
         teamId={selectedSpaceId}
         onBack={() => {
-          setShowSettings(false);
+          setView("todos");
           refreshBranding();
         }}
       />
@@ -1158,7 +1163,7 @@ export function TodoPage() {
             : null
         }
         onSelect={(id) => {
-          setSelectedSpaceId(id);
+          setSpace(id);
           setSwitchingSpace(false);
         }}
         onCancel={() => setSwitchingSpace(false)}
@@ -1175,11 +1180,11 @@ export function TodoPage() {
           onDrawerChange={setDrawerOpen}
           spaces={spaces}
           selectedSpaceId={selectedSpaceId}
-          onSpaceChange={setSelectedSpaceId}
+          onSpaceChange={setSpace}
           onSwitchSpace={() => setSwitchingSpace(true)}
           sets={sets}
           selectedSetId={selectedSetId}
-          onSetSelect={setSelectedSetId}
+          onSetSelect={setSet}
           loadingSets={loadingSets}
           siteName={siteName}
           siteLogo={siteLogo}
@@ -1187,13 +1192,13 @@ export function TodoPage() {
             selectedSpace?.kind === "team" && hasPerm("manage_settings")
           }
           canManageSets={hasPerm("manage_sets")}
-          onOpenSettings={() => setShowSettings(true)}
+          onOpenSettings={() => setView("settings")}
           onAddSet={handleAddSet}
           onImportSet={(set) => {
             setSets((prev) =>
               [...prev, set].sort((a, b) => a.sortOrder - b.sortOrder),
             );
-            setSelectedSetId(set.id);
+            setSet(set.id);
           }}
           onDeleteSet={(setId) =>
             setConfirmAction({

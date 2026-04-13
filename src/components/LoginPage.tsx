@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Button,
   Title1,
   Body1,
   Card,
   CardHeader,
-  Spinner,
   makeStyles,
   tokens,
 } from "@fluentui/react-components";
@@ -49,12 +48,8 @@ const useStyles = makeStyles({
 
 export function LoginPage() {
   const styles = useStyles();
-  const { login, handleCallback } = useAuth();
+  const { login } = useAuth();
   const { t } = useI18n();
-  const hasCallbackCode = new URLSearchParams(window.location.search).has(
-    "code",
-  );
-  const [processing, setProcessing] = useState(hasCallbackCode);
   const [siteName, setSiteName] = useState("Glint");
   const [siteLogo, setSiteLogo] = useState("");
 
@@ -67,28 +62,6 @@ export function LoginPage() {
       })
       .catch(() => {});
   }, []);
-
-  const callbackFired = useRef(false);
-  useEffect(() => {
-    if (!hasCallbackCode) return;
-    if (callbackFired.current) return;
-    callbackFired.current = true;
-    void handleCallback().then((ok) => {
-      if (ok) {
-        window.history.replaceState({}, "", "/");
-      } else {
-        setProcessing(false);
-      }
-    });
-  }, [handleCallback, hasCallbackCode]);
-
-  if (processing) {
-    return (
-      <div className={styles.container}>
-        <Spinner size="large" label={t.signingIn} />
-      </div>
-    );
-  }
 
   return (
     <div className={styles.container}>
