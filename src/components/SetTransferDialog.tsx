@@ -85,7 +85,11 @@ type TransferTodo = MarkdownChecklistTodo;
 
 function normalizeParsedTodos(raw: unknown): TransferTodo[] {
   if (Array.isArray(raw)) return raw as TransferTodo[];
-  if (raw && typeof raw === "object" && Array.isArray((raw as { todos?: unknown }).todos)) {
+  if (
+    raw &&
+    typeof raw === "object" &&
+    Array.isArray((raw as { todos?: unknown }).todos)
+  ) {
     return (raw as { todos: TransferTodo[] }).todos;
   }
   return [];
@@ -140,18 +144,29 @@ export function SetTransferDialog({
   const [error, setError] = useState<string | null>(null);
 
   const importPreview = useMemo(() => {
-    if (mode !== "import") return { parseError: null as string | null, todos: [] as TransferTodo[] };
-    if (!content.trim()) return { parseError: null as string | null, todos: [] as TransferTodo[] };
+    if (mode !== "import")
+      return { parseError: null as string | null, todos: [] as TransferTodo[] };
+    if (!content.trim())
+      return { parseError: null as string | null, todos: [] as TransferTodo[] };
     try {
       if (format === "md") {
-        return { parseError: null as string | null, todos: parseMarkdownChecklist(content) };
+        return {
+          parseError: null as string | null,
+          todos: parseMarkdownChecklist(content),
+        };
       }
       if (format === "json") {
         const parsed = JSON.parse(content) as unknown;
-        return { parseError: null as string | null, todos: normalizeParsedTodos(parsed) };
+        return {
+          parseError: null as string | null,
+          todos: normalizeParsedTodos(parsed),
+        };
       }
       const parsed = parseYaml(content) as unknown;
-      return { parseError: null as string | null, todos: normalizeParsedTodos(parsed) };
+      return {
+        parseError: null as string | null,
+        todos: normalizeParsedTodos(parsed),
+      };
     } catch {
       return {
         parseError: t.transferParseError,
@@ -207,7 +222,9 @@ export function SetTransferDialog({
         }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: t.transferImportFailed }));
+        const data = await res
+          .json()
+          .catch(() => ({ error: t.transferImportFailed }));
         setError((data as { error?: string }).error || t.transferImportFailed);
         setBusy(false);
         return;
@@ -317,9 +334,7 @@ export function SetTransferDialog({
               {mode === "import" && !replaceSet && (
                 <Select
                   value={insertAt}
-                  onChange={(_, d) =>
-                    setInsertAt(d.value as "top" | "bottom")
-                  }
+                  onChange={(_, d) => setInsertAt(d.value as "top" | "bottom")}
                 >
                   <option value="bottom">{t.transferInsertBottom}</option>
                   <option value="top">{t.transferInsertTop}</option>
@@ -328,7 +343,12 @@ export function SetTransferDialog({
             </div>
 
             {error && (
-              <div style={{ color: tokens.colorPaletteRedForeground1, marginBottom: 8 }}>
+              <div
+                style={{
+                  color: tokens.colorPaletteRedForeground1,
+                  marginBottom: 8,
+                }}
+              >
                 {error}
               </div>
             )}
@@ -336,7 +356,12 @@ export function SetTransferDialog({
             {mode === "import" && (
               <>
                 {importPreview.parseError && (
-                  <div style={{ color: tokens.colorPaletteRedForeground1, marginBottom: 8 }}>
+                  <div
+                    style={{
+                      color: tokens.colorPaletteRedForeground1,
+                      marginBottom: 8,
+                    }}
+                  >
                     {importPreview.parseError}
                   </div>
                 )}
@@ -394,7 +419,11 @@ export function SetTransferDialog({
                 >
                   {copied ? t.transferCopied : t.transferCopy}
                 </Button>
-                <Button appearance="primary" onClick={download} disabled={!content.trim()}>
+                <Button
+                  appearance="primary"
+                  onClick={download}
+                  disabled={!content.trim()}
+                >
                   {t.transferDownload}
                 </Button>
               </>
@@ -418,5 +447,3 @@ export function SetTransferDialog({
     </Dialog>
   );
 }
-
-

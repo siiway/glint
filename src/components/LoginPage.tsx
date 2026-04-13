@@ -51,7 +51,9 @@ export function LoginPage() {
   const styles = useStyles();
   const { login, handleCallback } = useAuth();
   const { t } = useI18n();
-  const hasCallbackCode = new URLSearchParams(window.location.search).has("code");
+  const hasCallbackCode = new URLSearchParams(window.location.search).has(
+    "code",
+  );
   const [processing, setProcessing] = useState(hasCallbackCode);
   const [siteName, setSiteName] = useState("Glint");
   const [siteLogo, setSiteLogo] = useState("");

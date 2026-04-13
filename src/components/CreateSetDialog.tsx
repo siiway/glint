@@ -65,7 +65,12 @@ export function CreateSetDialog({ open, onClose, onCreate }: Props) {
           </DialogTitle>
           <DialogContent>
             {error && (
-              <Body2 style={{ color: tokens.colorPaletteRedForeground1, marginBottom: 8 }}>
+              <Body2
+                style={{
+                  color: tokens.colorPaletteRedForeground1,
+                  marginBottom: 8,
+                }}
+              >
                 {error}
               </Body2>
             )}

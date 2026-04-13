@@ -126,12 +126,7 @@ type Props = {
   onImported: (set: TodoSet) => void;
 };
 
-export function ImportSetDialog({
-  open,
-  onClose,
-  teamId,
-  onImported,
-}: Props) {
+export function ImportSetDialog({ open, onClose, teamId, onImported }: Props) {
   const styles = useStyles();
   const { t } = useI18n();
 
@@ -369,7 +364,12 @@ export function ImportSetDialog({
             </div>
 
             <div className={styles.stats}>
-              <span>{t.transferTodosCount.replace("{count}", String(stats.todoCount))}</span>
+              <span>
+                {t.transferTodosCount.replace(
+                  "{count}",
+                  String(stats.todoCount),
+                )}
+              </span>
               <span>
                 {t.transferCommentsCount.replace(
                   "{count}",

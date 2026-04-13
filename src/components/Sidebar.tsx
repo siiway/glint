@@ -13,7 +13,6 @@ import {
   MenuPopover,
   MenuList,
   MenuItem,
-  Select,
   Switch,
   Tooltip,
   OverlayDrawer,
@@ -43,6 +42,7 @@ import {
   MoreVertical24Regular,
   Settings24Regular,
   Link24Regular,
+  BuildingMultiple24Regular,
 } from "@fluentui/react-icons";
 import type { TodoSet, TodoSpace } from "../types";
 import { ROLE_COLORS } from "../types";
@@ -76,6 +76,12 @@ const useStyles = makeStyles({
     justifyContent: "space-between",
     alignItems: "center",
     gap: "8px",
+  },
+  sidebarSpaceName: {
+    color: tokens.colorNeutralForeground3,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
   },
   sidebarContent: {
     flex: 1,
@@ -122,17 +128,6 @@ const useStyles = makeStyles({
     gap: "4px",
     padding: "4px 8px",
   },
-  teamSelect: {
-    minWidth: "180px",
-  },
-  teamSelectDesktop: {
-    width: "100%",
-    minWidth: 0,
-  },
-  teamSelectMobile: {
-    minWidth: "0",
-    flex: 1,
-  },
   empty: {
     textAlign: "center" as const,
     padding: "48px 0",
@@ -159,6 +154,7 @@ type Props = {
   spaces: TodoSpace[];
   selectedSpaceId: string;
   onSpaceChange: (id: string) => void;
+  onSwitchSpace: () => void;
   sets: TodoSet[];
   selectedSetId: string;
   onSetSelect: (id: string) => void;
@@ -186,6 +182,7 @@ export function Sidebar({
   spaces,
   selectedSpaceId,
   onSpaceChange,
+  onSwitchSpace,
   sets,
   selectedSetId,
   onSetSelect,
@@ -399,6 +396,16 @@ export function Sidebar({
               onClick={() => setLocale(locale === "en" ? "zh" : "en")}
             />
           </Tooltip>
+          {spaces.length > 1 && (
+            <Tooltip content={t.selectSpaceTitle} relationship="label">
+              <Button
+                appearance="transparent"
+                size="small"
+                icon={<BuildingMultiple24Regular />}
+                onClick={onSwitchSpace}
+              />
+            </Tooltip>
+          )}
           <Tooltip content={t.signOut} relationship="label">
             <Button
               appearance="transparent"
@@ -410,26 +417,6 @@ export function Sidebar({
         </div>
         <Footer />
       </>
-    );
-  }
-
-  function renderSpaceSelector(className?: string) {
-    if (spaces.length <= 1) return null;
-    return (
-      <Select
-        className={className ?? styles.teamSelect}
-        size="small"
-        value={selectedSpaceId}
-        onChange={(_, d) => onSpaceChange(d.value)}
-      >
-        {spaces.map((space) => (
-          <option key={space.id} value={space.id}>
-            {space.kind === "personal"
-              ? `Personal - ${space.name}`
-              : space.name}
-          </option>
-        ))}
-      </Select>
     );
   }
 
@@ -667,6 +654,16 @@ export function Sidebar({
                 siteName
               )}
             </DrawerHeaderTitle>
+            {selectedSpace && (
+              <Caption1
+                className={styles.sidebarSpaceName}
+                style={{ padding: "2px 0 4px" }}
+              >
+                {selectedSpace.kind === "personal"
+                  ? `Personal — ${selectedSpace.name}`
+                  : selectedSpace.name}
+              </Caption1>
+            )}
           </DrawerHeader>
           <DrawerBody
             style={{
@@ -676,11 +673,6 @@ export function Sidebar({
               padding: 0,
             }}
           >
-            {spaces.length > 1 && (
-              <div style={{ padding: "8px 16px" }}>
-                {renderSpaceSelector(styles.teamSelectMobile)}
-              </div>
-            )}
             <div className={styles.drawerSets}>
               {loadingSets ? (
                 <div className={styles.empty}>
@@ -727,7 +719,13 @@ export function Sidebar({
               </Tooltip>
             )}
           </div>
-          {renderSpaceSelector(styles.teamSelectDesktop)}
+          {selectedSpace && (
+            <Caption1 className={styles.sidebarSpaceName}>
+              {selectedSpace.kind === "personal"
+                ? `Personal — ${selectedSpace.name}`
+                : selectedSpace.name}
+            </Caption1>
+          )}
         </div>
         <div className={styles.sidebarContent}>
           {loadingSets ? (

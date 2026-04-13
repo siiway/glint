@@ -130,6 +130,11 @@ export default {
   commentsEmpty: "No comments yet.",
   commentsPlaceholder: "Write a comment...",
 
+  // Space switcher
+  selectSpaceTitle: "Switch Workspace",
+  selectSpaceSubtitle: "Select a workspace to switch to.",
+  selectSpacePersonal: "Personal",
+
   // Sidebar
   sidebarNewSet: "New set",
   sidebarImportSet: "Import set",
@@ -224,7 +229,8 @@ export default {
 
   // Per-set display options
   setSplitCompleted: "Show completed separately",
-  setSplitCompletedHint: "When enabled, completed root todos are shown in their own section.",
+  setSplitCompletedHint:
+    "When enabled, completed root todos are shown in their own section.",
   completedSection: "Completed ({count})",
 
   // Global timezone
@@ -279,6 +285,8 @@ export default {
   appConfigAllowedTeamId: "Allowed Team ID",
   appConfigAllowedTeamIdHint:
     "Supports multiple team IDs separated by comma, semicolon, or spaces.",
+  appConfigAllowedTeamIdEnvHint:
+    "Set via ALLOWED_TEAM_ID environment variable. Cannot be changed here.",
   appConfigSave: "Save App Config",
 
   // Permission labels

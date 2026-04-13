@@ -435,7 +435,8 @@ sets.post("/api/teams/:teamId/sets/:setId/import", requireAuth, async (c) => {
     includeComments?: boolean;
     insertAt?: "top" | "bottom";
   }>();
-  if (!body.content?.trim()) return c.json({ error: "Content is required" }, 400);
+  if (!body.content?.trim())
+    return c.json({ error: "Content is required" }, 400);
 
   const format = (body.format || "md").toLowerCase();
   const includeComments = body.includeComments ?? false;
@@ -501,7 +502,8 @@ sets.post("/api/teams/:teamId/sets/import", requireAuth, async (c) => {
     setId?: string;
     setName?: string;
   }>();
-  if (!body.content?.trim()) return c.json({ error: "Content is required" }, 400);
+  if (!body.content?.trim())
+    return c.json({ error: "Content is required" }, 400);
 
   const format = (body.format || "md").toLowerCase();
   const includeComments = body.includeComments ?? false;
@@ -513,9 +515,11 @@ sets.post("/api/teams/:teamId/sets/import", requireAuth, async (c) => {
     return c.json({ error: "Failed to parse import content" }, 400);
   }
 
-  const setName =
-    (body.setName || parsed.setName || (format === "md" ? "Imported Set" : "Imported"))
-      .trim();
+  const setName = (
+    body.setName ||
+    parsed.setName ||
+    (format === "md" ? "Imported Set" : "Imported")
+  ).trim();
   if (!setName) return c.json({ error: "Set name is required" }, 400);
 
   const setId =

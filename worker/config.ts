@@ -8,10 +8,20 @@ export function parseAllowedTeamIds(raw: string): string[] {
     .filter(Boolean);
 }
 
-export async function getAppConfig(kv: KVNamespace): Promise<AppConfig> {
+export async function getAppConfig(
+  kv: KVNamespace,
+  env?: { ALLOWED_TEAM_ID?: string },
+): Promise<AppConfig> {
   const raw = await kv.get("config:app", "json");
-  if (!raw) return { ...DEFAULT_APP_CONFIG };
-  return { ...DEFAULT_APP_CONFIG, ...(raw as Partial<AppConfig>) };
+  const base: AppConfig = {
+    ...DEFAULT_APP_CONFIG,
+    ...((raw as Partial<AppConfig> | null) ?? {}),
+  };
+  if (env?.ALLOWED_TEAM_ID?.trim()) {
+    base.allowed_team_id = env.ALLOWED_TEAM_ID.trim();
+    base.allowed_team_id_from_env = true;
+  }
+  return base;
 }
 
 export async function setAppConfig(

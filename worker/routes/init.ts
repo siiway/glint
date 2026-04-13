@@ -17,7 +17,7 @@ init.get("/api/init/status", async (c) => {
 });
 
 init.get("/api/init/branding", async (c) => {
-  const config = await getAppConfig(c.env.KV);
+  const config = await getAppConfig(c.env.KV, c.env);
   const allowedTeamIds = parseAllowedTeamIds(config.allowed_team_id);
   if (allowedTeamIds.length > 0) {
     const settings = await getTeamSettings(c.env.KV, allowedTeamIds[0]);
@@ -30,7 +30,7 @@ init.get("/api/init/branding", async (c) => {
 });
 
 init.get("/api/init/config", async (c) => {
-  const config = await getAppConfig(c.env.KV);
+  const config = await getAppConfig(c.env.KV, c.env);
   return c.json({ config });
 });
 
@@ -43,7 +43,7 @@ init.put("/api/init/config", async (c) => {
     const cached = await c.env.KV.get(`session:${sessionId}`, "json");
     if (!cached) return c.json({ error: "Unauthorized" }, 401);
     const session = cached as SessionData;
-    const config = await getAppConfig(c.env.KV);
+    const config = await getAppConfig(c.env.KV, c.env);
     const allowedTeamIds = parseAllowedTeamIds(config.allowed_team_id);
     if (allowedTeamIds.length > 0) {
       const isOwnerInAllowedTeam = allowedTeamIds.some(
@@ -61,7 +61,9 @@ init.put("/api/init/config", async (c) => {
     "prism_client_secret",
     "prism_redirect_uri",
     "use_pkce",
-    "allowed_team_id",
+    ...(!c.env.ALLOWED_TEAM_ID?.trim()
+      ? (["allowed_team_id"] as (keyof AppConfig)[])
+      : []),
     "session_ttl",
   ];
   const patch: Partial<AppConfig> = {};

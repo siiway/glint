@@ -20,7 +20,8 @@ const zh: typeof en = {
   signOut: "退出登录",
   tagline: "简单好用的团队待办事项管理工具。",
   sessionExpiredTitle: "登录已过期",
-  sessionExpiredBody: "当前页面输入仍保留。请先复制内容，然后点击按钮重新登录。",
+  sessionExpiredBody:
+    "当前页面输入仍保留。请先复制内容，然后点击按钮重新登录。",
   sessionExpiredGoLogin: "前往登录",
 
   // Footer
@@ -123,6 +124,11 @@ const zh: typeof en = {
   commentsLoading: "加载评论...",
   commentsEmpty: "还没有评论。",
   commentsPlaceholder: "写一条评论...",
+
+  // Space switcher
+  selectSpaceTitle: "切换工作区",
+  selectSpaceSubtitle: "选择要切换的工作区。",
+  selectSpacePersonal: "个人",
 
   // Sidebar
   sidebarNewSet: "新建分组",
@@ -266,8 +272,9 @@ const zh: typeof en = {
     "登录会话的持续时间。设为 0 则使用 OAuth 提供商的默认值。",
   appConfigAccessControl: "访问控制",
   appConfigAllowedTeamId: "允许的团队 ID",
-  appConfigAllowedTeamIdHint:
-    "支持多个团队 ID，用逗号、分号或空格分隔。",
+  appConfigAllowedTeamIdHint: "支持多个团队 ID，用逗号、分号或空格分隔。",
+  appConfigAllowedTeamIdEnvHint:
+    "已通过 ALLOWED_TEAM_ID 环境变量设置，无法在此修改。",
   appConfigSave: "保存应用配置",
 
   // Permission labels

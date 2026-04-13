@@ -1,6 +1,7 @@
 export type Bindings = {
   DB: D1Database;
   KV: KVNamespace;
+  ALLOWED_TEAM_ID?: string;
 };
 
 export type AppConfig = {
@@ -11,6 +12,8 @@ export type AppConfig = {
   use_pkce: boolean;
   allowed_team_id: string;
   session_ttl: number;
+  /** True when allowed_team_id is overridden by environment variable. Not stored in KV. */
+  allowed_team_id_from_env?: boolean;
 };
 
 export const DEFAULT_APP_CONFIG: AppConfig = {

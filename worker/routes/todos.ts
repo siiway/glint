@@ -1,12 +1,7 @@
 import { Hono } from "hono";
 import type { Bindings, Variables, PermissionKey } from "../types";
 import { PERMISSION_KEYS } from "../types";
-import {
-  requireAuth,
-  getTeamRole,
-  getPrism,
-  isPersonalSpaceId,
-} from "../auth";
+import { requireAuth, getTeamRole, getPrism, isPersonalSpaceId } from "../auth";
 import { getAppConfig } from "../config";
 import { hasPermission } from "../permissions";
 

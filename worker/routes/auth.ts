@@ -159,7 +159,7 @@ auth.post("/api/auth/callback", async (c) => {
     codeVerifier?: string;
   }>();
 
-  const config = await getAppConfig(c.env.KV);
+  const config = await getAppConfig(c.env.KV, c.env);
   const prism = getPrism(config);
 
   let tokens;
@@ -181,10 +181,7 @@ auth.post("/api/auth/callback", async (c) => {
     allowedTeamIds.length > 0 &&
     !teams.some((t) => allowedTeamIds.includes(t.id))
   ) {
-    return c.json(
-      { error: "You are not a member of any allowed team" },
-      403,
-    );
+    return c.json({ error: "You are not a member of any allowed team" }, 403);
   }
 
   const ttl = resolveSessionTtl(config.session_ttl, tokens.expires_in);

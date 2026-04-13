@@ -171,7 +171,9 @@ export function CommentsDialog({
                             {new Date(c.createdAt).toLocaleString()}
                           </Caption1>
                         </div>
-                        <Body1 style={{ whiteSpace: "pre-wrap" }}>{c.body}</Body1>
+                        <Body1 style={{ whiteSpace: "pre-wrap" }}>
+                          {c.body}
+                        </Body1>
                       </div>
                       {canDelete(c) && (
                         <Button

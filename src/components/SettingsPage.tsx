@@ -39,6 +39,7 @@ type AppConfig = {
   use_pkce: boolean;
   allowed_team_id: string;
   session_ttl: number;
+  allowed_team_id_from_env: boolean;
 };
 
 type TeamSettings = {
@@ -844,11 +845,14 @@ export function SettingsPage({
                   )
                 }
                 placeholder={t.initAllowedTeamIdPlaceholder}
+                disabled={editAppConfig.allowed_team_id_from_env}
               />
               <Body1
                 style={{ fontSize: 12, color: tokens.colorNeutralForeground4 }}
               >
-                {t.appConfigAllowedTeamIdHint}
+                {editAppConfig.allowed_team_id_from_env
+                  ? t.appConfigAllowedTeamIdEnvHint
+                  : t.appConfigAllowedTeamIdHint}
               </Body1>
             </div>
 

@@ -52,6 +52,7 @@ import { useAuth } from "../auth";
 import type { Todo, TodoSet, TeamRole, Comment, TodoSpace } from "../types";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { Sidebar } from "./Sidebar";
+import { SelectSpacePage } from "./SelectSpacePage";
 import { CommentsDialog } from "./CommentsDialog";
 import { SelectionBar } from "./SelectionBar";
 import { TodoContextMenu } from "./TodoContextMenu";
@@ -67,7 +68,10 @@ function readTodoLocation() {
   return {
     spaceId: params.get("space") ?? "",
     setId: params.get("set") ?? "",
-    view: params.get("view") === "settings" ? ("settings" as const) : ("todos" as const),
+    view:
+      params.get("view") === "settings"
+        ? ("settings" as const)
+        : ("todos" as const),
   };
 }
 
@@ -270,6 +274,7 @@ export function TodoPage() {
   const [loadingSets, setLoadingSets] = useState(false);
   const [loadingTodos, setLoadingTodos] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [switchingSpace, setSwitchingSpace] = useState(false);
   const [showSettings, setShowSettings] = useState(
     initialLocation.view === "settings",
   );
@@ -290,7 +295,9 @@ export function TodoPage() {
   const [editTitle, setEditTitle] = useState("");
   const [commentTodoId, setCommentTodoId] = useState<string | null>(null);
   // Per-set UI state: whether the completed section is collapsed for a given set
-  const [completedCollapsed, setCompletedCollapsed] = useState<Record<string, boolean>>({});
+  const [completedCollapsed, setCompletedCollapsed] = useState<
+    Record<string, boolean>
+  >({});
 
   // Drag state
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -360,7 +367,10 @@ export function TodoPage() {
 
   useEffect(() => {
     if (spaces.length === 0) return;
-    if (!selectedSpaceId || !spaces.some((space) => space.id === selectedSpaceId)) {
+    if (
+      !selectedSpaceId ||
+      !spaces.some((space) => space.id === selectedSpaceId)
+    ) {
       setSelectedSpaceId(spaces[0].id);
     }
   }, [spaces, selectedSpaceId]);
@@ -623,7 +633,9 @@ export function TodoPage() {
     setSelected(new Set());
     await Promise.all(
       ids.map((id) =>
-        fetch(`/api/teams/${selectedSpaceId}/todos/${id}`, { method: "DELETE" }),
+        fetch(`/api/teams/${selectedSpaceId}/todos/${id}`, {
+          method: "DELETE",
+        }),
       ),
     );
   };
@@ -1131,6 +1143,29 @@ export function TodoPage() {
 
   // ─── Render ──────────────────────────────────────────────────────────────
 
+  if (switchingSpace) {
+    return (
+      <SelectSpacePage
+        spaces={spaces}
+        selectedSpaceId={selectedSpaceId}
+        user={
+          user
+            ? {
+                displayName: user.displayName,
+                username: user.username,
+                avatarUrl: user.avatarUrl,
+              }
+            : null
+        }
+        onSelect={(id) => {
+          setSelectedSpaceId(id);
+          setSwitchingSpace(false);
+        }}
+        onCancel={() => setSwitchingSpace(false)}
+      />
+    );
+  }
+
   return (
     <>
       <div className={styles.layout}>
@@ -1141,6 +1176,7 @@ export function TodoPage() {
           spaces={spaces}
           selectedSpaceId={selectedSpaceId}
           onSpaceChange={setSelectedSpaceId}
+          onSwitchSpace={() => setSwitchingSpace(true)}
           sets={sets}
           selectedSetId={selectedSetId}
           onSetSelect={setSelectedSetId}
@@ -1306,23 +1342,31 @@ export function TodoPage() {
                 ) : (
                   (() => {
                     if (!splitCompleted) {
-                      return rootTodos.map((todo, index) => renderTodo(todo, index, true));
+                      return rootTodos.map((todo, index) =>
+                        renderTodo(todo, index, true),
+                      );
                     }
 
                     // When splitCompleted is enabled, render incomplete first, then a header and completed
-                    const displayOrder = [...incompleteRootTodos, ...completedRootTodos];
+                    const displayOrder = [
+                      ...incompleteRootTodos,
+                      ...completedRootTodos,
+                    ];
                     const completedCount = completedRootTodos.length;
                     const collapsed = selectedSetId
-                      ? completedCollapsed[selectedSetId] ?? false
+                      ? (completedCollapsed[selectedSetId] ?? false)
                       : false;
 
                     return displayOrder.map((todo, i) => {
                       // original index among rootTodos (used for drag indices)
-                      const origIndex = rootTodos.findIndex((t) => t.id === todo.id);
+                      const origIndex = rootTodos.findIndex(
+                        (t) => t.id === todo.id,
+                      );
 
                       // insert header before first completed item
                       const insertHeader =
-                        todo.completed && (i === 0 || !displayOrder[i - 1].completed);
+                        todo.completed &&
+                        (i === 0 || !displayOrder[i - 1].completed);
 
                       const elems: any[] = [];
                       if (insertHeader) {
@@ -1338,14 +1382,21 @@ export function TodoPage() {
                             }}
                           >
                             <Caption1>
-                              {t.completedSection.replace("{count}", String(completedCount))}
+                              {t.completedSection.replace(
+                                "{count}",
+                                String(completedCount),
+                              )}
                             </Caption1>
                             <Button
                               appearance="transparent"
                               size="small"
                               className={styles.expandBtn}
                               icon={
-                                collapsed ? <ChevronRight20Regular /> : <ChevronDown20Regular />
+                                collapsed ? (
+                                  <ChevronRight20Regular />
+                                ) : (
+                                  <ChevronDown20Regular />
+                                )
                               }
                               onClick={() => {
                                 if (!selectedSetId) return;
@@ -1361,7 +1412,9 @@ export function TodoPage() {
 
                       if (!todo.completed || !collapsed) {
                         elems.push(
-                          <div key={todo.id}>{renderTodo(todo, origIndex, true)}</div>,
+                          <div key={todo.id}>
+                            {renderTodo(todo, origIndex, true)}
+                          </div>,
                         );
                       }
 
