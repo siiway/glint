@@ -181,7 +181,6 @@ export function Sidebar({
   onDrawerChange,
   spaces,
   selectedSpaceId,
-  onSpaceChange,
   onSwitchSpace,
   sets,
   selectedSetId,
