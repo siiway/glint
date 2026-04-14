@@ -251,6 +251,7 @@ export function TodoPage() {
               name: team.name,
               kind: "team" as const,
               role: team.role,
+              avatarUrl: team.avatarUrl,
             })),
           ]
         : [],

@@ -13,6 +13,7 @@ export type TeamInfo = {
   id: string;
   name: string;
   role: "owner" | "co-owner" | "admin" | "member";
+  avatarUrl?: string;
 };
 
 export type User = {

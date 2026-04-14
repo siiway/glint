@@ -124,9 +124,13 @@ export function SelectSpacePage({
                       : space.name
                   }
                   image={
-                    space.kind === "personal" && user?.avatarUrl
-                      ? { src: user.avatarUrl }
-                      : undefined
+                    space.kind === "personal"
+                      ? user?.avatarUrl
+                        ? { src: user.avatarUrl }
+                        : undefined
+                      : space.avatarUrl
+                        ? { src: space.avatarUrl }
+                        : undefined
                   }
                   size={36}
                 />

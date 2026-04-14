@@ -32,6 +32,7 @@ export type TeamInfo = {
   id: string;
   name: string;
   role: TeamRole;
+  avatarUrl?: string;
 };
 
 export type SessionData = {

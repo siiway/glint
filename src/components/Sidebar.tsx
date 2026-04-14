@@ -83,6 +83,12 @@ const useStyles = makeStyles({
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   },
+  spaceNameRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    minWidth: 0,
+  },
   sidebarContent: {
     flex: 1,
     overflowY: "auto",
@@ -654,14 +660,25 @@ export function Sidebar({
               )}
             </DrawerHeaderTitle>
             {selectedSpace && (
-              <Caption1
-                className={styles.sidebarSpaceName}
+              <div
+                className={styles.spaceNameRow}
                 style={{ padding: "2px 0 4px" }}
               >
-                {selectedSpace.kind === "personal"
-                  ? `Personal — ${selectedSpace.name}`
-                  : selectedSpace.name}
-              </Caption1>
+                <Avatar
+                  name={selectedSpace.name}
+                  image={
+                    selectedSpace.avatarUrl
+                      ? { src: selectedSpace.avatarUrl }
+                      : undefined
+                  }
+                  size={16}
+                />
+                <Caption1 className={styles.sidebarSpaceName}>
+                  {selectedSpace.kind === "personal"
+                    ? `Personal — ${selectedSpace.name}`
+                    : selectedSpace.name}
+                </Caption1>
+              </div>
             )}
           </DrawerHeader>
           <DrawerBody
@@ -719,11 +736,22 @@ export function Sidebar({
             )}
           </div>
           {selectedSpace && (
-            <Caption1 className={styles.sidebarSpaceName}>
-              {selectedSpace.kind === "personal"
-                ? `Personal — ${selectedSpace.name}`
-                : selectedSpace.name}
-            </Caption1>
+            <div className={styles.spaceNameRow}>
+              <Avatar
+                name={selectedSpace.name}
+                image={
+                  selectedSpace.avatarUrl
+                    ? { src: selectedSpace.avatarUrl }
+                    : undefined
+                }
+                size={16}
+              />
+              <Caption1 className={styles.sidebarSpaceName}>
+                {selectedSpace.kind === "personal"
+                  ? `Personal — ${selectedSpace.name}`
+                  : selectedSpace.name}
+              </Caption1>
+            </div>
           )}
         </div>
         <div className={styles.sidebarContent}>

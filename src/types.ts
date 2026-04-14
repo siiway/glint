@@ -71,6 +71,7 @@ export type TodoSpace = {
   name: string;
   kind: "personal" | "team";
   role: TeamRole;
+  avatarUrl?: string;
 };
 
 export const ROLE_COLORS: Record<

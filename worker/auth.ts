@@ -70,6 +70,7 @@ export async function fetchUserTeams(
       id: t.id,
       name: t.name,
       role: (t.role as TeamRole) ?? "member",
+      avatarUrl: t.avatar_url ?? undefined,
     }));
   } catch {
     return [];

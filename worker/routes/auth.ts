@@ -70,7 +70,10 @@ auth.get("/api/auth/me", async (c) => {
       username: activeSession.username,
       displayName: activeSession.displayName,
       avatarUrl: toAvatarProxyUrl(activeSession.avatarUrl),
-      teams: activeSession.teams,
+      teams: activeSession.teams.map((t) => ({
+        ...t,
+        avatarUrl: toAvatarProxyUrl(t.avatarUrl),
+      })),
     },
   });
 });
