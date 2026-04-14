@@ -12,14 +12,17 @@ import {
 
 const auth = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-function toAvatarProxyUrl(url?: string): string | undefined {
+/** Unwrap legacy proxy URLs stored in old sessions: /api/auth/avatar?url=<encoded> → decoded raw URL */
+function unwrapLegacyProxyUrl(url?: string): string | undefined {
   if (!url) return undefined;
-  return `/api/auth/avatar?url=${encodeURIComponent(url)}`;
-}
-
-function isAllowedAvatarPath(pathname: string): boolean {
-  const lowered = pathname.toLowerCase();
-  return /(^|\/)avatars?(\/|$)/.test(lowered);
+  if (url.startsWith("/api/auth/avatar?url=")) {
+    try {
+      return decodeURIComponent(url.slice("/api/auth/avatar?url=".length));
+    } catch {
+      return undefined;
+    }
+  }
+  return url;
 }
 
 auth.get("/api/auth/config", async (c) => {
@@ -69,89 +72,11 @@ auth.get("/api/auth/me", async (c) => {
       id: activeSession.userId,
       username: activeSession.username,
       displayName: activeSession.displayName,
-      avatarUrl: toAvatarProxyUrl(activeSession.avatarUrl),
+      avatarUrl: unwrapLegacyProxyUrl(activeSession.avatarUrl),
       teams: activeSession.teams.map((t) => ({
         ...t,
-        avatarUrl: toAvatarProxyUrl(t.avatarUrl),
+        avatarUrl: unwrapLegacyProxyUrl(t.avatarUrl),
       })),
-    },
-  });
-});
-
-auth.get("/api/auth/avatar", async (c) => {
-  const sessionId = getCookie(c, "session");
-  if (!sessionId) return c.json({ error: "Unauthorized" }, 401);
-
-  const cached = await c.env.KV.get(`session:${sessionId}`, "json");
-  if (!cached) {
-    deleteCookie(c, "session");
-    return c.json({ error: "Unauthorized" }, 401);
-  }
-
-  const session = cached as SessionData;
-  if (Date.now() > session.expiresAt) {
-    await c.env.KV.delete(`session:${sessionId}`);
-    deleteCookie(c, "session");
-    return c.json({ error: "Unauthorized" }, 401);
-  }
-
-  const { session: activeSession, renewed } = await renewSessionIfExpiring(
-    c.env.KV,
-    sessionId,
-    session,
-  );
-  if (renewed) {
-    setCookie(c, "session", sessionId, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "Lax",
-      path: "/",
-      maxAge: SESSION_MIN_TTL_SECONDS,
-    });
-  }
-
-  const rawUrl = c.req.query("url");
-  if (!rawUrl) return c.json({ error: "Missing url" }, 400);
-
-  let avatarUrl: URL;
-  try {
-    avatarUrl = new URL(rawUrl);
-  } catch {
-    return c.json({ error: "Invalid url" }, 400);
-  }
-
-  const config = await getAppConfig(c.env.KV);
-  const prismOrigin = new URL(config.prism_base_url).origin;
-  if (avatarUrl.origin !== prismOrigin) {
-    return c.json({ error: "Avatar host not allowed" }, 403);
-  }
-
-  const sessionAvatar = activeSession.avatarUrl;
-  const exactSessionAvatar = sessionAvatar === avatarUrl.toString();
-  if (!exactSessionAvatar && !isAllowedAvatarPath(avatarUrl.pathname)) {
-    return c.json({ error: "Avatar path not allowed" }, 403);
-  }
-
-  const upstream = await fetch(avatarUrl.toString(), {
-    headers: activeSession.accessToken
-      ? { Authorization: `Bearer ${activeSession.accessToken}` }
-      : undefined,
-  });
-  if (!upstream.ok) {
-    return new Response(JSON.stringify({ error: "Avatar fetch failed" }), {
-      status: upstream.status,
-      headers: {
-        "content-type": "application/json",
-      },
-    });
-  }
-
-  const contentType = upstream.headers.get("content-type") || "image/png";
-  const body = await upstream.arrayBuffer();
-  return new Response(body, {
-    headers: {
-      "Content-Type": contentType,
-      "Cache-Control": "private, max-age=300",
     },
   });
 });
@@ -214,7 +139,7 @@ auth.post("/api/auth/callback", async (c) => {
       id: session.userId,
       username: session.username,
       displayName: session.displayName,
-      avatarUrl: toAvatarProxyUrl(session.avatarUrl),
+      avatarUrl: session.avatarUrl,
       teams: session.teams,
     },
   });
