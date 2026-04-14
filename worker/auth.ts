@@ -66,12 +66,14 @@ export async function fetchUserTeams(
 ): Promise<TeamInfo[]> {
   try {
     const teams = await prism.teams.oauthList(accessToken);
-    return teams.map((t) => ({
-      id: t.id,
-      name: t.name,
-      role: (t.role as TeamRole) ?? "member",
-      avatarUrl: t.avatar_url ?? undefined,
-    }));
+    return teams.map((t) => {
+      return {
+        id: t.id,
+        name: t.name,
+        role: (t.role as TeamRole) ?? "member",
+        avatarUrl: t.avatar_url ?? undefined,
+      };
+    });
   } catch {
     return [];
   }

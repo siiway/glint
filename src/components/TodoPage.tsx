@@ -245,6 +245,7 @@ export function TodoPage() {
               name: user.displayName || user.username,
               kind: "personal",
               role: "owner",
+              avatarUrl: user.avatarUrl,
             },
             ...user.teams.map((team) => ({
               id: team.id,
