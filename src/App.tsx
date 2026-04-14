@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Routes, Route, useParams } from "react-router-dom";
+import { Routes, Route, useParams, Navigate } from "react-router-dom";
 import {
   FluentProvider,
   webLightTheme,
@@ -19,6 +19,7 @@ import { LoginPage } from "./components/LoginPage";
 import { TodoPage } from "./components/TodoPage";
 import { SharedPage } from "./components/SharedPage";
 import { CallbackPage } from "./components/CallbackPage";
+import { NotAuthorizedPage } from "./components/NotAuthorizedPage";
 
 function useColorScheme() {
   const [dark, setDark] = useState(
@@ -86,11 +87,7 @@ function AppShell() {
   }
 
   if (!user) {
-    return (
-      <PageLayout>
-        <LoginPage />
-      </PageLayout>
-    );
+    return <Navigate to="/login" replace />;
   }
 
   return (
@@ -128,6 +125,22 @@ export default function App() {
           <Routes>
             <Route path="/shared/:token" element={<SharedRoute />} />
             <Route path="/callback" element={<CallbackPage />} />
+            <Route
+              path="/login"
+              element={
+                <PageLayout>
+                  <LoginPage />
+                </PageLayout>
+              }
+            />
+            <Route
+              path="/not-authorized"
+              element={
+                <PageLayout>
+                  <NotAuthorizedPage />
+                </PageLayout>
+              }
+            />
             <Route path="*" element={<AppShell />} />
           </Routes>
         </AuthProvider>

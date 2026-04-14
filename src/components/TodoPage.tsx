@@ -6,7 +6,6 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { useSearchParams } from "react-router-dom";
 import {
   Input,
   Button,
@@ -49,6 +48,7 @@ import {
   PersonAvailable24Regular,
   PersonDelete24Regular,
 } from "@fluentui/react-icons";
+import { useNavigate, useMatch } from "react-router-dom";
 import { useAuth } from "../auth";
 import type { Todo, TodoSet, TeamRole, Comment, TodoSpace } from "../types";
 import { useIsMobile } from "../hooks/useIsMobile";
@@ -61,8 +61,6 @@ import { SettingsPage } from "./SettingsPage";
 import { SetTransferDialog } from "./SetTransferDialog";
 import { useI18n } from "../i18n";
 import { ConfirmDialog } from "./ConfirmDialog";
-
-type TodoView = "todos" | "settings";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -217,51 +215,25 @@ export function TodoPage() {
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
   const { t } = useI18n();
+  const navigate = useNavigate();
 
-  const [searchParams, setSearchParams] = useSearchParams();
-  const selectedSpaceId = searchParams.get("space") ?? "";
-  const selectedSetId = searchParams.get("set") ?? "";
-  const showSettings = searchParams.get("view") === "settings";
+  // Derive selected space/set/view from the URL
+  const matchSettings = useMatch("/:spaceId/settings");
+  const matchSet = useMatch("/:spaceId/:setId");
+  const matchSpace = useMatch("/:spaceId");
+  const selectedSpaceId =
+    matchSettings?.params.spaceId ??
+    matchSet?.params.spaceId ??
+    matchSpace?.params.spaceId ??
+    "";
+  const showSettings = !!matchSettings;
+  const selectedSetId = showSettings ? "" : (matchSet?.params.setId ?? "");
 
-  const setSpace = useCallback(
-    (id: string) =>
-      setSearchParams(
-        (p) => {
-          const n = new URLSearchParams(p);
-          id ? n.set("space", id) : n.delete("space");
-          n.delete("set");
-          n.delete("view");
-          return n;
-        },
-        { replace: true },
-      ),
-    [setSearchParams],
-  );
-
-  const setSet = useCallback(
-    (id: string) =>
-      setSearchParams(
-        (p) => {
-          const n = new URLSearchParams(p);
-          id ? n.set("set", id) : n.delete("set");
-          return n;
-        },
-        { replace: true },
-      ),
-    [setSearchParams],
-  );
-
-  const setView = useCallback(
-    (view: TodoView) =>
-      setSearchParams(
-        (p) => {
-          const n = new URLSearchParams(p);
-          view === "settings" ? n.set("view", "settings") : n.delete("view");
-          return n;
-        },
-        { replace: true },
-      ),
-    [setSearchParams],
+  const selectSpace = useCallback(
+    (id: string) => {
+      navigate(`/${id}`);
+    },
+    [navigate],
   );
 
   const spaces: TodoSpace[] = useMemo(
@@ -359,15 +331,15 @@ export function TodoPage() {
   useEffect(() => {
     if (spaces.length === 0) return;
     if (!selectedSpaceId || !spaces.some((s) => s.id === selectedSpaceId)) {
-      setSpace(spaces[0].id);
+      navigate(`/${spaces[0].id}`, { replace: true });
     }
-  }, [spaces, selectedSpaceId, setSpace]);
+  }, [spaces, selectedSpaceId, navigate]);
 
   useEffect(() => {
     if (selectedSpace?.kind !== "team" && showSettings) {
-      setView("todos");
+      navigate(`/${selectedSpaceId}`, { replace: true });
     }
-  }, [selectedSpace?.kind, showSettings, setView]);
+  }, [selectedSpace?.kind, showSettings, selectedSpaceId, navigate]);
 
   useEffect(() => {
     if (!selectedSpaceId) return;
@@ -405,37 +377,44 @@ export function TodoPage() {
       const res = await fetch(`/api/teams/${selectedSpaceId}/sets`, {
         signal: ctrl.signal,
       });
+      if (res.status === 403 || res.status === 404) {
+        navigate("/not-authorized", { replace: true });
+        return;
+      }
       if (res.ok) {
         const data: { sets: TodoSet[]; role: TeamRole } = await res.json();
         setSets(data.sets);
         setTeamRole(data.role);
-        setSearchParams(
-          (p) => {
-            const prev = p.get("set") ?? "";
-            const n = new URLSearchParams(p);
-            if (data.sets.length === 0) {
-              n.delete("set");
-            } else {
-              const newId = data.sets.some((s) => s.id === prev)
-                ? prev
-                : data.sets[0].id;
-              newId ? n.set("set", newId) : n.delete("set");
-            }
-            return n;
-          },
-          { replace: true },
-        );
       }
     } catch (e) {
       if (e instanceof DOMException && e.name === "AbortError") return;
     } finally {
       if (!ctrl.signal.aborted) setLoadingSets(false);
     }
-  }, [selectedSpaceId, setSearchParams]);
+  }, [selectedSpaceId, navigate]);
 
   useEffect(() => {
     fetchSets();
   }, [fetchSets]);
+
+  // After sets load, auto-navigate to a valid set if the URL has none or an invalid one
+  useEffect(() => {
+    if (loadingSets || !selectedSpaceId || sets.length === 0 || showSettings)
+      return;
+    const validSetId = sets.some((s) => s.id === selectedSetId)
+      ? selectedSetId
+      : sets[0].id;
+    if (validSetId !== selectedSetId) {
+      navigate(`/${selectedSpaceId}/${validSetId}`, { replace: true });
+    }
+  }, [
+    sets,
+    selectedSpaceId,
+    selectedSetId,
+    showSettings,
+    loadingSets,
+    navigate,
+  ]);
 
   const fetchTodos = useCallback(async () => {
     if (!selectedSpaceId || !selectedSetId) return;
@@ -704,7 +683,7 @@ export function TodoPage() {
     if (res.ok) {
       const data: { set: TodoSet } = await res.json();
       setSets((prev) => [...prev, data.set]);
-      setSet(data.set.id);
+      navigate(`/${selectedSpaceId}/${data.set.id}`);
     }
   };
 
@@ -712,7 +691,11 @@ export function TodoPage() {
     setSets((prev) => prev.filter((s) => s.id !== setId));
     if (selectedSetId === setId) {
       const remaining = sets.filter((s) => s.id !== setId);
-      setSet(remaining.length > 0 ? remaining[0].id : "");
+      navigate(
+        remaining.length > 0
+          ? `/${selectedSpaceId}/${remaining[0].id}`
+          : `/${selectedSpaceId}`,
+      );
     }
     await fetch(`/api/teams/${selectedSpaceId}/sets/${setId}`, {
       method: "DELETE",
@@ -1106,7 +1089,7 @@ export function TodoPage() {
       <SettingsPage
         teamId={selectedSpaceId}
         onBack={() => {
-          setView("todos");
+          navigate(`/${selectedSpaceId}`);
           refreshBranding();
         }}
       />
@@ -1167,7 +1150,7 @@ export function TodoPage() {
             : null
         }
         onSelect={(id) => {
-          setSpace(id);
+          navigate(`/${id}`);
           setSwitchingSpace(false);
         }}
         onCancel={() => setSwitchingSpace(false)}
@@ -1184,11 +1167,11 @@ export function TodoPage() {
           onDrawerChange={setDrawerOpen}
           spaces={spaces}
           selectedSpaceId={selectedSpaceId}
-          onSpaceChange={setSpace}
+          onSpaceChange={selectSpace}
           onSwitchSpace={() => setSwitchingSpace(true)}
           sets={sets}
           selectedSetId={selectedSetId}
-          onSetSelect={setSet}
+          onSetSelect={(id) => navigate(`/${selectedSpaceId}/${id}`)}
           loadingSets={loadingSets}
           siteName={siteName}
           siteLogo={siteLogo}
@@ -1196,13 +1179,13 @@ export function TodoPage() {
             selectedSpace?.kind === "team" && hasPerm("manage_settings")
           }
           canManageSets={hasPerm("manage_sets")}
-          onOpenSettings={() => setView("settings")}
+          onOpenSettings={() => navigate(`/${selectedSpaceId}/settings`)}
           onAddSet={handleAddSet}
           onImportSet={(set) => {
             setSets((prev) =>
               [...prev, set].sort((a, b) => a.sortOrder - b.sortOrder),
             );
-            setSet(set.id);
+            navigate(`/${selectedSpaceId}/${set.id}`);
           }}
           onDeleteSet={(setId) =>
             setConfirmAction({

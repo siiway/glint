@@ -323,6 +323,11 @@ export default {
   permLabel_view_todos: "View Todos",
   permDesc_view_todos: "View todos in a set",
 
+  // Not authorized page
+  notAuthorizedTitle: "Not Authorized",
+  notAuthorizedDesc: "You don't have access to this workspace.",
+  notAuthorizedGoHome: "Go to home",
+
   // Confirmations
   confirmDeleteTodo:
     "Are you sure you want to delete this item? This action cannot be undone.",
