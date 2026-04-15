@@ -13,6 +13,12 @@ const zh: typeof en = {
   rename: "重命名",
   add: "添加",
   confirm: "确认",
+  continue: "继续",
+
+  // App token warning
+  appTokenWarningTitle: "通过应用令牌访问",
+  appTokenWarningBody:
+    "本次会话使用的是由外部应用颁发的令牌，而非直接为您颁发。如果您未预期此情况，请立即退出登录。",
 
   // Auth / Login
   signingIn: "登录中...",
@@ -310,6 +316,7 @@ const zh: typeof en = {
   permDesc_delete_any_comment: "删除他人的评论",
   permLabel_view_todos: "查看任务",
   permDesc_view_todos: "查看分组中的任务",
+
 
   // Not authorized page
   notAuthorizedTitle: "无访问权限",

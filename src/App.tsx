@@ -10,6 +10,12 @@ import {
   MessageBarTitle,
   MessageBarActions,
   Button,
+  Dialog,
+  DialogSurface,
+  DialogTitle,
+  DialogBody,
+  DialogContent,
+  DialogActions,
 } from "@fluentui/react-components";
 import { AuthProvider, useAuth } from "./auth";
 import { I18nProvider, useI18n } from "./i18n";
@@ -57,7 +63,7 @@ function SharedRoute() {
 }
 
 function AppShell() {
-  const { user, loading, sessionExpiredNotice, goToLogin } = useAuth();
+  const { user, loading, sessionExpiredNotice, appTokenWarning, dismissAppTokenWarning, goToLogin, logout } = useAuth();
   const { configured, markConfigured } = useInitStatus();
   const { t } = useI18n();
 
@@ -107,6 +113,22 @@ function AppShell() {
           />
         </MessageBar>
       )}
+      <Dialog open={appTokenWarning} modalType="alert">
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>{t.appTokenWarningTitle}</DialogTitle>
+            <DialogContent>{t.appTokenWarningBody}</DialogContent>
+            <DialogActions>
+              <Button appearance="secondary" onClick={dismissAppTokenWarning}>
+                {t.continue}
+              </Button>
+              <Button appearance="primary" onClick={() => void logout()}>
+                {t.signOut}
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
       <TodoPage />
     </PageLayout>
   );

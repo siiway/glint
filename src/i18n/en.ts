@@ -11,6 +11,12 @@ export default {
   rename: "Rename",
   add: "Add",
   confirm: "Confirm",
+  continue: "Continue",
+
+  // App token warning
+  appTokenWarningTitle: "Access via App Token",
+  appTokenWarningBody:
+    "This session was established using a token issued to an external application, not directly to you. If you did not expect this, sign out immediately.",
 
   // Auth / Login
   signingIn: "Signing in...",
@@ -322,6 +328,7 @@ export default {
   permDesc_delete_any_comment: "Delete comments by others",
   permLabel_view_todos: "View Todos",
   permDesc_view_todos: "View todos in a set",
+
 
   // Not authorized page
   notAuthorizedTitle: "Not Authorized",

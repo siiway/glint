@@ -9,6 +9,7 @@ import {
   renewSessionIfExpiring,
   SESSION_MIN_TTL_SECONDS,
 } from "../auth";
+import { userTeamsKvKey, USER_TEAMS_KV_TTL } from "../cross-app-auth";
 
 const auth = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -77,6 +78,7 @@ auth.get("/api/auth/me", async (c) => {
         ...t,
         avatarUrl: unwrapLegacyProxyUrl(t.avatarUrl),
       })),
+      isAppToken: activeSession.isAppToken ?? false,
     },
   });
 });
@@ -101,6 +103,17 @@ auth.post("/api/auth/callback", async (c) => {
   const userInfo = await prism.getUserInfo(tokens.access_token);
   const teams = await fetchUserTeams(prism, tokens.access_token);
 
+  // Detect whether this token was issued to an external app rather than to Glint.
+  let isAppToken = false;
+  try {
+    const info = await prism.introspectToken(tokens.access_token);
+    if (info.client_id && info.client_id !== config.prism_client_id) {
+      isAppToken = true;
+    }
+  } catch {
+    // If introspection fails, leave isAppToken false — don't block login.
+  }
+
   const allowedTeamIds = parseAllowedTeamIds(config.allowed_team_id);
   if (
     allowedTeamIds.length > 0 &&
@@ -120,10 +133,16 @@ auth.post("/api/auth/callback", async (c) => {
     accessToken: tokens.access_token,
     expiresAt: Date.now() + ttl * 1000,
     teams,
+    isAppToken,
   };
 
   await c.env.KV.put(`session:${sessionId}`, JSON.stringify(session), {
     expirationTtl: ttl,
+  });
+
+  // Cache team membership for cross-app bearer token auth (no teams:read scope needed).
+  await c.env.KV.put(userTeamsKvKey(session.userId), JSON.stringify(teams), {
+    expirationTtl: USER_TEAMS_KV_TTL,
   });
 
   setCookie(c, "session", sessionId, {
@@ -141,6 +160,7 @@ auth.post("/api/auth/callback", async (c) => {
       displayName: session.displayName,
       avatarUrl: session.avatarUrl,
       teams: session.teams,
+      isAppToken: session.isAppToken ?? false,
     },
   });
 });

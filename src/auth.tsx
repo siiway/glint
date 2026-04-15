@@ -22,6 +22,7 @@ export type User = {
   displayName?: string;
   avatarUrl?: string;
   teams: TeamInfo[];
+  isAppToken?: boolean;
 };
 
 type AuthConfig = {
@@ -35,6 +36,8 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   sessionExpiredNotice: boolean;
+  appTokenWarning: boolean;
+  dismissAppTokenWarning: () => void;
   login: () => Promise<void>;
   logout: () => Promise<void>;
   goToLogin: () => Promise<void>;
@@ -80,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [sessionExpiredNotice, setSessionExpiredNotice] = useState(false);
+  const [appTokenWarning, setAppTokenWarning] = useState(false);
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -88,10 +92,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     fetch("/api/auth/me")
       .then((res) => res.json())
-      .then((data: { user: User | null }) => setUser(data.user))
+      .then((data: { user: User | null }) => {
+        setUser(data.user);
+        if (data.user?.isAppToken) setAppTokenWarning(true);
+      })
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
+
+  const dismissAppTokenWarning = useCallback(() => setAppTokenWarning(false), []);
 
   // Show persistent session-expired notice on 401; let users decide when to re-login.
   useEffect(() => {
@@ -157,6 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data: { user: User } = await res.json();
       setUser(data.user);
       setSessionExpiredNotice(false);
+      if (data.user?.isAppToken) setAppTokenWarning(true);
       return true;
     },
     [],
@@ -180,6 +190,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         loading,
         sessionExpiredNotice,
+        appTokenWarning,
+        dismissAppTokenWarning,
         login,
         logout,
         goToLogin,
