@@ -48,6 +48,7 @@ type AppConfig = {
   allowed_team_id: string;
   session_ttl: number;
   action_bar_defaults: string[];
+  user_profile_cache_ttl: number;
   allowed_team_id_from_env: boolean;
 };
 
@@ -246,6 +247,7 @@ export function SettingsPage({
         ...data.config,
         action_bar_defaults:
           data.config.action_bar_defaults ?? ACTION_BAR_SITE_FALLBACK,
+        user_profile_cache_ttl: data.config.user_profile_cache_ttl ?? 86400,
       });
     }
     if (linksRes.ok) {
@@ -916,6 +918,34 @@ export function SettingsPage({
                 style={{ fontSize: 12, color: tokens.colorNeutralForeground4 }}
               >
                 {t.appConfigSessionTtlHint}
+              </Body1>
+            </div>
+
+            <div className={styles.field}>
+              <Body2 className={styles.fieldLabel}>
+                {t.appConfigUserProfileCacheTtl}
+              </Body2>
+              <Input
+                type="number"
+                value={String(editAppConfig.user_profile_cache_ttl ?? 86400)}
+                onChange={(_, d) =>
+                  setEditAppConfig(
+                    (c) =>
+                      c && {
+                        ...c,
+                        user_profile_cache_ttl: Math.max(
+                          0,
+                          parseInt(d.value) || 0,
+                        ),
+                      },
+                  )
+                }
+                placeholder="86400"
+              />
+              <Body1
+                style={{ fontSize: 12, color: tokens.colorNeutralForeground4 }}
+              >
+                {t.appConfigUserProfileCacheTtlHint}
               </Body1>
             </div>
 

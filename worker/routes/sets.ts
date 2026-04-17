@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import type { Bindings, Variables } from "../types";
-import { requireAuth, getTeamRole } from "../auth";
-import { ensureDefaultSet } from "../config";
+import { requireAuth, getTeamRole, isPersonalSpaceId } from "../auth";
+import { ensureDefaultSet, getAppConfig } from "../config";
+import { resolveUserProfiles } from "../userProfileCache";
 import { hasPermission } from "../permissions";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import {
@@ -12,6 +13,16 @@ import {
 const sets = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 type TransferTodo = MarkdownChecklistTodo;
+
+const claimedBySupportCache = new WeakMap<D1Database, boolean>();
+async function supportsClaimedBy(db: D1Database): Promise<boolean> {
+  const cached = claimedBySupportCache.get(db);
+  if (cached !== undefined) return cached;
+  const info = await db.prepare("PRAGMA table_info(todos)").all();
+  const supported = info.results.some((r) => r.name === "claimed_by");
+  claimedBySupportCache.set(db, supported);
+  return supported;
+}
 
 type TransferPayload = {
   version: 1;
@@ -24,6 +35,9 @@ function renderMarkdown(nodes: TransferTodo[], depth = 0): string {
   const pad = "  ".repeat(depth);
   for (const node of nodes) {
     lines.push(`${pad}- [${node.completed ? "x" : " "}] ${node.title}`);
+    if (node.claimedByName) {
+      lines.push(`${pad}  > claimed: ${node.claimedByName}`);
+    }
     for (const comment of node.comments ?? []) {
       lines.push(`${pad}  > ${comment}`);
     }
@@ -39,6 +53,7 @@ async function buildTransferPayload(
   teamId: string,
   setId: string,
   includeComments: boolean,
+  nameMap: Record<string, string> = {},
 ): Promise<TransferPayload | null> {
   const set = await db
     .prepare("SELECT id, name FROM todo_sets WHERE id = ? AND team_id = ?")
@@ -46,9 +61,10 @@ async function buildTransferPayload(
     .first<{ id: string; name: string }>();
   if (!set) return null;
 
+  const claimSupported = await supportsClaimedBy(db);
   const todoRows = await db
     .prepare(
-      "SELECT id, parent_id, title, completed FROM todos WHERE set_id = ? AND team_id = ? ORDER BY sort_order ASC, created_at ASC",
+      `SELECT id, parent_id, title, completed${claimSupported ? ", claimed_by" : ""} FROM todos WHERE set_id = ? AND team_id = ? ORDER BY sort_order ASC, created_at ASC`,
     )
     .bind(setId, teamId)
     .all();
@@ -72,9 +88,11 @@ async function buildTransferPayload(
   const parentOf = new Map<string, string | null>();
   for (const row of todoRows.results) {
     const id = row.id as string;
+    const claimedBy = claimSupported ? (row.claimed_by as string | null) : null;
     byId.set(id, {
       title: row.title as string,
       completed: row.completed === 1,
+      claimedByName: claimedBy ? (nameMap[claimedBy] ?? undefined) : undefined,
       comments: commentsMap[id],
     });
     parentOf.set(id, (row.parent_id as string) || null);
@@ -394,11 +412,39 @@ sets.get("/api/teams/:teamId/sets/:setId/export", requireAuth, async (c) => {
 
   const format = (c.req.query("format") || "md").toLowerCase();
   const includeComments = c.req.query("includeComments") === "1";
+
+  // Resolve claimed_by user IDs to display names
+  let nameMap: Record<string, string> = {};
+  if (await supportsClaimedBy(c.env.DB)) {
+    const claimedRows = await c.env.DB.prepare(
+      "SELECT DISTINCT claimed_by FROM todos WHERE set_id = ? AND team_id = ? AND claimed_by IS NOT NULL",
+    )
+      .bind(setId, teamId)
+      .all();
+    const claimedIds = new Set(
+      claimedRows.results.map((r) => r.claimed_by as string),
+    );
+    if (claimedIds.size > 0) {
+      const config = await getAppConfig(c.env.KV);
+      const ids = isPersonalSpaceId(teamId, session.userId)
+        ? new Set([session.userId])
+        : claimedIds;
+      ({ nameMap } = await resolveUserProfiles(
+        c.env.KV,
+        config,
+        session,
+        teamId,
+        ids,
+      ));
+    }
+  }
+
   const payload = await buildTransferPayload(
     c.env.DB,
     teamId,
     setId,
     includeComments,
+    nameMap,
   );
   if (!payload) return c.json({ error: "Set not found" }, 404);
 

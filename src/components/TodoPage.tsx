@@ -19,6 +19,9 @@ import {
   Menu,
   MenuTrigger,
   MenuPopover,
+  Popover,
+  PopoverTrigger,
+  PopoverSurface,
   MenuList,
   MenuItem,
   Tooltip,
@@ -210,6 +213,34 @@ const useStyles = makeStyles({
     height: "16px",
     borderRadius: "50%",
     objectFit: "cover" as const,
+  },
+  claimedFlyout: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "12px 14px",
+    minWidth: "180px",
+  },
+  claimedFlyoutAvatar: {
+    width: "36px",
+    height: "36px",
+    borderRadius: "50%",
+    objectFit: "cover" as const,
+    flexShrink: 0,
+  },
+  claimedFlyoutInfo: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "4px",
+  },
+  claimedFlyoutName: {
+    fontWeight: "600",
+    fontSize: "13px",
+    color: tokens.colorNeutralForeground1,
+  },
+  claimedFlyoutSub: {
+    fontSize: "11px",
+    color: tokens.colorNeutralForeground3,
   },
   empty: {
     textAlign: "center" as const,
@@ -1506,27 +1537,81 @@ export function TodoPage() {
                 >
                   {todo.title}
                 </Body2>
-                {todo.claimedBy && (
-                  <Tooltip
-                    content={t.actionClaimedBy.replace(
-                      "{name}",
-                      todo.claimedByName || todo.claimedBy,
-                    )}
-                    relationship="label"
-                  >
-                    <span className={styles.claimedBadge}>
-                      {todo.claimedByAvatar ? (
-                        <img
-                          src={todo.claimedByAvatar}
-                          alt=""
-                          className={styles.claimedAvatar}
-                        />
-                      ) : (
-                        <PersonAvailable24Regular style={{ fontSize: 14 }} />
-                      )}
-                    </span>
-                  </Tooltip>
-                )}
+                {todo.claimedBy &&
+                  (() => {
+                    const claimer =
+                      todo.claimedByName ||
+                      (todo.claimedBy === user?.id
+                        ? user?.displayName || user?.username
+                        : null);
+                    const isMe = todo.claimedBy === user?.id;
+                    return (
+                      <Popover trapFocus={false} withArrow size="small">
+                        <PopoverTrigger disableButtonEnhancement>
+                          <span
+                            className={styles.claimedBadge}
+                            style={{ cursor: "pointer" }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {todo.claimedByAvatar ? (
+                              <img
+                                src={todo.claimedByAvatar}
+                                alt=""
+                                className={styles.claimedAvatar}
+                              />
+                            ) : (
+                              <PersonAvailable24Regular
+                                style={{ fontSize: 14 }}
+                              />
+                            )}
+                          </span>
+                        </PopoverTrigger>
+                        <PopoverSurface>
+                          <div className={styles.claimedFlyout}>
+                            {todo.claimedByAvatar ? (
+                              <img
+                                src={todo.claimedByAvatar}
+                                alt=""
+                                className={styles.claimedFlyoutAvatar}
+                              />
+                            ) : (
+                              <PersonAvailable24Regular
+                                style={{
+                                  fontSize: 28,
+                                  color: tokens.colorPaletteGreenForeground1,
+                                }}
+                              />
+                            )}
+                            <div className={styles.claimedFlyoutInfo}>
+                              <span className={styles.claimedFlyoutName}>
+                                {claimer ?? "Unknown user"}
+                              </span>
+                              <span className={styles.claimedFlyoutSub}>
+                                {t.actionClaimedStatus}
+                              </span>
+                              {isMe && (
+                                <Button
+                                  size="small"
+                                  appearance="subtle"
+                                  style={{
+                                    marginTop: 4,
+                                    padding: "2px 6px",
+                                    minWidth: 0,
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    claimTodo(todo);
+                                  }}
+                                >
+                                  {t.actionUnclaim}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </PopoverSurface>
+                      </Popover>
+                    );
+                  })()}
                 {todo.commentCount > 0 && (
                   <span
                     className={styles.commentBadge}

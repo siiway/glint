@@ -117,6 +117,7 @@ const zh: typeof en = {
   actionClaim: "认领",
   actionUnclaim: "取消认领",
   actionClaimedBy: "{name} 已认领",
+  actionClaimedStatus: "已认领此待办",
   actionMarkComplete: "标记完成",
   actionMarkIncomplete: "标记未完成",
   actionAddBefore: "在上方添加",
@@ -298,6 +299,9 @@ const zh: typeof en = {
   appConfigActionBarDefaults: "默认快捷操作",
   appConfigActionBarDefaultsHint:
     "所有用户的快捷操作栏默认显示的操作。用户和工作区管理员可以覆盖此设置。",
+  appConfigUserProfileCacheTtl: "用户资料缓存时长（秒）",
+  appConfigUserProfileCacheTtlHint:
+    "从 Prism 解析的显示名称和头像的缓存时长。设为 0 则每次实时获取。默认值：86400（1 天）。",
 
   // Permission labels
   permLabel_manage_settings: "管理设置",

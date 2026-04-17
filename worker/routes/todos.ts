@@ -1,9 +1,10 @@
 import { Hono } from "hono";
 import type { Bindings, Variables, PermissionKey } from "../types";
 import { PERMISSION_KEYS } from "../types";
-import { requireAuth, getTeamRole, getPrism, isPersonalSpaceId } from "../auth";
+import { requireAuth, getTeamRole, isPersonalSpaceId } from "../auth";
 import { getAppConfig } from "../config";
 import { hasPermission } from "../permissions";
+import { resolveUserProfiles } from "../userProfileCache";
 
 const todos = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -78,22 +79,21 @@ todos.get("/api/teams/:teamId/sets/:setId/todos", requireAuth, async (c) => {
       .map((r) => r.claimed_by as string | null)
       .filter((id): id is string => !!id),
   );
-  const nameMap: Record<string, string> = {};
-  const avatarMap: Record<string, string> = {};
-  if (claimedIds.size > 0 && !isPersonalSpaceId(teamId, session.userId)) {
-    try {
-      const config = await getAppConfig(c.env.KV);
-      const prism = getPrism(config);
-      const { members } = await prism.teams.get(session.accessToken, teamId);
-      for (const m of members) {
-        if (claimedIds.has(m.user_id)) {
-          nameMap[m.user_id] = m.display_name || m.username;
-          if (m.avatar_url) avatarMap[m.user_id] = m.avatar_url;
-        }
-      }
-    } catch {
-      // Fallback: leave names unresolved
-    }
+  let nameMap: Record<string, string> = {};
+  let avatarMap: Record<string, string> = {};
+
+  if (claimedIds.size > 0) {
+    const config = await getAppConfig(c.env.KV);
+    const ids = isPersonalSpaceId(teamId, session.userId)
+      ? new Set([session.userId]) // only the current user can claim in personal space
+      : claimedIds;
+    ({ nameMap, avatarMap } = await resolveUserProfiles(
+      c.env.KV,
+      config,
+      session,
+      teamId,
+      ids,
+    ));
   }
 
   return c.json({

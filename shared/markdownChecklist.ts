@@ -1,6 +1,7 @@
 export type MarkdownChecklistTodo = {
   title: string;
   completed: boolean;
+  claimedByName?: string;
   comments?: string[];
   children?: MarkdownChecklistTodo[];
 };

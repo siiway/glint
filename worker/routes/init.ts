@@ -87,6 +87,7 @@ init.put("/api/init/config", async (c) => {
       : []),
     "session_ttl",
     "action_bar_defaults",
+    "user_profile_cache_ttl",
   ];
   const patch: Partial<AppConfig> = {};
   for (const key of allowed) {

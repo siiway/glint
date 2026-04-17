@@ -15,6 +15,8 @@ export type AppConfig = {
   session_ttl: number;
   /** Default quick-action keys shown in the todo action bar. Not set = use built-in default. */
   action_bar_defaults?: string[];
+  /** How long to cache resolved user profile names/avatars in KV, in seconds. 0 = no cache. Default 86400 (1 day). */
+  user_profile_cache_ttl?: number;
   /** True when allowed_team_id is overridden by environment variable. Not stored in KV. */
   allowed_team_id_from_env?: boolean;
 };

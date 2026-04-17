@@ -122,6 +122,7 @@ export default {
   actionClaim: "Claim",
   actionUnclaim: "Unclaim",
   actionClaimedBy: "Claimed by {name}",
+  actionClaimedStatus: "Has claimed this",
   actionMarkComplete: "Mark complete",
   actionMarkIncomplete: "Mark incomplete",
   actionAddBefore: "Add before",
@@ -310,6 +311,9 @@ export default {
   appConfigActionBarDefaults: "Default Quick Actions",
   appConfigActionBarDefaultsHint:
     "Actions shown in the quick-action bar for all users by default. Users and workspace admins can override this.",
+  appConfigUserProfileCacheTtl: "User Profile Cache (seconds)",
+  appConfigUserProfileCacheTtlHint:
+    "How long to cache resolved display names and avatars from Prism. Set to 0 to always fetch live. Default: 86400 (1 day).",
 
   // Permission labels
   permLabel_manage_settings: "Manage Settings",

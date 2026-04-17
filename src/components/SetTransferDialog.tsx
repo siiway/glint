@@ -277,6 +277,16 @@ export function SetTransferDialog({
           >
             {node.title}
           </Body2>
+          {node.claimedByName && (
+            <Caption1
+              style={{
+                color: "var(--colorPaletteGreenForeground1)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              ↩ {node.claimedByName}
+            </Caption1>
+          )}
         </div>
         {(node.comments ?? []).map((comment, ci) => (
           <Caption1
