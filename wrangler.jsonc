@@ -16,7 +16,7 @@
       "database_name": "glint-db",
       "database_id": "7339fa35-53aa-44e2-a565-ab626822337e",
       "migrations_dir": "migrations"
-    },
+    }
   ],
   "kv_namespaces": [
     {
