@@ -79,7 +79,15 @@ wrangler kv namespace create KV
 
 本地开发还需添加 `preview_id`（通过 `wrangler kv namespace create KV --preview` 创建）。
 
-### 3. 应用数据库迁移
+### 3. Durable Object（实时同步）
+
+无需手动创建。`TodoSync` Durable Object 已在 `wrangler.jsonc` 中声明，首次部署时会自动创建。本地开发（`bun run dev`）会在进程内模拟，无需额外操作。
+
+::: tip
+Durable Object 需要 Workers **付费计划**。在免费套餐下，待办事项操作仍正常工作，但实时 WebSocket 推送不可用。
+:::
+
+### 4. 应用数据库迁移
 
 Glint 的数据库 schema 通过 `migrations/` 目录中的编号迁移文件管理。
 
@@ -93,7 +101,7 @@ wrangler d1 migrations apply glint-db
 
 迁移按顺序执行且幂等——重复执行是安全的。
 
-### 4. 注册 Prism OAuth 应用
+### 5. 注册 Prism OAuth 应用
 
 在 Prism 实例中创建一个新的 OAuth 应用，并配置以下内容：
 

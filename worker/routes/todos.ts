@@ -7,6 +7,25 @@ import { hasPermission } from "../permissions";
 
 const todos = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
+function broadcast(
+  env: Bindings,
+  teamId: string,
+  event: Record<string, unknown>,
+): void {
+  if (!env.TODO_SYNC) return;
+  try {
+    const id = env.TODO_SYNC.idFromName(teamId);
+    const stub = env.TODO_SYNC.get(id);
+    void stub.fetch(
+      new Request("https://do-internal/broadcast", {
+        method: "POST",
+        body: JSON.stringify(event),
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+  } catch {}
+}
+
 const claimedBySupportCache = new WeakMap<D1Database, boolean>();
 
 async function supportsClaimedBy(db: D1Database): Promise<boolean> {
@@ -155,25 +174,24 @@ todos.post("/api/teams/:teamId/sets/:setId/todos", requireAuth, async (c) => {
     )
     .run();
 
-  return c.json(
-    {
-      todo: {
-        id,
-        userId: session.userId,
-        parentId: parentId ?? null,
-        title: title.trim(),
-        completed: false,
-        sortOrder,
-        commentCount: 0,
-        claimedBy: null,
-        claimedByName: null,
-        claimedByAvatar: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    },
-    201,
-  );
+  const newTodo = {
+    id,
+    userId: session.userId,
+    parentId: parentId ?? null,
+    title: title.trim(),
+    completed: false,
+    sortOrder,
+    commentCount: 0,
+    claimedBy: null,
+    claimedByName: null,
+    claimedByAvatar: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  broadcast(c.env, teamId, { type: "todo:created", setId, todo: newTodo });
+
+  return c.json({ todo: newTodo }, 201);
 });
 
 todos.patch("/api/teams/:teamId/todos/:id", requireAuth, async (c) => {
@@ -257,6 +275,12 @@ todos.patch("/api/teams/:teamId/todos/:id", requireAuth, async (c) => {
     .bind(...values)
     .run();
 
+  broadcast(c.env, teamId, {
+    type: "todo:updated",
+    setId: existing.set_id,
+    todo: { id: todoId, ...body },
+  });
+
   return c.json({ ok: true });
 });
 
@@ -270,8 +294,9 @@ todos.post("/api/teams/:teamId/todos/reorder", requireAuth, async (c) => {
     return c.json({ error: "No permission to reorder" }, 403);
   }
 
-  const { items } = await c.req.json<{
+  const { items, setId: reorderSetId } = await c.req.json<{
     items: { id: string; sortOrder: number }[];
+    setId?: string;
   }>();
   if (!items?.length) return c.json({ error: "No items" }, 400);
 
@@ -282,6 +307,15 @@ todos.post("/api/teams/:teamId/todos/reorder", requireAuth, async (c) => {
       ).bind(sortOrder, id, teamId),
     ),
   );
+
+  if (reorderSetId) {
+    broadcast(c.env, teamId, {
+      type: "todo:reordered",
+      setId: reorderSetId,
+      items,
+    });
+  }
+
   return c.json({ ok: true });
 });
 
@@ -308,6 +342,12 @@ todos.delete("/api/teams/:teamId/todos/:id", requireAuth, async (c) => {
   await c.env.DB.prepare("DELETE FROM todos WHERE id = ? AND team_id = ?")
     .bind(todoId, teamId)
     .run();
+
+  broadcast(c.env, teamId, {
+    type: "todo:deleted",
+    setId: existing.set_id,
+    id: todoId,
+  });
 
   return c.json({ ok: true });
 });
@@ -362,6 +402,15 @@ todos.post("/api/teams/:teamId/todos/:id/claim", requireAuth, async (c) => {
     ? session.displayName || session.username
     : null;
   const claimedByAvatar = claimedBy ? session.avatarUrl || null : null;
+
+  broadcast(c.env, teamId, {
+    type: "todo:claimed",
+    setId: existing.set_id,
+    id: todoId,
+    claimedBy,
+    claimedByName,
+    claimedByAvatar,
+  });
 
   return c.json({ ok: true, claimedBy, claimedByName, claimedByAvatar });
 });

@@ -16,6 +16,7 @@ Configured during the initialization wizard or in **Settings → App Config** (o
 | `prism_redirect_uri` | The callback URL registered in your Prism app, e.g. `https://glint.example.com/callback`. Must match exactly. |
 | `use_pkce` | `true` for public (PKCE) clients; `false` for confidential (secret-based) clients. |
 | `allowed_team_id` | Restrict sign-in to members of a specific Prism team. Leave empty to allow any authenticated Prism user. |
+| `action_bar_defaults` | Array of action keys shown in the per-todo quick-action bar for all users by default. See [Action Bar](#action-bar-defaults) below. |
 
 All values are stored under the KV key `config:app` as a JSON object.
 
@@ -67,9 +68,32 @@ Team settings are stored under the KV key `team_settings:{teamId}`.
 
 ---
 
+## Action Bar Defaults
+
+The `action_bar_defaults` field in App Config sets which quick-action buttons appear on each todo row for all users by default. It is configurable in **Settings → App Config** (owner only).
+
+Valid action keys:
+
+| Key | Action |
+| --- | --- |
+| `add_before` | Insert a new todo above this one |
+| `add_after` | Insert a new todo below this one |
+| `add_subtodo` | Add a nested sub-todo |
+| `edit` | Edit the todo title |
+| `complete` | Toggle completion |
+| `claim` | Claim / unclaim the todo |
+| `comment` | Open the comments panel |
+| `delete` | Delete the todo |
+
+Built-in site default (used when not configured): `["add_after", "edit", "complete", "delete"]`.
+
+Users can override the site default with their own preference (stored in `localStorage`). Workspace owners can set a workspace-level default that applies to all team members. The priority chain is: **user preference → workspace default → site default**.
+
+---
+
 ## Cloudflare Bindings
 
-Your `wrangler.jsonc` must declare two bindings:
+Your `wrangler.jsonc` must declare three bindings:
 
 ### D1 Database (`DB`)
 
@@ -120,6 +144,31 @@ Used for sessions, configuration, team settings, and user-teams caching.
 ```bash
 wrangler kv namespace create KV --preview
 ```
+
+### Durable Object (`TODO_SYNC`)
+
+Powers realtime WebSocket sync. No manual creation is needed — Cloudflare provisions the namespace automatically on first deploy.
+
+```jsonc
+{
+  "durable_objects": {
+    "bindings": [
+      { "name": "TODO_SYNC", "class_name": "TodoSync" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_classes": ["TodoSync"] }
+  ]
+}
+```
+
+The `migrations` array registers the class with Cloudflare's migration system. This only needs to be present once; subsequent deploys detect that the class is already registered and skip re-provisioning.
+
+::: tip
+Durable Objects require a Workers **Paid plan**. On the free tier the binding will fail to resolve and realtime sync will be unavailable. All other functionality is unaffected.
+:::
+
+See [Realtime Sync](./realtime) for full details on how the WebSocket layer works.
 
 ---
 

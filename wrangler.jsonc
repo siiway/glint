@@ -24,6 +24,23 @@
       "id": "c28cc235abbc4affba7c89c653e8c975"
     }
   ],
+  // Realtime WebSocket sync — requires Workers Paid plan.
+  // Remove the "durable_objects" and "migrations" blocks entirely if you are on the free plan.
+  // Todo operations will continue to work normally; only live push will be unavailable.
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "TODO_SYNC",
+        "class_name": "TodoSync"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_classes": ["TodoSync"]
+    }
+  ],
     "routes": [
     {
       "pattern": "glint.siiway.org",

@@ -1,6 +1,7 @@
 export type Bindings = {
   DB: D1Database;
   KV: KVNamespace;
+  TODO_SYNC?: DurableObjectNamespace;
   ALLOWED_TEAM_ID?: string;
 };
 

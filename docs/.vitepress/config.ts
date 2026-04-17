@@ -16,6 +16,7 @@ const guideSidebar = (prefix = "") => [
       { text: "Todo Sets", link: `${prefix}/guide/sets` },
       { text: "Todos", link: `${prefix}/guide/todos` },
       { text: "Permissions", link: `${prefix}/guide/permissions` },
+      { text: "Realtime Sync", link: `${prefix}/guide/realtime` },
     ],
   },
   {
@@ -58,6 +59,7 @@ const zhGuideSidebar = [
       { text: "待办分组", link: "/zh/guide/sets" },
       { text: "待办事项", link: "/zh/guide/todos" },
       { text: "权限", link: "/zh/guide/permissions" },
+      { text: "实时同步", link: "/zh/guide/realtime" },
     ],
   },
   {

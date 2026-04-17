@@ -79,7 +79,15 @@ Copy the `id` into `wrangler.jsonc`:
 
 For local development, also add a `preview_id` (create one with `wrangler kv namespace create KV --preview`).
 
-### 3. Apply database migrations
+### 3. Durable Objects (realtime sync)
+
+No manual creation is needed. The `TodoSync` Durable Object is declared in `wrangler.jsonc` and provisioned automatically on the first deploy. Local development (`bun run dev`) simulates it in-process.
+
+::: tip
+Durable Objects require a Workers **Paid plan**. On the free tier, todo operations work normally but realtime WebSocket push is unavailable.
+:::
+
+### 4. Apply database migrations
 
 Glint's schema is managed via numbered migration files in `migrations/`.
 
@@ -93,7 +101,7 @@ wrangler d1 migrations apply glint-db
 
 Migrations are applied in order and are idempotent — running them again is safe.
 
-### 4. Register a Prism OAuth app
+### 5. Register a Prism OAuth app
 
 In your Prism instance, create a new OAuth application with the following settings:
 

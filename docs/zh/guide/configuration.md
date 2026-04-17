@@ -16,6 +16,7 @@ Glint 的所有配置都存储在 Cloudflare KV 中，并通过 Web 界面或环
 | `prism_redirect_uri` | Prism 应用中注册的回调 URL，例如 `https://glint.example.com/callback`。必须完全匹配。 |
 | `use_pkce` | 公开（PKCE）客户端设为 `true`；机密（密钥）客户端设为 `false`。 |
 | `allowed_team_id` | 将登录限制为特定 Prism 团队的成员。留空则允许任何已认证的 Prism 用户登录。 |
+| `action_bar_defaults` | 默认情况下为所有用户显示在待办事项快捷操作栏中的操作键数组。详见下方[操作栏默认值](#操作栏默认值)。 |
 
 所有值存储在 KV 键 `config:app` 下的 JSON 对象中。
 
@@ -67,9 +68,32 @@ team_a, team_b, team_c
 
 ---
 
+## 操作栏默认值
+
+应用配置中的 `action_bar_defaults` 字段设置了所有用户默认在每个待办事项行上显示的快捷操作按钮。可在**设置 → 应用配置**（仅所有者）中进行配置。
+
+有效的操作键：
+
+| 键 | 操作 |
+| --- | --- |
+| `add_before` | 在此待办事项上方插入新项 |
+| `add_after` | 在此待办事项下方插入新项 |
+| `add_subtodo` | 添加嵌套子待办事项 |
+| `edit` | 编辑待办事项标题 |
+| `complete` | 切换完成状态 |
+| `claim` | 认领 / 取消认领待办事项 |
+| `comment` | 打开评论面板 |
+| `delete` | 删除待办事项 |
+
+内置站点默认值（未配置时使用）：`["add_after", "edit", "complete", "delete"]`。
+
+用户可用自己的偏好覆盖站点默认值（存储在 `localStorage` 中）。工作区所有者可设置工作区级别的默认值，适用于所有团队成员。优先级链为：**用户偏好 → 工作区默认 → 站点默认**。
+
+---
+
 ## Cloudflare 绑定
 
-`wrangler.jsonc` 中必须声明两个绑定：
+`wrangler.jsonc` 中必须声明三个绑定：
 
 ### D1 数据库（`DB`）
 
@@ -120,6 +144,31 @@ wrangler d1 migrations apply glint-db
 ```bash
 wrangler kv namespace create KV --preview
 ```
+
+### Durable Object（`TODO_SYNC`）
+
+驱动实时 WebSocket 同步。无需手动创建——Cloudflare 会在首次部署时自动创建命名空间。
+
+```jsonc
+{
+  "durable_objects": {
+    "bindings": [
+      { "name": "TODO_SYNC", "class_name": "TodoSync" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_classes": ["TodoSync"] }
+  ]
+}
+```
+
+`migrations` 数组将该类注册到 Cloudflare 的迁移系统中。只需配置一次；后续部署会检测到该类已注册并跳过重复创建。
+
+::: tip
+Durable Object 需要 Workers **付费计划**。在免费套餐下，绑定将无法解析，实时同步不可用。其他所有功能不受影响。
+:::
+
+详细了解 WebSocket 层的工作原理，请参阅[实时同步](./realtime)。
 
 ---
 

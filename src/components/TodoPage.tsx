@@ -70,6 +70,7 @@ import {
   BUILTIN_SITE_DEFAULT,
   type ActionKey,
 } from "./ActionBarCustomizer";
+import { useWebSocket, type WsEvent } from "../hooks/useWebSocket";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -537,6 +538,56 @@ export function TodoPage() {
     fetchTodos();
   }, [fetchTodos]);
 
+  useWebSocket({
+    teamId: selectedSpaceId,
+    setId: selectedSetId ?? "",
+    enabled: !!selectedSpaceId && !!selectedSetId,
+    onEvent: useCallback(
+      (event: WsEvent) => {
+        if (event.setId !== selectedSetId) return;
+        setTodos((prev) => {
+          switch (event.type) {
+            case "todo:created":
+              if (prev.some((t) => t.id === event.todo.id)) return prev;
+              return [...prev, event.todo];
+            case "todo:updated":
+              return prev.map((t) =>
+                t.id === event.todo.id ? { ...t, ...event.todo } : t,
+              );
+            case "todo:deleted":
+              return prev.filter(
+                (t) => t.id !== event.id && t.parentId !== event.id,
+              );
+            case "todo:reordered": {
+              const orderMap = new Map(
+                event.items.map(({ id, sortOrder }) => [id, sortOrder]),
+              );
+              return prev.map((t) =>
+                orderMap.has(t.id)
+                  ? { ...t, sortOrder: orderMap.get(t.id)! }
+                  : t,
+              );
+            }
+            case "todo:claimed":
+              return prev.map((t) =>
+                t.id === event.id
+                  ? {
+                      ...t,
+                      claimedBy: event.claimedBy,
+                      claimedByName: event.claimedByName,
+                      claimedByAvatar: event.claimedByAvatar,
+                    }
+                  : t,
+              );
+            default:
+              return prev;
+          }
+        });
+      },
+      [selectedSetId],
+    ),
+  });
+
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
   const hasPerm = (key: string) =>
@@ -757,7 +808,7 @@ export function TodoPage() {
     await fetch(`/api/teams/${selectedSpaceId}/todos/reorder`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ items, setId: selectedSetId }),
     });
   };
   const handleDragEnd = () => {
@@ -818,7 +869,7 @@ export function TodoPage() {
     await fetch(`/api/teams/${selectedSpaceId}/todos/reorder`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ items, setId: selectedSetId }),
     });
   };
   const handleSubDragEnd = () => {
@@ -880,7 +931,7 @@ export function TodoPage() {
     await fetch(`/api/teams/${selectedSpaceId}/todos/reorder`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ items, setId: selectedSetId }),
     });
   };
 
