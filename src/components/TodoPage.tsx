@@ -47,6 +47,9 @@ import {
   ArrowExport24Regular,
   PersonAvailable24Regular,
   PersonDelete24Regular,
+  ArrowUp24Regular,
+  ArrowDown24Regular,
+  Settings24Regular,
 } from "@fluentui/react-icons";
 import { useNavigate, useMatch } from "react-router-dom";
 import { useAuth } from "../auth";
@@ -61,6 +64,12 @@ import { SettingsPage } from "./SettingsPage";
 import { SetTransferDialog } from "./SetTransferDialog";
 import { useI18n } from "../i18n";
 import { ConfirmDialog } from "./ConfirmDialog";
+import {
+  ActionBarCustomizer,
+  getEffectiveActions,
+  BUILTIN_SITE_DEFAULT,
+  type ActionKey,
+} from "./ActionBarCustomizer";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -153,7 +162,7 @@ const useStyles = makeStyles({
     color: tokens.colorNeutralForeground4,
   },
   subTodos: {
-    paddingLeft: "28px",
+    paddingLeft: "30px",
   },
   subTodosMobile: {
     paddingLeft: "16px",
@@ -205,6 +214,25 @@ const useStyles = makeStyles({
     textAlign: "center" as const,
     padding: "48px 0",
     color: tokens.colorNeutralForeground4,
+  },
+  actionBar: {
+    display: "flex",
+    alignItems: "center",
+    gap: "1px",
+    flexShrink: 0,
+    transition: "opacity 0.1s",
+  },
+  actionBarBtn: {
+    minWidth: "20px",
+    width: "20px",
+    height: "20px",
+    padding: "0",
+  },
+  insertInputRow: {
+    display: "flex",
+    gap: "8px",
+    padding: "2px 0",
+    alignItems: "center",
   },
 });
 
@@ -288,13 +316,39 @@ export function TodoPage() {
     Record<string, boolean>
   >({});
 
-  // Drag state
+  // Drag state (root todos)
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragCounter = useRef(0);
+  const rootDragActive = useRef(false);
+
+  // Drag state (subtodos)
+  const [subDragParentId, setSubDragParentId] = useState<string | null>(null);
+  const [subDragIndex, setSubDragIndex] = useState<number | null>(null);
+  const [subDragOverIndex, setSubDragOverIndex] = useState<number | null>(null);
+  const subDragCounter = useRef(0);
+  const subDragParentIdRef = useRef<string | null>(null);
+  const subDragActive = useRef(false);
 
   // Selection
   const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  // Inline insert state
+  const [insertingAt, setInsertingAt] = useState<{
+    id: string;
+    position: "before" | "after";
+  } | null>(null);
+  const [insertTitle, setInsertTitle] = useState("");
+
+  // Action bar
+  const [shiftHeld, setShiftHeld] = useState(false);
+  const [hoveredTodoId, setHoveredTodoId] = useState<string | null>(null);
+  const [customizerOpen, setCustomizerOpen] = useState(false);
+  const [siteDefaultActions, setSiteDefaultActions] =
+    useState<ActionKey[]>(BUILTIN_SITE_DEFAULT);
+  const [actionBarActions, setActionBarActions] = useState<ActionKey[]>(() =>
+    getEffectiveActions("", BUILTIN_SITE_DEFAULT),
+  );
 
   // Import dialog
   const [transferMode, setTransferMode] = useState<"import" | "export">(
@@ -318,6 +372,39 @@ export function TodoPage() {
   useEffect(() => {
     setSelected(new Set());
   }, [selectedSetId]);
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "Shift") setShiftHeld(true);
+    };
+    const up = (e: KeyboardEvent) => {
+      if (e.key === "Shift") setShiftHeld(false);
+    };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", up);
+    };
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/init/config")
+      .then((r) => r.json())
+      .then((data: { config?: { action_bar_defaults?: string[] } }) => {
+        const raw = data.config?.action_bar_defaults;
+        if (Array.isArray(raw) && raw.length > 0) {
+          setSiteDefaultActions(raw as ActionKey[]);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    setActionBarActions(
+      getEffectiveActions(selectedSpaceId, siteDefaultActions),
+    );
+  }, [selectedSpaceId, siteDefaultActions]);
 
   useEffect(() => {
     if (!contextMenu) return;
@@ -632,12 +719,17 @@ export function TodoPage() {
 
   // ─── Drag ────────────────────────────────────────────────────────────────
 
-  const handleDragStart = (i: number) => setDragIndex(i);
+  const handleDragStart = (i: number) => {
+    rootDragActive.current = true;
+    setDragIndex(i);
+  };
   const handleDragEnter = (i: number) => {
+    if (subDragActive.current) return;
     dragCounter.current++;
     setDragOverIndex(i);
   };
   const handleDragLeave = () => {
+    if (subDragActive.current) return;
     dragCounter.current--;
     if (dragCounter.current === 0) setDragOverIndex(null);
   };
@@ -669,9 +761,127 @@ export function TodoPage() {
     });
   };
   const handleDragEnd = () => {
+    rootDragActive.current = false;
     setDragIndex(null);
     setDragOverIndex(null);
     dragCounter.current = 0;
+  };
+
+  const handleSubDragStart = (parentId: string, i: number) => {
+    subDragActive.current = true;
+    subDragParentIdRef.current = parentId;
+    setSubDragParentId(parentId);
+    setSubDragIndex(i);
+  };
+  const handleSubDragEnter = (parentId: string, i: number) => {
+    if (rootDragActive.current) return;
+    if (subDragParentIdRef.current !== parentId) return;
+    subDragCounter.current++;
+    setSubDragOverIndex(i);
+  };
+  const handleSubDragLeave = () => {
+    if (rootDragActive.current) return;
+    subDragCounter.current--;
+    if (subDragCounter.current === 0) setSubDragOverIndex(null);
+  };
+  const handleSubDrop = async (parentId: string, dropIndex: number) => {
+    subDragCounter.current = 0;
+    setSubDragOverIndex(null);
+    if (
+      subDragParentIdRef.current !== parentId ||
+      subDragIndex === null ||
+      subDragIndex === dropIndex
+    ) {
+      subDragActive.current = false;
+      subDragParentIdRef.current = null;
+      setSubDragIndex(null);
+      setSubDragParentId(null);
+      return;
+    }
+    const siblings = getChildren(parentId);
+    const reordered = [...siblings];
+    const [moved] = reordered.splice(subDragIndex, 1);
+    reordered.splice(dropIndex, 0, moved);
+    const items = reordered.map((t, i) => ({ id: t.id, sortOrder: i + 1 }));
+    const orderMap = Object.fromEntries(
+      items.map((it) => [it.id, it.sortOrder]),
+    );
+    setTodos((prev) =>
+      prev.map((t) =>
+        orderMap[t.id] != null ? { ...t, sortOrder: orderMap[t.id] } : t,
+      ),
+    );
+    subDragActive.current = false;
+    subDragParentIdRef.current = null;
+    setSubDragIndex(null);
+    setSubDragParentId(null);
+    await fetch(`/api/teams/${selectedSpaceId}/todos/reorder`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items }),
+    });
+  };
+  const handleSubDragEnd = () => {
+    subDragActive.current = false;
+    subDragParentIdRef.current = null;
+    setSubDragIndex(null);
+    setSubDragParentId(null);
+    setSubDragOverIndex(null);
+    subDragCounter.current = 0;
+  };
+
+  // ─── Insert before / after ───────────────────────────────────────────────
+
+  const addTodoAt = async (refTodoId: string, position: "before" | "after") => {
+    const title = insertTitle.trim();
+    if (!title || !selectedSpaceId || !selectedSetId) return;
+    const refTodo = todos.find((t) => t.id === refTodoId);
+    if (!refTodo) return;
+
+    const siblings = (
+      refTodo.parentId
+        ? todos.filter((t) => t.parentId === refTodo.parentId)
+        : todos.filter((t) => t.parentId === null)
+    ).sort((a, b) => a.sortOrder - b.sortOrder);
+
+    const refIdx = siblings.findIndex((t) => t.id === refTodoId);
+    const insertIdx = position === "after" ? refIdx + 1 : refIdx;
+
+    setInsertingAt(null);
+    setInsertTitle("");
+
+    const res = await fetch(
+      `/api/teams/${selectedSpaceId}/sets/${selectedSetId}/todos`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          parentId: refTodo.parentId ?? undefined,
+        }),
+      },
+    );
+    if (!res.ok) return;
+    const data: { todo: Todo } = await res.json();
+    const newTodo = data.todo;
+
+    const withNew = [...siblings];
+    withNew.splice(insertIdx, 0, newTodo);
+    const items = withNew.map((t, i) => ({ id: t.id, sortOrder: i + 1 }));
+    const orderMap = Object.fromEntries(
+      items.map((it) => [it.id, it.sortOrder]),
+    );
+    setTodos((prev) => {
+      const updated = [...prev, newTodo];
+      return updated.map((t) =>
+        orderMap[t.id] != null ? { ...t, sortOrder: orderMap[t.id] } : t,
+      );
+    });
+    await fetch(`/api/teams/${selectedSpaceId}/todos/reorder`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items }),
+    });
   };
 
   // ─── Sidebar callbacks ───────────────────────────────────────────────────
@@ -771,6 +981,24 @@ export function TodoPage() {
 
   const todoMenuItems = (todo: Todo) => (
     <MenuList>
+      <MenuItem
+        icon={<ArrowUp24Regular />}
+        onClick={() => {
+          setInsertingAt({ id: todo.id, position: "before" });
+          setInsertTitle("");
+        }}
+      >
+        {t.actionAddBefore}
+      </MenuItem>
+      <MenuItem
+        icon={<ArrowDown24Regular />}
+        onClick={() => {
+          setInsertingAt({ id: todo.id, position: "after" });
+          setInsertTitle("");
+        }}
+      >
+        {t.actionAddAfter}
+      </MenuItem>
       {hasPerm("add_subtodos") && (
         <MenuItem
           icon={<AddCircle24Regular />}
@@ -857,6 +1085,179 @@ export function TodoPage() {
     </MenuList>
   );
 
+  // ─── Action bar item renderer ─────────────────────────────────────────────
+
+  function renderActionBarItem(key: ActionKey, todo: Todo) {
+    switch (key) {
+      case "add_before":
+        if (!hasPerm("create_todos")) return null;
+        return (
+          <Tooltip key={key} content={t.actionAddBefore} relationship="label">
+            <Button
+              appearance="transparent"
+              size="small"
+              className={styles.actionBarBtn}
+              icon={<ArrowUp24Regular />}
+              onClick={(e) => {
+                e.stopPropagation();
+                setInsertingAt({ id: todo.id, position: "before" });
+                setInsertTitle("");
+              }}
+            />
+          </Tooltip>
+        );
+      case "add_after":
+        if (!hasPerm("create_todos")) return null;
+        return (
+          <Tooltip key={key} content={t.actionAddAfter} relationship="label">
+            <Button
+              appearance="transparent"
+              size="small"
+              className={styles.actionBarBtn}
+              icon={<ArrowDown24Regular />}
+              onClick={(e) => {
+                e.stopPropagation();
+                setInsertingAt({ id: todo.id, position: "after" });
+                setInsertTitle("");
+              }}
+            />
+          </Tooltip>
+        );
+      case "add_subtodo":
+        if (!hasPerm("add_subtodos")) return null;
+        return (
+          <Tooltip key={key} content={t.actionAddSubTodo} relationship="label">
+            <Button
+              appearance="transparent"
+              size="small"
+              className={styles.actionBarBtn}
+              icon={<AddCircle24Regular />}
+              onClick={(e) => {
+                e.stopPropagation();
+                setAddingSubFor(todo.id);
+                setSubTitle("");
+              }}
+            />
+          </Tooltip>
+        );
+      case "edit":
+        if (!canModify(todo)) return null;
+        return (
+          <Tooltip key={key} content={t.edit} relationship="label">
+            <Button
+              appearance="transparent"
+              size="small"
+              className={styles.actionBarBtn}
+              icon={<Edit24Regular />}
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingId(todo.id);
+                setEditTitle(todo.title);
+              }}
+            />
+          </Tooltip>
+        );
+      case "complete":
+        if (todo.userId !== user?.id && !hasPerm("complete_any_todo"))
+          return null;
+        return (
+          <Tooltip
+            key={key}
+            content={
+              todo.completed ? t.actionMarkIncomplete : t.actionMarkComplete
+            }
+            relationship="label"
+          >
+            <Button
+              appearance="transparent"
+              size="small"
+              className={styles.actionBarBtn}
+              icon={
+                todo.completed ? (
+                  <Circle24Regular />
+                ) : (
+                  <CheckmarkCircle24Regular />
+                )
+              }
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleTodo(todo);
+              }}
+            />
+          </Tooltip>
+        );
+      case "claim":
+        if (
+          !hasPerm("claim_todos") ||
+          (todo.claimedBy && todo.claimedBy !== user?.id)
+        )
+          return null;
+        return (
+          <Tooltip
+            key={key}
+            content={
+              todo.claimedBy === user?.id ? t.actionUnclaim : t.actionClaim
+            }
+            relationship="label"
+          >
+            <Button
+              appearance="transparent"
+              size="small"
+              className={styles.actionBarBtn}
+              icon={
+                todo.claimedBy === user?.id ? (
+                  <PersonDelete24Regular />
+                ) : (
+                  <PersonAvailable24Regular />
+                )
+              }
+              onClick={(e) => {
+                e.stopPropagation();
+                claimTodo(todo);
+              }}
+            />
+          </Tooltip>
+        );
+      case "comment":
+        if (!hasPerm("comment")) return null;
+        return (
+          <Tooltip key={key} content={t.actionComments} relationship="label">
+            <Button
+              appearance="transparent"
+              size="small"
+              className={styles.actionBarBtn}
+              icon={<Comment24Regular />}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCommentTodoId(todo.id);
+              }}
+            />
+          </Tooltip>
+        );
+      case "delete":
+        if (!canDeleteTodo(todo)) return null;
+        return (
+          <Tooltip key={key} content={t.delete} relationship="label">
+            <Button
+              appearance="transparent"
+              size="small"
+              className={styles.actionBarBtn}
+              icon={<Delete24Regular />}
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirmAction({
+                  message: t.confirmDeleteTodo,
+                  action: () => deleteTodo(todo.id),
+                });
+              }}
+            />
+          </Tooltip>
+        );
+      default:
+        return null;
+    }
+  }
+
   // ─── Render todo item ────────────────────────────────────────────────────
 
   function renderTodo(todo: Todo, index: number, root: boolean): ReactNode {
@@ -865,8 +1266,54 @@ export function TodoPage() {
     const isExpanded = expanded.has(todo.id);
     const isEditing = editingId === todo.id;
 
+    const isDraggingThis =
+      canDrag &&
+      (root
+        ? dragIndex === index
+        : subDragParentId === todo.parentId && subDragIndex === index);
+    const isDragOverThis =
+      canDrag &&
+      (root
+        ? dragOverIndex === index && dragIndex !== index
+        : subDragParentId === todo.parentId &&
+          subDragOverIndex === index &&
+          subDragIndex !== index);
+
+    const isActionBarVisible = hoveredTodoId === todo.id || shiftHeld;
+
     return (
       <div key={todo.id}>
+        {insertingAt?.id === todo.id && insertingAt.position === "before" && (
+          <div className={styles.insertInputRow}>
+            <Input
+              className={styles.inputFlex}
+              size="small"
+              placeholder={t.todoInsertPlaceholder}
+              value={insertTitle}
+              onChange={(_, d) => setInsertTitle(d.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") addTodoAt(todo.id, "before");
+                if (e.key === "Escape") setInsertingAt(null);
+              }}
+              autoFocus
+            />
+            <Button
+              appearance="primary"
+              size="small"
+              icon={<Add24Regular />}
+              onClick={() => addTodoAt(todo.id, "before")}
+              disabled={!insertTitle.trim()}
+            >
+              {isMobile ? undefined : t.add}
+            </Button>
+            <Button
+              appearance="subtle"
+              size="small"
+              icon={<Dismiss24Regular />}
+              onClick={() => setInsertingAt(null)}
+            />
+          </div>
+        )}
         <div
           className={
             "fui-todo-row " +
@@ -874,25 +1321,44 @@ export function TodoPage() {
               styles.todoItem,
               isMobile && styles.todoItemMobile,
               selected.has(todo.id) && styles.todoItemSelected,
-              root && canDrag && dragIndex === index && styles.todoItemDragging,
-              root &&
-                canDrag &&
-                dragOverIndex === index &&
-                dragIndex !== index &&
-                styles.todoItemDragOver,
+              isDraggingThis && styles.todoItemDragging,
+              isDragOverThis && styles.todoItemDragOver,
             )
           }
-          draggable={root && canDrag}
+          onMouseEnter={() => setHoveredTodoId(todo.id)}
+          onMouseLeave={() => setHoveredTodoId(null)}
+          draggable={canDrag}
           onDragStart={
-            root && canDrag ? () => handleDragStart(index) : undefined
+            canDrag
+              ? () =>
+                  root
+                    ? handleDragStart(index)
+                    : handleSubDragStart(todo.parentId!, index)
+              : undefined
           }
           onDragEnter={
-            root && canDrag ? () => handleDragEnter(index) : undefined
+            canDrag
+              ? () =>
+                  root
+                    ? handleDragEnter(index)
+                    : handleSubDragEnter(todo.parentId!, index)
+              : undefined
           }
-          onDragLeave={root && canDrag ? handleDragLeave : undefined}
-          onDragOver={root && canDrag ? handleDragOver : undefined}
-          onDrop={root && canDrag ? () => handleDrop(index) : undefined}
-          onDragEnd={root && canDrag ? handleDragEnd : undefined}
+          onDragLeave={
+            canDrag ? (root ? handleDragLeave : handleSubDragLeave) : undefined
+          }
+          onDragOver={canDrag ? handleDragOver : undefined}
+          onDrop={
+            canDrag
+              ? () =>
+                  root
+                    ? handleDrop(index)
+                    : handleSubDrop(todo.parentId!, index)
+              : undefined
+          }
+          onDragEnd={
+            canDrag ? (root ? handleDragEnd : handleSubDragEnd) : undefined
+          }
           onContextMenu={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -907,7 +1373,7 @@ export function TodoPage() {
               : undefined
           }
         >
-          {root && canDrag && (
+          {canDrag && (
             <span className={styles.dragHandle}>
               <ReOrder24Regular />
             </span>
@@ -1027,6 +1493,30 @@ export function TodoPage() {
           </div>
 
           {!isEditing && (
+            <div
+              className={styles.actionBar}
+              style={{
+                opacity: isActionBarVisible ? 1 : 0,
+                pointerEvents: isActionBarVisible ? "auto" : "none",
+              }}
+            >
+              {actionBarActions.map((key) => renderActionBarItem(key, todo))}
+              <Tooltip content={t.actionBarCustomize} relationship="label">
+                <Button
+                  appearance="transparent"
+                  size="small"
+                  className={styles.actionBarBtn}
+                  icon={<Settings24Regular />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCustomizerOpen(true);
+                  }}
+                />
+              </Tooltip>
+            </div>
+          )}
+
+          {!isEditing && (
             <Menu>
               <MenuTrigger disableButtonEnhancement>
                 <Button
@@ -1040,6 +1530,38 @@ export function TodoPage() {
             </Menu>
           )}
         </div>
+
+        {insertingAt?.id === todo.id && insertingAt.position === "after" && (
+          <div className={styles.insertInputRow}>
+            <Input
+              className={styles.inputFlex}
+              size="small"
+              placeholder={t.todoInsertPlaceholder}
+              value={insertTitle}
+              onChange={(_, d) => setInsertTitle(d.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") addTodoAt(todo.id, "after");
+                if (e.key === "Escape") setInsertingAt(null);
+              }}
+              autoFocus
+            />
+            <Button
+              appearance="primary"
+              size="small"
+              icon={<Add24Regular />}
+              onClick={() => addTodoAt(todo.id, "after")}
+              disabled={!insertTitle.trim()}
+            >
+              {isMobile ? undefined : t.add}
+            </Button>
+            <Button
+              appearance="subtle"
+              size="small"
+              icon={<Dismiss24Regular />}
+              onClick={() => setInsertingAt(null)}
+            />
+          </div>
+        )}
 
         {addingSubFor === todo.id && (
           <div className={isMobile ? styles.subTodosMobile : styles.subTodos}>
@@ -1499,6 +2021,14 @@ export function TodoPage() {
           }
           hasPerm={hasPerm}
           onClose={() => setContextMenu(null)}
+          onAddBefore={() => {
+            setInsertingAt({ id: contextTodo.id, position: "before" });
+            setInsertTitle("");
+          }}
+          onAddAfter={() => {
+            setInsertingAt({ id: contextTodo.id, position: "after" });
+            setInsertTitle("");
+          }}
           onAddSubTodo={() => {
             setAddingSubFor(contextTodo.id);
             setSubTitle("");
@@ -1531,6 +2061,20 @@ export function TodoPage() {
           setConfirmAction(null);
         }}
         onCancel={() => setConfirmAction(null)}
+      />
+
+      <ActionBarCustomizer
+        open={customizerOpen}
+        onClose={() => setCustomizerOpen(false)}
+        spaceId={selectedSpaceId}
+        isOwner={teamRole === "owner" || teamRole === "co-owner"}
+        siteDefault={siteDefaultActions}
+        t={t}
+        onSaved={() =>
+          setActionBarActions(
+            getEffectiveActions(selectedSpaceId, siteDefaultActions),
+          )
+        }
       />
     </>
   );

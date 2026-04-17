@@ -119,8 +119,21 @@ const zh: typeof en = {
   actionClaimedBy: "{name} 已认领",
   actionMarkComplete: "标记完成",
   actionMarkIncomplete: "标记未完成",
+  actionAddBefore: "在上方添加",
+  actionAddAfter: "在下方添加",
   actionDeleteSelected: "删除已选",
   actionClearSelection: "清除选择",
+
+  // Action bar
+  actionBarCustomize: "自定义快捷操作",
+  actionBarTitle: "快捷操作",
+  actionBarUserLevel: "我的偏好",
+  actionBarWorkspaceLevel: "工作区默认",
+  actionBarSiteLevel: "站点默认",
+  actionBarSaveUser: "为我保存",
+  actionBarSaveWorkspace: "设为工作区默认",
+  actionBarResetUser: "重置为默认",
+  todoInsertPlaceholder: "新建待办...",
 
   // Selection bar
   selectionCount: "已选择 {count} 项",
@@ -282,6 +295,9 @@ const zh: typeof en = {
   appConfigAllowedTeamIdEnvHint:
     "已通过 ALLOWED_TEAM_ID 环境变量设置，无法在此修改。",
   appConfigSave: "保存应用配置",
+  appConfigActionBarDefaults: "默认快捷操作",
+  appConfigActionBarDefaultsHint:
+    "所有用户的快捷操作栏默认显示的操作。用户和工作区管理员可以覆盖此设置。",
 
   // Permission labels
   permLabel_manage_settings: "管理设置",

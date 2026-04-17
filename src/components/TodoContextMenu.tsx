@@ -1,6 +1,8 @@
 import { makeStyles, tokens } from "@fluentui/react-components";
 import {
   AddCircle24Regular,
+  ArrowUp24Regular,
+  ArrowDown24Regular,
   Comment24Regular,
   Circle24Regular,
   CheckmarkCircle24Regular,
@@ -61,6 +63,8 @@ type Props = {
   hasPerm: (key: string) => boolean;
   onClose: () => void;
   onAddSubTodo: () => void;
+  onAddBefore: () => void;
+  onAddAfter: () => void;
   onOpenComments: () => void;
   onToggleSelect: (e: React.MouseEvent) => void;
   onSelectAll: () => void;
@@ -85,6 +89,8 @@ export function TodoContextMenu({
   hasPerm,
   onClose,
   onAddSubTodo,
+  onAddBefore,
+  onAddAfter,
   onOpenComments,
   onToggleSelect,
   onSelectAll,
@@ -101,6 +107,12 @@ export function TodoContextMenu({
 
   return (
     <div className={styles.menu} style={{ left: x, top: y }} onClick={onClose}>
+      <button className={styles.item} onClick={onAddBefore}>
+        <ArrowUp24Regular /> {t.actionAddBefore}
+      </button>
+      <button className={styles.item} onClick={onAddAfter}>
+        <ArrowDown24Regular /> {t.actionAddAfter}
+      </button>
       {hasPerm("add_subtodos") && (
         <button className={styles.item} onClick={onAddSubTodo}>
           <AddCircle24Regular /> {t.actionAddSubTodo}

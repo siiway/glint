@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ReactElement } from "react";
 import {
   Input,
   Button,
@@ -14,6 +14,7 @@ import {
   Tooltip,
   TabList,
   Tab,
+  Checkbox,
   makeStyles,
   tokens,
 } from "@fluentui/react-components";
@@ -23,6 +24,13 @@ import {
   ArrowReset24Regular,
   Delete24Regular,
   Copy24Regular,
+  ArrowUp24Regular,
+  ArrowDown24Regular,
+  AddCircle24Regular,
+  Edit24Regular,
+  CheckmarkCircle24Regular,
+  PersonAvailable24Regular,
+  Comment24Regular,
 } from "@fluentui/react-icons";
 import { Footer } from "./Footer";
 import { useI18n } from "../i18n";
@@ -39,8 +47,27 @@ type AppConfig = {
   use_pkce: boolean;
   allowed_team_id: string;
   session_ttl: number;
+  action_bar_defaults: string[];
   allowed_team_id_from_env: boolean;
 };
+
+const ALL_ACTION_BAR_KEYS = [
+  "add_before",
+  "add_after",
+  "add_subtodo",
+  "edit",
+  "complete",
+  "claim",
+  "comment",
+  "delete",
+] as const;
+type ActionBarKey = (typeof ALL_ACTION_BAR_KEYS)[number];
+const ACTION_BAR_SITE_FALLBACK: ActionBarKey[] = [
+  "add_after",
+  "edit",
+  "complete",
+  "delete",
+];
 
 type TeamSettings = {
   site_name: string;
@@ -215,7 +242,11 @@ export function SettingsPage({
     }
     if (configRes.ok) {
       const data = (await configRes.json()) as { config: AppConfig };
-      setEditAppConfig(data.config);
+      setEditAppConfig({
+        ...data.config,
+        action_bar_defaults:
+          data.config.action_bar_defaults ?? ACTION_BAR_SITE_FALLBACK,
+      });
     }
     if (linksRes.ok) {
       const data = (await linksRes.json()) as { links: ShareLink[] };
@@ -886,6 +917,85 @@ export function SettingsPage({
               >
                 {t.appConfigSessionTtlHint}
               </Body1>
+            </div>
+
+            <Divider style={{ margin: "16px 0" }} />
+
+            <Title3 className={styles.sectionTitle}>
+              {t.appConfigActionBarDefaults}
+            </Title3>
+            <br />
+            <Body1
+              style={{ fontSize: 12, color: tokens.colorNeutralForeground4 }}
+            >
+              {t.appConfigActionBarDefaultsHint}
+            </Body1>
+            <div
+              style={{
+                marginTop: 10,
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+              }}
+            >
+              {ALL_ACTION_BAR_KEYS.map((key) => {
+                const checked = (
+                  editAppConfig.action_bar_defaults ?? ACTION_BAR_SITE_FALLBACK
+                ).includes(key);
+                const iconMap: Record<ActionBarKey, ReactElement> = {
+                  add_before: <ArrowUp24Regular style={{ fontSize: 16 }} />,
+                  add_after: <ArrowDown24Regular style={{ fontSize: 16 }} />,
+                  add_subtodo: <AddCircle24Regular style={{ fontSize: 16 }} />,
+                  edit: <Edit24Regular style={{ fontSize: 16 }} />,
+                  complete: (
+                    <CheckmarkCircle24Regular style={{ fontSize: 16 }} />
+                  ),
+                  claim: <PersonAvailable24Regular style={{ fontSize: 16 }} />,
+                  comment: <Comment24Regular style={{ fontSize: 16 }} />,
+                  delete: <Delete24Regular style={{ fontSize: 16 }} />,
+                };
+                const labelMap: Record<ActionBarKey, string> = {
+                  add_before: t.actionAddBefore,
+                  add_after: t.actionAddAfter,
+                  add_subtodo: t.actionAddSubTodo,
+                  edit: t.edit,
+                  complete: t.actionMarkComplete,
+                  claim: t.actionClaim,
+                  comment: t.actionComments,
+                  delete: t.delete,
+                };
+                return (
+                  <div
+                    key={key}
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    <span
+                      style={{
+                        color: tokens.colorNeutralForeground3,
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      {iconMap[key]}
+                    </span>
+                    <Checkbox
+                      label={labelMap[key]}
+                      checked={checked}
+                      onChange={() => {
+                        setEditAppConfig((c) => {
+                          if (!c) return c;
+                          const current =
+                            c.action_bar_defaults ?? ACTION_BAR_SITE_FALLBACK;
+                          const next = checked
+                            ? current.filter((k) => k !== key)
+                            : [...current, key];
+                          return { ...c, action_bar_defaults: next };
+                        });
+                      }}
+                    />
+                  </div>
+                );
+              })}
             </div>
 
             <div className={styles.saveBar}>

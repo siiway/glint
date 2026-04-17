@@ -124,8 +124,21 @@ export default {
   actionClaimedBy: "Claimed by {name}",
   actionMarkComplete: "Mark complete",
   actionMarkIncomplete: "Mark incomplete",
+  actionAddBefore: "Add before",
+  actionAddAfter: "Add after",
   actionDeleteSelected: "Delete selected",
   actionClearSelection: "Clear selection",
+
+  // Action bar
+  actionBarCustomize: "Customize quick actions",
+  actionBarTitle: "Quick Actions",
+  actionBarUserLevel: "My preferences",
+  actionBarWorkspaceLevel: "Workspace default",
+  actionBarSiteLevel: "Site default",
+  actionBarSaveUser: "Save for me",
+  actionBarSaveWorkspace: "Save as workspace default",
+  actionBarResetUser: "Reset to default",
+  todoInsertPlaceholder: "New todo...",
 
   // Selection bar
   selectionCount: "{count} selected",
@@ -294,6 +307,9 @@ export default {
   appConfigAllowedTeamIdEnvHint:
     "Set via ALLOWED_TEAM_ID environment variable. Cannot be changed here.",
   appConfigSave: "Save App Config",
+  appConfigActionBarDefaults: "Default Quick Actions",
+  appConfigActionBarDefaultsHint:
+    "Actions shown in the quick-action bar for all users by default. Users and workspace admins can override this.",
 
   // Permission labels
   permLabel_manage_settings: "Manage Settings",

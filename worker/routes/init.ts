@@ -86,6 +86,7 @@ init.put("/api/init/config", async (c) => {
       ? (["allowed_team_id"] as (keyof AppConfig)[])
       : []),
     "session_ttl",
+    "action_bar_defaults",
   ];
   const patch: Partial<AppConfig> = {};
   for (const key of allowed) {

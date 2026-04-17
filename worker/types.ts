@@ -12,6 +12,8 @@ export type AppConfig = {
   use_pkce: boolean;
   allowed_team_id: string;
   session_ttl: number;
+  /** Default quick-action keys shown in the todo action bar. Not set = use built-in default. */
+  action_bar_defaults?: string[];
   /** True when allowed_team_id is overridden by environment variable. Not stored in KV. */
   allowed_team_id_from_env?: boolean;
 };
