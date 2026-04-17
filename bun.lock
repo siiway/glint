@@ -7,7 +7,7 @@
       "dependencies": {
         "@fluentui/react-components": "^9.73.7",
         "@fluentui/react-icons": "^2.0.324",
-        "@siiway/prism": "0.1.3",
+        "@siiway/prism": "0.1.4",
         "hono": "^4.12.12",
         "react": "^19.2.5",
         "react-dom": "^19.2.5",
@@ -535,7 +535,7 @@
 
     "@shikijs/vscode-textmate": ["@shikijs/vscode-textmate@10.0.2", "", {}, "sha512-83yeghZ2xxin3Nj8z1NMd/NCuca+gsYXswywDy5bHvwlWL8tpTQmzGeUuHd9FC3E/SBEMvzJRwWEOz5gGes9Qg=="],
 
-    "@siiway/prism": ["@siiway/prism@0.1.3", "", { "dependencies": { "@noble/post-quantum": "^0.6.1" } }, "sha512-tnaQyvTcny4dVOP+ZRpkcgbRAx5zSFA9BtcqOJW20eM9IpKKE5nqog7AKCHudLSM9mOnGjq3geF5Jb5/NuR4+w=="],
+    "@siiway/prism": ["@siiway/prism@0.1.4", "", { "dependencies": { "@noble/post-quantum": "^0.6.1" } }, "sha512-hYNTBfahIGaUeOrywYoApHuo5eCN2n2wZpiWsx1kvFZzLY+KV4qdf6Yh50hb0TWuE6mlj9abTk4y48NxvuZJ2A=="],
 
     "@sindresorhus/is": ["@sindresorhus/is@7.2.0", "", {}, "sha512-P1Cz1dWaFfR4IR+U13mqqiGsLFf1KbayybWwdd2vfctdV6hDpUkgCY0nKOLLTMSoRd/jJNjtbqzf13K8DCCXQw=="],
 

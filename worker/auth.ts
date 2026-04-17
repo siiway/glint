@@ -56,7 +56,7 @@ export function getPrism(config: AppConfig) {
     clientId: config.prism_client_id,
     clientSecret: config.prism_client_secret || undefined,
     redirectUri: config.prism_redirect_uri,
-    scopes: ["openid", "profile", "email", "teams:read"],
+    scopes: ["openid", "profile", "email", "teams:read", "site:user:read"],
   });
 }
 

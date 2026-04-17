@@ -58,7 +58,10 @@ export async function resolveUserProfiles(
 
   if (missIds.size === 0) return { nameMap, avatarMap };
 
-  // Fetch from Prism for cache misses, then cache all returned members.
+  // Fetch from Prism for cache misses.
+  // First try teams.get() to batch-resolve team members; then fall back to
+  // site.getUser() for IDs still missing (e.g. users not in the team or
+  // when the token doesn't carry teams:read).
   try {
     const prism = getPrism(config);
     const { members } = await prism.teams.get(session.accessToken, teamId);
@@ -86,7 +89,41 @@ export async function resolveUserProfiles(
 
     await Promise.all(puts);
   } catch {
-    // Leave misses unresolved; session-seeded self is still available.
+    // teams.get() failed or token lacks teams:read — fall through to site lookup.
+  }
+
+  // For any IDs still unresolved, try site.getUser() (requires site:user:read).
+  const stillMissing = [...missIds].filter((id) => !(id in nameMap));
+  if (stillMissing.length > 0) {
+    const prism = getPrism(config);
+    const puts: Promise<void>[] = [];
+
+    await Promise.allSettled(
+      stillMissing.map(async (id) => {
+        try {
+          const u = await prism.site.getUser(session.accessToken, id);
+          const name = u.display_name || u.username;
+          const avatarUrl: string | null = u.avatar_url ?? null;
+
+          nameMap[id] = name;
+          if (avatarUrl) avatarMap[id] = avatarUrl;
+
+          if (ttl > 0) {
+            puts.push(
+              kv.put(
+                KV_PREFIX + id,
+                JSON.stringify({ name, avatarUrl } satisfies CachedProfile),
+                { expirationTtl: ttl },
+              ),
+            );
+          }
+        } catch {
+          // User not found or insufficient scope — leave unresolved.
+        }
+      }),
+    );
+
+    await Promise.all(puts);
   }
 
   return { nameMap, avatarMap };
