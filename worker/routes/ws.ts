@@ -4,6 +4,14 @@ import { requireAuth, getTeamRole } from "../auth";
 
 const ws = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
+async function getStub(
+  c: { env: { TODO_SYNC?: DurableObjectNamespace } },
+  teamId: string,
+) {
+  if (!c.env.TODO_SYNC) return null;
+  return c.env.TODO_SYNC.get(c.env.TODO_SYNC.idFromName(teamId));
+}
+
 ws.get("/api/teams/:teamId/sets/:setId/ws", requireAuth, async (c) => {
   const teamId = c.req.param("teamId");
   const setId = c.req.param("setId");
@@ -12,7 +20,8 @@ ws.get("/api/teams/:teamId/sets/:setId/ws", requireAuth, async (c) => {
   const role = getTeamRole(session, teamId);
   if (!role) return c.json({ error: "Not a member of this team" }, 403);
 
-  if (!c.env.TODO_SYNC) {
+  const stub = await getStub(c, teamId);
+  if (!stub) {
     return c.json(
       { error: "Realtime sync is not available on this deployment" },
       503,
@@ -24,14 +33,34 @@ ws.get("/api/teams/:teamId/sets/:setId/ws", requireAuth, async (c) => {
     return c.json({ error: "Expected WebSocket upgrade" }, 426);
   }
 
-  const id = c.env.TODO_SYNC.idFromName(teamId);
-  const stub = c.env.TODO_SYNC.get(id);
-
   const doUrl = new URL(c.req.url);
   doUrl.pathname = "/ws";
   doUrl.searchParams.set("setId", setId);
-
   return stub.fetch(new Request(doUrl.toString(), c.req.raw));
+});
+
+ws.get("/api/teams/:teamId/sets/:setId/sse", requireAuth, async (c) => {
+  const teamId = c.req.param("teamId");
+  const setId = c.req.param("setId");
+  const session = c.get("session");
+
+  const role = getTeamRole(session, teamId);
+  if (!role) return c.json({ error: "Not a member of this team" }, 403);
+
+  const stub = await getStub(c, teamId);
+  if (!stub) {
+    return c.json(
+      { error: "Realtime sync is not available on this deployment" },
+      503,
+    );
+  }
+
+  const doUrl = new URL(c.req.url);
+  doUrl.pathname = "/sse";
+  doUrl.searchParams.set("setId", setId);
+  return stub.fetch(
+    new Request(doUrl.toString(), { signal: c.req.raw.signal }),
+  );
 });
 
 export default ws;

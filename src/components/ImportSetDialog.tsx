@@ -3,7 +3,8 @@ import {
   Button,
   Checkbox,
   Switch,
-  Select,
+  Dropdown,
+  Option,
   Input,
   Textarea,
   Body2,
@@ -302,14 +303,16 @@ export function ImportSetDialog({ open, onClose, teamId, onImported }: Props) {
           </DialogTitle>
           <DialogContent>
             <div className={styles.row}>
-              <Select
-                value={format}
-                onChange={(_, d) => setFormat(d.value as TransferFormat)}
+              <Dropdown
+                selectedOptions={[format]}
+                onOptionSelect={(_, d) =>
+                  setFormat(d.optionValue as TransferFormat)
+                }
               >
-                <option value="json">JSON</option>
-                <option value="yaml">YAML</option>
-                <option value="md">Markdown</option>
-              </Select>
+                <Option value="json">JSON</Option>
+                <Option value="yaml">YAML</Option>
+                <Option value="md">Markdown</Option>
+              </Dropdown>
               <Switch
                 label={t.transferIncludeComments}
                 checked={includeComments}

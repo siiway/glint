@@ -136,6 +136,14 @@ const zh: typeof en = {
   actionBarResetUser: "重置为默认",
   todoInsertPlaceholder: "新建待办...",
 
+  // User preferences
+  userPrefsTitle: "用户偏好设置",
+  userPrefsRealtimeTransport: "实时同步传输方式",
+  userPrefsRealtimeAuto: "自动（WebSocket → SSE 回退）",
+  userPrefsRealtimeWs: "仅 WebSocket",
+  userPrefsRealtimeSse: "仅服务器推送事件（SSE）",
+  userPrefsRealtimeHint: "WebSocket 更高效；SSE 在严格代理环境下也能正常工作。",
+
   // Selection bar
   selectionCount: "已选择 {count} 项",
 
@@ -251,6 +259,7 @@ const zh: typeof en = {
   settingsTitle: "设置",
   settingsTabBranding: "品牌",
   settingsTabPermissions: "权限",
+  settingsTabPreferences: "我的偏好",
   settingsTabAppConfig: "应用配置",
   settingsLoadingSettings: "加载设置...",
 

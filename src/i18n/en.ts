@@ -141,6 +141,15 @@ export default {
   actionBarResetUser: "Reset to default",
   todoInsertPlaceholder: "New todo...",
 
+  // User preferences
+  userPrefsTitle: "User Preferences",
+  userPrefsRealtimeTransport: "Realtime Transport",
+  userPrefsRealtimeAuto: "Auto (WebSocket → SSE fallback)",
+  userPrefsRealtimeWs: "WebSocket only",
+  userPrefsRealtimeSse: "Server-Sent Events only",
+  userPrefsRealtimeHint:
+    "WebSocket is more efficient; SSE works through strict proxies.",
+
   // Selection bar
   selectionCount: "{count} selected",
 
@@ -260,6 +269,7 @@ export default {
   settingsTitle: "Settings",
   settingsTabBranding: "Branding",
   settingsTabPermissions: "Permissions",
+  settingsTabPreferences: "My Preferences",
   settingsTabAppConfig: "App Config",
   settingsLoadingSettings: "Loading settings...",
 

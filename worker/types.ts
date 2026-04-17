@@ -56,6 +56,13 @@ export type Variables = {
   session: SessionData;
 };
 
+export type UserSettings = {
+  /** User's personal action bar key order. Null = use workspace/site default. */
+  action_bar?: string[] | null;
+  /** Preferred realtime transport. "auto" tries WS then falls back to SSE. */
+  realtime_transport?: "ws" | "sse" | "auto";
+};
+
 export type TeamSettings = {
   site_name: string;
   site_logo_url: string;

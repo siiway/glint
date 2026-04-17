@@ -10,7 +10,10 @@ import {
   Spinner,
   Switch,
   Divider,
-  Select,
+  Dropdown,
+  Option,
+  RadioGroup,
+  Radio,
   Tooltip,
   TabList,
   Tab,
@@ -36,6 +39,13 @@ import { Footer } from "./Footer";
 import { useI18n } from "../i18n";
 import type { ShareLink } from "../types";
 import { ConfirmDialog } from "./ConfirmDialog";
+import type { UserSettings } from "../hooks/useUserSettings";
+import {
+  ALL_ACTION_KEYS,
+  type ActionKey,
+  loadUserActionBar,
+  loadWorkspaceActionBar,
+} from "../utils/actionBar";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -178,9 +188,13 @@ const useStyles = makeStyles({
 export function SettingsPage({
   teamId,
   onBack,
+  userSettings,
+  onUpdateUserSettings,
 }: {
   teamId: string;
   onBack: () => void;
+  userSettings: UserSettings;
+  onUpdateUserSettings: (patch: Partial<UserSettings>) => Promise<void>;
 }) {
   const styles = useStyles();
   const { t } = useI18n();
@@ -198,7 +212,26 @@ export function SettingsPage({
     Record<string, Record<string, boolean>>
   >({});
   const [permScope, setPermScope] = useState("global");
-  const [activeTab, setActiveTab] = useState<string>("branding");
+  const [activeTab, setActiveTab] = useState<string>("preferences");
+
+  // User preferences editing state
+  const siteDefault =
+    editAppConfig?.action_bar_defaults ?? ACTION_BAR_SITE_FALLBACK;
+  const [editUserActions, setEditUserActions] = useState<ActionKey[]>(
+    () =>
+      loadUserActionBar() ??
+      loadWorkspaceActionBar(teamId) ??
+      ACTION_BAR_SITE_FALLBACK,
+  );
+  const [editWsActions, setEditWsActions] = useState<ActionKey[]>(
+    () => loadWorkspaceActionBar(teamId) ?? ACTION_BAR_SITE_FALLBACK,
+  );
+  const [editTransport, setEditTransport] = useState<"ws" | "sse" | "auto">(
+    () => userSettings.realtime_transport ?? "auto",
+  );
+  const hasUserActionPref =
+    userSettings.action_bar !== undefined && userSettings.action_bar !== null;
+  const hasWsActionPref = loadWorkspaceActionBar(teamId) !== null;
   const [shareLinks, setShareLinks] = useState<ShareLink[]>([]);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [deletingLinkId, setDeletingLinkId] = useState<string | null>(null);
@@ -332,6 +365,33 @@ export function SettingsPage({
     setSaving(false);
   };
 
+  const saveUserActions = async () => {
+    await onUpdateUserSettings({ action_bar: editUserActions });
+  };
+
+  const resetUserActions = async () => {
+    await onUpdateUserSettings({ action_bar: null });
+    setEditUserActions(
+      (loadWorkspaceActionBar(teamId) ?? siteDefault) as ActionKey[],
+    );
+  };
+
+  const saveWsActions = () => {
+    localStorage.setItem(
+      `glint_action_bar_ws_${teamId}`,
+      JSON.stringify(editWsActions),
+    );
+  };
+
+  const resetWsActions = () => {
+    localStorage.removeItem(`glint_action_bar_ws_${teamId}`);
+    setEditWsActions(siteDefault as ActionKey[]);
+  };
+
+  const saveTransport = async () => {
+    await onUpdateUserSettings({ realtime_transport: editTransport });
+  };
+
   const saveAppConfig = async () => {
     if (!editAppConfig) return;
     setSaving(true);
@@ -387,11 +447,255 @@ export function SettingsPage({
           onTabSelect={(_, d) => setActiveTab(d.value as string)}
           style={{ marginBottom: 24 }}
         >
+          <Tab value="preferences">{t.settingsTabPreferences}</Tab>
           <Tab value="branding">{t.settingsTabBranding}</Tab>
           <Tab value="permissions">{t.settingsTabPermissions}</Tab>
           <Tab value="sharelinks">{t.settingsTabShareLinks}</Tab>
           {canManage && <Tab value="appconfig">{t.settingsTabAppConfig}</Tab>}
         </TabList>
+
+        {activeTab === "preferences" && (
+          <div className={styles.section}>
+            {/* User-level action bar */}
+            <Title3 className={styles.sectionTitle}>
+              {t.actionBarUserLevel}
+            </Title3>
+            {ALL_ACTION_KEYS.map((key) => {
+              const iconMap: Record<ActionKey, ReactElement> = {
+                add_before: <ArrowUp24Regular style={{ fontSize: 16 }} />,
+                add_after: <ArrowDown24Regular style={{ fontSize: 16 }} />,
+                add_subtodo: <AddCircle24Regular style={{ fontSize: 16 }} />,
+                edit: <Edit24Regular style={{ fontSize: 16 }} />,
+                complete: <CheckmarkCircle24Regular style={{ fontSize: 16 }} />,
+                claim: <PersonAvailable24Regular style={{ fontSize: 16 }} />,
+                comment: <Comment24Regular style={{ fontSize: 16 }} />,
+                delete: <Delete24Regular style={{ fontSize: 16 }} />,
+              };
+              const labelMap: Record<ActionKey, string> = {
+                add_before: t.actionAddBefore,
+                add_after: t.actionAddAfter,
+                add_subtodo: t.actionAddSubTodo,
+                edit: t.edit,
+                complete: t.actionMarkComplete,
+                claim: t.actionClaim,
+                comment: t.actionComments,
+                delete: t.delete,
+              };
+              return (
+                <div
+                  key={key}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "3px 0",
+                  }}
+                >
+                  <span
+                    style={{
+                      color: tokens.colorNeutralForeground3,
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {iconMap[key]}
+                  </span>
+                  <Checkbox
+                    label={labelMap[key]}
+                    checked={editUserActions.includes(key)}
+                    onChange={() =>
+                      setEditUserActions((prev) =>
+                        prev.includes(key)
+                          ? prev.filter((k) => k !== key)
+                          : [...prev, key],
+                      )
+                    }
+                  />
+                </div>
+              );
+            })}
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <Button
+                size="small"
+                appearance="primary"
+                onClick={saveUserActions}
+              >
+                {t.actionBarSaveUser}
+              </Button>
+              {hasUserActionPref && (
+                <Button
+                  size="small"
+                  appearance="subtle"
+                  onClick={resetUserActions}
+                >
+                  {t.actionBarResetUser}
+                </Button>
+              )}
+            </div>
+
+            {/* Workspace-level action bar (owners only) */}
+            {(canManage || permsData?.role === "admin") && (
+              <>
+                <Divider style={{ margin: "16px 0" }} />
+                <Title3 className={styles.sectionTitle}>
+                  {t.actionBarWorkspaceLevel}
+                </Title3>
+                {ALL_ACTION_KEYS.map((key) => {
+                  const iconMap: Record<ActionKey, ReactElement> = {
+                    add_before: <ArrowUp24Regular style={{ fontSize: 16 }} />,
+                    add_after: <ArrowDown24Regular style={{ fontSize: 16 }} />,
+                    add_subtodo: (
+                      <AddCircle24Regular style={{ fontSize: 16 }} />
+                    ),
+                    edit: <Edit24Regular style={{ fontSize: 16 }} />,
+                    complete: (
+                      <CheckmarkCircle24Regular style={{ fontSize: 16 }} />
+                    ),
+                    claim: (
+                      <PersonAvailable24Regular style={{ fontSize: 16 }} />
+                    ),
+                    comment: <Comment24Regular style={{ fontSize: 16 }} />,
+                    delete: <Delete24Regular style={{ fontSize: 16 }} />,
+                  };
+                  const labelMap: Record<ActionKey, string> = {
+                    add_before: t.actionAddBefore,
+                    add_after: t.actionAddAfter,
+                    add_subtodo: t.actionAddSubTodo,
+                    edit: t.edit,
+                    complete: t.actionMarkComplete,
+                    claim: t.actionClaim,
+                    comment: t.actionComments,
+                    delete: t.delete,
+                  };
+                  return (
+                    <div
+                      key={key}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        padding: "3px 0",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: tokens.colorNeutralForeground3,
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        {iconMap[key]}
+                      </span>
+                      <Checkbox
+                        label={labelMap[key]}
+                        checked={editWsActions.includes(key)}
+                        onChange={() =>
+                          setEditWsActions((prev) =>
+                            prev.includes(key)
+                              ? prev.filter((k) => k !== key)
+                              : [...prev, key],
+                          )
+                        }
+                      />
+                    </div>
+                  );
+                })}
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <Button
+                    size="small"
+                    appearance="primary"
+                    onClick={saveWsActions}
+                  >
+                    {t.actionBarSaveWorkspace}
+                  </Button>
+                  {hasWsActionPref && (
+                    <Button
+                      size="small"
+                      appearance="subtle"
+                      onClick={resetWsActions}
+                    >
+                      {t.actionBarResetUser}
+                    </Button>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Realtime transport */}
+            <Divider style={{ margin: "16px 0" }} />
+            <Title3 className={styles.sectionTitle}>
+              {t.userPrefsRealtimeTransport}
+            </Title3>
+            <RadioGroup
+              value={editTransport}
+              onChange={(_, d) =>
+                setEditTransport(d.value as "ws" | "sse" | "auto")
+              }
+              layout="vertical"
+              style={{ marginTop: 6 }}
+            >
+              <Radio value="auto" label={t.userPrefsRealtimeAuto} />
+              <Radio value="ws" label={t.userPrefsRealtimeWs} />
+              <Radio value="sse" label={t.userPrefsRealtimeSse} />
+            </RadioGroup>
+            <Body1
+              style={{
+                fontSize: 12,
+                color: tokens.colorNeutralForeground4,
+                display: "block",
+                marginTop: 4,
+              }}
+            >
+              {t.userPrefsRealtimeHint}
+            </Body1>
+            <div style={{ marginTop: 10 }}>
+              <Button size="small" appearance="primary" onClick={saveTransport}>
+                {t.save}
+              </Button>
+            </div>
+
+            {/* Site default (read-only) */}
+            <Divider style={{ margin: "16px 0" }} />
+            <Title3 className={styles.sectionTitle}>
+              {t.actionBarSiteLevel}
+            </Title3>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 6,
+                marginTop: 6,
+              }}
+            >
+              {siteDefault.map((key) => {
+                const labelMap: Record<string, string> = {
+                  add_before: t.actionAddBefore,
+                  add_after: t.actionAddAfter,
+                  add_subtodo: t.actionAddSubTodo,
+                  edit: t.edit,
+                  complete: t.actionMarkComplete,
+                  claim: t.actionClaim,
+                  comment: t.actionComments,
+                  delete: t.delete,
+                };
+                return (
+                  <span
+                    key={key}
+                    style={{
+                      padding: "2px 8px",
+                      borderRadius: tokens.borderRadiusMedium,
+                      backgroundColor: tokens.colorNeutralBackground3,
+                      fontSize: 12,
+                      color: tokens.colorNeutralForeground2,
+                    }}
+                  >
+                    {labelMap[key] ?? key}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {activeTab === "branding" && editSettings && (
           <div className={styles.section}>
@@ -551,18 +855,20 @@ export function SettingsPage({
 
             <div className={styles.scopeSelector}>
               <Body2 className={styles.fieldLabel}>{t.permissionsScope}</Body2>
-              <Select
-                value={permScope}
-                onChange={(_, d) => setPermScope(d.value)}
+              <Dropdown
+                selectedOptions={[permScope]}
+                onOptionSelect={(_, d) =>
+                  setPermScope(d.optionValue ?? "global")
+                }
                 style={{ minWidth: 200 }}
               >
-                <option value="global">{t.permissionsScopeGlobal}</option>
+                <Option value="global">{t.permissionsScopeGlobal}</Option>
                 {sets.map((s) => (
-                  <option key={s.id} value={s.id}>
+                  <Option key={s.id} value={s.id}>
                     {t.permissionsScopeSet.replace("{name}", s.name)}
-                  </option>
+                  </Option>
                 ))}
-              </Select>
+              </Dropdown>
               {permScope !== "global" && (
                 <Body1 style={{ color: tokens.colorNeutralForeground4 }}>
                   {t.permissionsSetOverrideHint}

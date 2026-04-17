@@ -52,7 +52,6 @@ import {
   PersonDelete24Regular,
   ArrowUp24Regular,
   ArrowDown24Regular,
-  Settings24Regular,
 } from "@fluentui/react-icons";
 import { useNavigate, useMatch } from "react-router-dom";
 import { useAuth } from "../auth";
@@ -68,12 +67,12 @@ import { SetTransferDialog } from "./SetTransferDialog";
 import { useI18n } from "../i18n";
 import { ConfirmDialog } from "./ConfirmDialog";
 import {
-  ActionBarCustomizer,
   getEffectiveActions,
   BUILTIN_SITE_DEFAULT,
   type ActionKey,
-} from "./ActionBarCustomizer";
-import { useWebSocket, type WsEvent } from "../hooks/useWebSocket";
+} from "../utils/actionBar";
+import { useRealtimeSync, type WsEvent } from "../hooks/useRealtimeSync";
+import { useUserSettings } from "../hooks/useUserSettings";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -375,7 +374,6 @@ export function TodoPage() {
   // Action bar
   const [shiftHeld, setShiftHeld] = useState(false);
   const [hoveredTodoId, setHoveredTodoId] = useState<string | null>(null);
-  const [customizerOpen, setCustomizerOpen] = useState(false);
   const [siteDefaultActions, setSiteDefaultActions] =
     useState<ActionKey[]>(BUILTIN_SITE_DEFAULT);
   const [actionBarActions, setActionBarActions] = useState<ActionKey[]>(() =>
@@ -569,10 +567,14 @@ export function TodoPage() {
     fetchTodos();
   }, [fetchTodos]);
 
-  useWebSocket({
+  const { settings: userSettings, update: updateUserSettings } =
+    useUserSettings();
+
+  useRealtimeSync({
     teamId: selectedSpaceId,
     setId: selectedSetId ?? "",
     enabled: !!selectedSpaceId && !!selectedSetId,
+    transport: userSettings.realtime_transport ?? "auto",
     onEvent: useCallback(
       (event: WsEvent) => {
         if (event.setId !== selectedSetId) return;
@@ -1637,18 +1639,6 @@ export function TodoPage() {
               }}
             >
               {actionBarActions.map((key) => renderActionBarItem(key, todo))}
-              <Tooltip content={t.actionBarCustomize} relationship="label">
-                <Button
-                  appearance="transparent"
-                  size="small"
-                  className={styles.actionBarBtn}
-                  icon={<Settings24Regular />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCustomizerOpen(true);
-                  }}
-                />
-              </Tooltip>
             </div>
           )}
 
@@ -1752,6 +1742,8 @@ export function TodoPage() {
           navigate(`/${selectedSpaceId}`);
           refreshBranding();
         }}
+        userSettings={userSettings}
+        onUpdateUserSettings={updateUserSettings}
       />
     );
   }
@@ -1835,9 +1827,7 @@ export function TodoPage() {
           loadingSets={loadingSets}
           siteName={siteName}
           siteLogo={siteLogo}
-          canManageSettings={
-            selectedSpace?.kind === "team" && hasPerm("manage_settings")
-          }
+          canManageSettings={selectedSpace?.kind === "team"}
           canManageSets={hasPerm("manage_sets")}
           onOpenSettings={() => navigate(`/${selectedSpaceId}/settings`)}
           onAddSet={handleAddSet}
@@ -2197,20 +2187,6 @@ export function TodoPage() {
           setConfirmAction(null);
         }}
         onCancel={() => setConfirmAction(null)}
-      />
-
-      <ActionBarCustomizer
-        open={customizerOpen}
-        onClose={() => setCustomizerOpen(false)}
-        spaceId={selectedSpaceId}
-        isOwner={teamRole === "owner" || teamRole === "co-owner"}
-        siteDefault={siteDefaultActions}
-        t={t}
-        onSaved={() =>
-          setActionBarActions(
-            getEffectiveActions(selectedSpaceId, siteDefaultActions),
-          )
-        }
       />
     </>
   );

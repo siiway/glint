@@ -13,7 +13,8 @@ import {
   DialogBody,
   DialogTitle,
   DialogContent,
-  Select,
+  Dropdown,
+  Option,
   makeStyles,
   tokens,
 } from "@fluentui/react-components";
@@ -445,22 +446,22 @@ export function ManageLinksDialog({
                               <Body2 className={styles.fieldLabel}>
                                 {t.settingsShareLinksPermissions}
                               </Body2>
-                              <Select
+                              <Dropdown
                                 size="small"
-                                value={preset}
-                                onChange={(_, d) =>
-                                  applyPreset(link, d.value as PermPreset)
+                                selectedOptions={[preset]}
+                                onOptionSelect={(_, d) =>
+                                  applyPreset(link, d.optionValue as PermPreset)
                                 }
                                 style={{ minWidth: 140 }}
                               >
-                                <option value="readonly">
+                                <Option value="readonly">
                                   {t.linksReadOnly}
-                                </option>
-                                <option value="full">
+                                </Option>
+                                <Option value="full">
                                   {t.linksFullAccess}
-                                </option>
-                                <option value="custom">{t.linksCustom}</option>
-                              </Select>
+                                </Option>
+                                <Option value="custom">{t.linksCustom}</Option>
+                              </Dropdown>
                             </div>
 
                             {/* Individual permission toggles */}
@@ -611,20 +612,23 @@ export function ManageLinksDialog({
                             </div>
                             <div className={styles.badgeRow}>
                               <Body2>{t.shareBadgeStyle}</Body2>
-                              <Select
+                              <Dropdown
                                 size="small"
-                                value={opts.style}
-                                onChange={(_, d) =>
+                                selectedOptions={[opts.style ?? "flat"]}
+                                onOptionSelect={(_, d) =>
                                   setBadgeOpts((p) => ({
                                     ...p,
-                                    [link.token]: { ...opts, style: d.value },
+                                    [link.token]: {
+                                      ...opts,
+                                      style: d.optionValue ?? "flat",
+                                    },
                                   }))
                                 }
                                 style={{ width: 120 }}
                               >
-                                <option value="flat">flat</option>
-                                <option value="flat-square">flat-square</option>
-                              </Select>
+                                <Option value="flat">flat</Option>
+                                <Option value="flat-square">flat-square</Option>
+                              </Dropdown>
                             </div>
                             <div className={styles.badgeRow}>
                               <Body2>{t.shareBadgeLabel}</Body2>
@@ -742,17 +746,17 @@ export function ManageLinksDialog({
                                 </div>
                                 <div className={styles.badgeRow}>
                                   <Body2>{t.shareTodoListTheme}</Body2>
-                                  <Select
+                                  <Dropdown
                                     size="small"
-                                    value={lo.theme}
-                                    onChange={(_, d) =>
-                                      setLo({ theme: d.value })
+                                    selectedOptions={[lo.theme ?? "light"]}
+                                    onOptionSelect={(_, d) =>
+                                      setLo({ theme: d.optionValue })
                                     }
                                     style={{ width: 120 }}
                                   >
-                                    <option value="light">Light</option>
-                                    <option value="dark">Dark</option>
-                                  </Select>
+                                    <Option value="light">Light</Option>
+                                    <Option value="dark">Dark</Option>
+                                  </Dropdown>
                                 </div>
                                 <div className={styles.badgeRow}>
                                   <Body2>{t.shareTodoListTitle}</Body2>

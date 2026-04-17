@@ -13,19 +13,6 @@ import { userTeamsKvKey, USER_TEAMS_KV_TTL } from "../cross-app-auth";
 
 const auth = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-/** Unwrap legacy proxy URLs stored in old sessions: /api/auth/avatar?url=<encoded> → decoded raw URL */
-function unwrapLegacyProxyUrl(url?: string): string | undefined {
-  if (!url) return undefined;
-  if (url.startsWith("/api/auth/avatar?url=")) {
-    try {
-      return decodeURIComponent(url.slice("/api/auth/avatar?url=".length));
-    } catch {
-      return undefined;
-    }
-  }
-  return url;
-}
-
 auth.get("/api/auth/config", async (c) => {
   const config = await getAppConfig(c.env.KV);
   return c.json({
@@ -73,11 +60,8 @@ auth.get("/api/auth/me", async (c) => {
       id: activeSession.userId,
       username: activeSession.username,
       displayName: activeSession.displayName,
-      avatarUrl: unwrapLegacyProxyUrl(activeSession.avatarUrl),
-      teams: activeSession.teams.map((t) => ({
-        ...t,
-        avatarUrl: unwrapLegacyProxyUrl(t.avatarUrl),
-      })),
+      avatarUrl: activeSession.avatarUrl,
+      teams: activeSession.teams,
       isAppToken: activeSession.isAppToken ?? false,
     },
   });

@@ -3,7 +3,8 @@ import {
   Button,
   Checkbox,
   Switch,
-  Select,
+  Dropdown,
+  Option,
   Body2,
   Caption1,
   Textarea,
@@ -321,14 +322,16 @@ export function SetTransferDialog({
           </DialogTitle>
           <DialogContent>
             <div className={styles.row}>
-              <Select
-                value={format}
-                onChange={(_, d) => setFormat(d.value as TransferFormat)}
+              <Dropdown
+                selectedOptions={[format]}
+                onOptionSelect={(_, d) =>
+                  setFormat(d.optionValue as TransferFormat)
+                }
               >
-                <option value="md">Markdown</option>
-                <option value="json">JSON</option>
-                <option value="yaml">YAML</option>
-              </Select>
+                <Option value="md">Markdown</Option>
+                <Option value="json">JSON</Option>
+                <Option value="yaml">YAML</Option>
+              </Dropdown>
               <Switch
                 label={t.transferIncludeComments}
                 checked={includeComments}
@@ -342,13 +345,15 @@ export function SetTransferDialog({
                 />
               )}
               {mode === "import" && !replaceSet && (
-                <Select
-                  value={insertAt}
-                  onChange={(_, d) => setInsertAt(d.value as "top" | "bottom")}
+                <Dropdown
+                  selectedOptions={[insertAt]}
+                  onOptionSelect={(_, d) =>
+                    setInsertAt(d.optionValue as "top" | "bottom")
+                  }
                 >
-                  <option value="bottom">{t.transferInsertBottom}</option>
-                  <option value="top">{t.transferInsertTop}</option>
-                </Select>
+                  <Option value="bottom">{t.transferInsertBottom}</Option>
+                  <Option value="top">{t.transferInsertTop}</Option>
+                </Dropdown>
               )}
             </div>
 
