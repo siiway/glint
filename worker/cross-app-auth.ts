@@ -46,7 +46,10 @@ export function requireCrossAppAuth(innerScope: string) {
       // 2. Confirm the required cross-app scope is granted.
       const grantedScopes = (info.scope ?? "").split(" ");
       if (!grantedScopes.includes(requiredScope)) {
-        return c.json({ error: `Missing required scope: ${requiredScope}` }, 403);
+        return c.json(
+          { error: `Missing required scope: ${requiredScope}` },
+          403,
+        );
       }
 
       const userId = info.sub!;

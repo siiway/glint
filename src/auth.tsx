@@ -100,7 +100,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const dismissAppTokenWarning = useCallback(() => setAppTokenWarning(false), []);
+  const dismissAppTokenWarning = useCallback(
+    () => setAppTokenWarning(false),
+    [],
+  );
 
   // Show persistent session-expired notice on 401; let users decide when to re-login.
   useEffect(() => {

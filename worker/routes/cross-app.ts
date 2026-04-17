@@ -33,7 +33,9 @@ crossApp.get(
       .bind(teamId)
       .all();
 
-    return c.json({ sets: result.results.map((r) => ({ id: r.id, name: r.name })) });
+    return c.json({
+      sets: result.results.map((r) => ({ id: r.id, name: r.name })),
+    });
   },
 );
 
@@ -166,7 +168,8 @@ crossApp.patch(
       const canEdit = isOwn
         ? await hasPermission(c.env.DB, teamId, role, "edit_own_todos")
         : await hasPermission(c.env.DB, teamId, role, "edit_any_todo");
-      if (!canEdit) return c.json({ error: "No permission to edit this todo" }, 403);
+      if (!canEdit)
+        return c.json({ error: "No permission to edit this todo" }, 403);
       await c.env.DB.prepare(
         "UPDATE todos SET title = ?, updated_at = ? WHERE id = ? AND team_id = ?",
       )
@@ -208,11 +211,10 @@ crossApp.delete(
     const canDelete = isOwn
       ? await hasPermission(c.env.DB, teamId, role, "delete_own_todos")
       : await hasPermission(c.env.DB, teamId, role, "delete_any_todo");
-    if (!canDelete) return c.json({ error: "No permission to delete this todo" }, 403);
+    if (!canDelete)
+      return c.json({ error: "No permission to delete this todo" }, 403);
 
-    await c.env.DB.prepare(
-      "DELETE FROM todos WHERE id = ? AND team_id = ?",
-    )
+    await c.env.DB.prepare("DELETE FROM todos WHERE id = ? AND team_id = ?")
       .bind(todoId, teamId)
       .run();
 

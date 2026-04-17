@@ -1,14 +1,23 @@
 # Teams & Roles
 
-Glint uses Prism teams for access control. Every todo set belongs to a team, and your role determines your default permissions.
+Glint uses Prism teams for access control. Every todo set belongs to a team, and your role in that team determines your default permissions. Teams are managed entirely within Prism — Glint reads membership and role data at login time.
+
+---
 
 ## Roles
 
-There are three roles, in order of privilege:
+Four roles exist, from highest to lowest privilege:
 
-- **Owner** — full access to everything, including settings and permissions. Cannot be restricted.
-- **Admin** — broad access by default, but permissions can be customized by the owner.
-- **Member** — limited to their own items by default, but permissions can be expanded.
+| Role           | Description                                                                     |
+| -------------- | ------------------------------------------------------------------------------- |
+| **Owner**      | Full access to everything including settings and permissions. Cannot be restricted. |
+| **Co-owner**   | Near-identical access to owner; can manage settings and permissions.            |
+| **Admin**      | Broad access by default; permissions are customizable by the owner.             |
+| **Member**     | Limited to their own content by default; can be expanded via permissions.       |
+
+Owner and co-owner permissions are always complete and unaffected by permission rules.
+
+---
 
 ## Default Permissions
 
@@ -32,14 +41,38 @@ There are three roles, in order of privilege:
 
 All defaults can be overridden globally or per-set. See [Permissions](./permissions).
 
-## Team Selection
+---
 
-If you belong to multiple teams, use the dropdown in the sidebar to switch between them. Your role badge is shown next to your name in the sidebar footer.
+## Switching Teams (Workspaces)
+
+If you belong to multiple teams, use the workspace switcher at the top of the sidebar to switch between them. Your personal space (private to you) also appears in this list.
+
+The URL updates as you switch workspaces (`/<teamId>` or `/personal:<userId>`), making it bookmarkable.
+
+---
+
+## Personal Space
+
+Every user has a **personal space** visible only to themselves. Permission rules do not apply in personal space — you always have full control over your own content there.
+
+---
 
 ## Managing Teams
 
-Teams are managed on your Prism instance. Glint reads team memberships at login time. Changes to team membership take effect on next sign-in.
+Teams are managed in your Prism instance (create, invite, change roles, etc.). Glint reads membership via the `teams:read` OAuth scope when the user logs in.
+
+**Team membership changes take effect on next login.** Users who need the change immediately can sign out and sign back in.
+
+---
 
 ## Allowed Team ID
 
-If `allowed_team_id` is set in the app config, only members of that specific Prism team can sign in to Glint. Others will see a 403 error.
+If `allowed_team_id` is configured in the app settings, only members of that Prism team (or teams) can sign in. Others see a "Not Authorized" page.
+
+Multiple team IDs can be allowed, separated by commas, semicolons, or spaces:
+
+```
+team_a, team_b
+```
+
+When set via the `ALLOWED_TEAM_ID` environment variable, the value overrides any KV-stored setting and cannot be changed from the UI.

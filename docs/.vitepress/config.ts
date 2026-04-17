@@ -1,4 +1,5 @@
 import { defineConfig } from "vitepress";
+import { withMermaid } from "vitepress-plugin-mermaid";
 
 const guideSidebar = (prefix = "") => [
   {
@@ -17,6 +18,12 @@ const guideSidebar = (prefix = "") => [
       { text: "Permissions", link: `${prefix}/guide/permissions` },
     ],
   },
+  {
+    text: "Integration",
+    items: [
+      { text: "Cross-App Integration", link: `${prefix}/guide/cross-app` },
+    ],
+  },
 ];
 
 const apiSidebar = (prefix = "") => [
@@ -31,13 +38,59 @@ const apiSidebar = (prefix = "") => [
       { text: "Todo Sets", link: `${prefix}/api/sets` },
       { text: "Todos", link: `${prefix}/api/todos` },
       { text: "Comments", link: `${prefix}/api/comments` },
+      { text: "Cross-App", link: `${prefix}/api/cross-app` },
     ],
   },
 ];
 
-export default defineConfig({
+const zhGuideSidebar = [
+  {
+    text: "介绍",
+    items: [
+      { text: "快速开始", link: "/zh/guide/getting-started" },
+      { text: "配置", link: "/zh/guide/configuration" },
+    ],
+  },
+  {
+    text: "功能",
+    items: [
+      { text: "团队与角色", link: "/zh/guide/teams" },
+      { text: "待办分组", link: "/zh/guide/sets" },
+      { text: "待办事项", link: "/zh/guide/todos" },
+      { text: "权限", link: "/zh/guide/permissions" },
+    ],
+  },
+  {
+    text: "集成",
+    items: [
+      { text: "跨应用集成", link: "/zh/guide/cross-app" },
+    ],
+  },
+];
+
+const zhApiSidebar = [
+  {
+    text: "API 参考",
+    items: [
+      { text: "概述", link: "/zh/api/" },
+      { text: "认证", link: "/zh/api/auth" },
+      { text: "应用配置", link: "/zh/api/config" },
+      { text: "设置", link: "/zh/api/settings" },
+      { text: "权限", link: "/zh/api/permissions" },
+      { text: "待办分组", link: "/zh/api/sets" },
+      { text: "待办事项", link: "/zh/api/todos" },
+      { text: "评论", link: "/zh/api/comments" },
+      { text: "跨应用", link: "/zh/api/cross-app" },
+    ],
+  },
+];
+
+export default withMermaid(defineConfig({
   title: "Glint",
   description: "A team-based todo list powered by Cloudflare Workers and Prism",
+  head: [
+    ["link", { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" }],
+  ],
   locales: {
     root: {
       label: "English",
@@ -64,44 +117,15 @@ export default defineConfig({
           { text: "API", link: "/zh/api/" },
         ],
         sidebar: {
-          "/zh/guide/": [
-            {
-              text: "\u4ECB\u7ECD",
-              items: [
-                { text: "\u5FEB\u901F\u5F00\u59CB", link: "/zh/guide/getting-started" },
-                { text: "\u914D\u7F6E", link: "/zh/guide/configuration" },
-              ],
-            },
-            {
-              text: "\u529F\u80FD",
-              items: [
-                { text: "\u56E2\u961F\u4E0E\u89D2\u8272", link: "/zh/guide/teams" },
-                { text: "\u5F85\u529E\u5206\u7EC4", link: "/zh/guide/sets" },
-                { text: "\u5F85\u529E\u4E8B\u9879", link: "/zh/guide/todos" },
-                { text: "\u6743\u9650", link: "/zh/guide/permissions" },
-              ],
-            },
-          ],
-          "/zh/api/": [
-            {
-              text: "API \u53C2\u8003",
-              items: [
-                { text: "\u6982\u8FF0", link: "/zh/api/" },
-                { text: "\u8BA4\u8BC1", link: "/zh/api/auth" },
-                { text: "\u5E94\u7528\u914D\u7F6E", link: "/zh/api/config" },
-                { text: "\u8BBE\u7F6E", link: "/zh/api/settings" },
-                { text: "\u6743\u9650", link: "/zh/api/permissions" },
-                { text: "\u5F85\u529E\u5206\u7EC4", link: "/zh/api/sets" },
-                { text: "\u5F85\u529E\u4E8B\u9879", link: "/zh/api/todos" },
-                { text: "\u8BC4\u8BBA", link: "/zh/api/comments" },
-              ],
-            },
-          ],
+          "/zh/guide/": zhGuideSidebar,
+          "/zh/api/": zhApiSidebar,
         },
       },
     },
   },
   themeConfig: {
+    logo: "/favicon.svg",
     socialLinks: [{ icon: "github", link: "https://github.com/siiway/glint" }],
   },
-});
+  mermaid: {},
+}));

@@ -176,7 +176,6 @@ export function SettingsPage({
   const [deletingLinkId, setDeletingLinkId] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-
   const canManage =
     permsData?.role === "owner" || permsData?.role === "co-owner" || false;
   const canManagePerms =

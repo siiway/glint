@@ -317,7 +317,6 @@ const zh: typeof en = {
   permLabel_view_todos: "查看任务",
   permDesc_view_todos: "查看分组中的任务",
 
-
   // Not authorized page
   notAuthorizedTitle: "无访问权限",
   notAuthorizedDesc: "您没有访问此工作区的权限。",

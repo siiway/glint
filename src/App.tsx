@@ -63,7 +63,15 @@ function SharedRoute() {
 }
 
 function AppShell() {
-  const { user, loading, sessionExpiredNotice, appTokenWarning, dismissAppTokenWarning, goToLogin, logout } = useAuth();
+  const {
+    user,
+    loading,
+    sessionExpiredNotice,
+    appTokenWarning,
+    dismissAppTokenWarning,
+    goToLogin,
+    logout,
+  } = useAuth();
   const { configured, markConfigured } = useInitStatus();
   const { t } = useI18n();
 
