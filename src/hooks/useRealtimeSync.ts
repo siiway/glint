@@ -63,11 +63,14 @@ export function useRealtimeSync({
       // Probe before upgrading (503 = realtime not available, stop silently).
       try {
         const probe = await fetch(`/api/teams/${teamId}/sets/${setId}/ws`, {
-          method: "GET",
-          headers: { Upgrade: "websocket" },
+          method: "HEAD",
         });
+        // 503 means durable objects not configured, don't retry.
         if (probe.status === 503) return;
-      } catch {}
+        // Other errors (like 426) are part of normal WebSocket upgrade flow, continue.
+      } catch {
+        // Network error during probe, continue to try WebSocket
+      }
 
       const proto = location.protocol === "https:" ? "wss:" : "ws:";
       const url = `${proto}//${location.host}/api/teams/${teamId}/sets/${setId}/ws`;

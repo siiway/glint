@@ -12,7 +12,7 @@ async function getStub(
   return c.env.TODO_SYNC.get(c.env.TODO_SYNC.idFromName(teamId));
 }
 
-ws.get("/api/teams/:teamId/sets/:setId/ws", requireAuth, async (c) => {
+ws.all("/api/teams/:teamId/sets/:setId/ws", requireAuth, async (c) => {
   const teamId = c.req.param("teamId");
   const setId = c.req.param("setId");
   const session = c.get("session");
@@ -26,6 +26,11 @@ ws.get("/api/teams/:teamId/sets/:setId/ws", requireAuth, async (c) => {
       { error: "Realtime sync is not available on this deployment" },
       503,
     );
+  }
+
+  // HEAD request is just a probe to check availability
+  if (c.req.method === "HEAD") {
+    return new Response(null, { status: 200 });
   }
 
   const upgrade = c.req.header("Upgrade");
