@@ -69,6 +69,8 @@ Teams are managed in your Prism instance (create, invite, change roles, etc.). G
 
 If `allowed_team_id` is configured in the app settings, only members of that Prism team (or teams) can sign in. Others see a "Not Authorized" page.
 
+⚠️ **Important distinction:** `allowed_team_id` is an **authentication control** — it restricts who can log in. Once logged in, users can access all teams they are a member of. This is not a visibility or permissions boundary.
+
 Multiple team IDs can be allowed, separated by commas, semicolons, or spaces:
 
 ```

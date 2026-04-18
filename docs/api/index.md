@@ -37,6 +37,13 @@ See [Authentication API](./auth) for full details on the login flow.
 | `POST`   | `/api/auth/callback`    | None     | Exchange OAuth code for session; sets cookie      |
 | `POST`   | `/api/auth/logout`      | Cookie   | Destroy session; clears cookie                    |
 
+### User Settings
+
+| Method   | Path                               | Auth    | Description                                    |
+| -------- | ---------------------------------- | ------- | ---------------------------------------------- |
+| `GET`    | `/api/user/settings`               | Session | Get user preferences (action bar, transport)   |
+| `PUT`    | `/api/user/settings`               | Session | Update user preferences                        |
+
 ### Team Settings
 
 | Method   | Path                               | Auth    | Description                                    |

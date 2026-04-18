@@ -38,7 +38,9 @@ Both modes are equally secure when deployed on Cloudflare Workers — the PKCE v
 
 ### `allowed_team_id`
 
-When set, Glint evaluates team membership at login time. Users not in the specified team see a "Not Authorized" page and cannot proceed.
+When set, Glint enforces team membership at **login time only**. Users not in the specified team(s) cannot sign in and see a "Not Authorized" page.
+
+⚠️ **Important:** This is an **authentication boundary**, not a visibility filter. Once a user successfully signs in, they can access **all teams they are a member of** using the workspace switcher in the sidebar — not just the allowed team. `allowed_team_id` only controls who can enter the system.
 
 Multiple team IDs can be specified, separated by commas, semicolons, or spaces:
 
