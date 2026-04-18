@@ -18,7 +18,7 @@
   "dependencies": {
     "@fluentui/react-components": "^9.73.7",
     "@fluentui/react-icons": "^2.0.324",
-    "@siiway/prism": "0.1.5",
+    "@siiway/prism": "0.1.5-fix-1",
     "hono": "^4.12.12",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
