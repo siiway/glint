@@ -222,7 +222,7 @@ sets.get("/api/teams/:teamId/sets", requireAuth, async (c) => {
   await ensureDefaultSet(c.env.DB, c.env.KV, teamId, session.userId);
 
   const result = await c.env.DB.prepare(
-    "SELECT id, user_id, name, sort_order, auto_renew, renew_time, timezone, last_renewed_at, created_at FROM todo_sets WHERE team_id = ? ORDER BY sort_order ASC",
+    "SELECT id, user_id, name, sort_order, auto_renew, renew_time, timezone, last_renewed_at, split_completed, created_at FROM todo_sets WHERE team_id = ? ORDER BY sort_order ASC",
   )
     .bind(teamId)
     .all();
@@ -237,6 +237,7 @@ sets.get("/api/teams/:teamId/sets", requireAuth, async (c) => {
       renewTime: r.renew_time as string,
       timezone: r.timezone as string,
       lastRenewedAt: (r.last_renewed_at as string) || null,
+      splitCompleted: r.split_completed === 1,
       createdAt: r.created_at as string,
     })),
     role,
@@ -312,6 +313,7 @@ sets.patch("/api/teams/:teamId/sets/:setId", requireAuth, async (c) => {
     autoRenew?: boolean;
     renewTime?: string;
     timezone?: string;
+    splitCompleted?: boolean;
   }>();
 
   const updates: string[] = [];
@@ -333,6 +335,10 @@ sets.patch("/api/teams/:teamId/sets/:setId", requireAuth, async (c) => {
   if (body.timezone !== undefined) {
     updates.push("timezone = ?");
     values.push(body.timezone);
+  }
+  if (body.splitCompleted !== undefined) {
+    updates.push("split_completed = ?");
+    values.push(body.splitCompleted ? 1 : 0);
   }
 
   if (updates.length === 0) return c.json({ error: "No updates" }, 400);

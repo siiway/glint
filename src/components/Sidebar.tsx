@@ -336,22 +336,26 @@ export function Sidebar({
           </div>
         ))}
 
-        <Button
-          appearance="transparent"
-          icon={<Add24Regular />}
-          onClick={() => setCreateSetOpen(true)}
-          style={{ width: "100%", justifyContent: "flex-start" }}
-        >
-          {t.sidebarNewSet}
-        </Button>
-        <Button
-          appearance="transparent"
-          icon={<ArrowImport24Regular />}
-          onClick={() => setImportSetOpen(true)}
-          style={{ width: "100%", justifyContent: "flex-start" }}
-        >
-          {t.sidebarImportSet}
-        </Button>
+        {canManageSets && (
+          <>
+            <Button
+              appearance="transparent"
+              icon={<Add24Regular />}
+              onClick={() => setCreateSetOpen(true)}
+              style={{ width: "100%", justifyContent: "flex-start" }}
+            >
+              {t.sidebarNewSet}
+            </Button>
+            <Button
+              appearance="transparent"
+              icon={<ArrowImport24Regular />}
+              onClick={() => setImportSetOpen(true)}
+              style={{ width: "100%", justifyContent: "flex-start" }}
+            >
+              {t.sidebarImportSet}
+            </Button>
+          </>
+        )}
       </>
     );
   }
