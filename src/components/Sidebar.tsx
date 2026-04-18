@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Input,
   Button,
@@ -258,6 +258,14 @@ export function Sidebar({
     setDragOverIndex(null);
     dragCounter.current = 0;
   };
+
+  // Close create/import dialogs if user loses permission
+  useEffect(() => {
+    if (!canManageSets) {
+      setCreateSetOpen(false);
+      setImportSetOpen(false);
+    }
+  }, [canManageSets]);
 
   const selectedSpace = spaces.find((s) => s.id === selectedSpaceId);
 
