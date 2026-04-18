@@ -629,6 +629,8 @@ export function TodoPage() {
     todo.userId === user?.id
       ? hasPerm("edit_own_todos")
       : hasPerm("edit_any_todo");
+  const canToggleTodo = (todo: Todo) =>
+    todo.userId === user?.id || hasPerm("complete_any_todo");
   const canDeleteTodo = (todo: Todo) =>
     todo.userId === user?.id
       ? hasPerm("delete_own_todos")
@@ -738,6 +740,19 @@ export function TodoPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: editTitle.trim() }),
     });
+  };
+
+  const startEditTodo = (todo: Todo) => {
+    if (!canModify(todo)) return;
+    setEditingId(todo.id);
+    setEditTitle(todo.title);
+  };
+
+  const isTodoRowInteractiveTarget = (target: EventTarget | null) => {
+    if (!(target instanceof Element)) return false;
+    return !!target.closest(
+      'button, [role="button"], input, textarea, select, a, [contenteditable="true"], [data-interactive]',
+    );
   };
 
   // ─── Selection ───────────────────────────────────────────────────────────
@@ -1120,10 +1135,7 @@ export function TodoPage() {
       {canModify(todo) && (
         <MenuItem
           icon={<Edit24Regular />}
-          onClick={() => {
-            setEditingId(todo.id);
-            setEditTitle(todo.title);
-          }}
+          onClick={() => startEditTodo(todo)}
         >
           {t.edit}
         </MenuItem>
@@ -1143,7 +1155,7 @@ export function TodoPage() {
             {todo.claimedBy === user?.id ? t.actionUnclaim : t.actionClaim}
           </MenuItem>
         )}
-      {(todo.userId === user?.id || hasPerm("complete_any_todo")) && (
+      {canToggleTodo(todo) && (
         <MenuItem
           icon={
             todo.completed ? <Circle24Regular /> : <CheckmarkCircle24Regular />
@@ -1235,15 +1247,13 @@ export function TodoPage() {
               icon={<Edit24Regular />}
               onClick={(e) => {
                 e.stopPropagation();
-                setEditingId(todo.id);
-                setEditTitle(todo.title);
+                startEditTodo(todo);
               }}
             />
           </Tooltip>
         );
       case "complete":
-        if (todo.userId !== user?.id && !hasPerm("complete_any_todo"))
-          return null;
+        if (!canToggleTodo(todo)) return null;
         return (
           <Tooltip
             key={key}
@@ -1456,9 +1466,25 @@ export function TodoPage() {
                 }
               : undefined
           }
+          onMouseDown={(e) => {
+            if (e.button !== 1 || isTodoRowInteractiveTarget(e.target)) return;
+            e.preventDefault();
+          }}
+          onAuxClick={(e) => {
+            if (e.button !== 1 || isTodoRowInteractiveTarget(e.target)) return;
+            if (!canToggleTodo(todo)) return;
+            e.preventDefault();
+            e.stopPropagation();
+            toggleTodo(todo);
+          }}
+          onDoubleClick={(e) => {
+            if (isTodoRowInteractiveTarget(e.target)) return;
+            e.stopPropagation();
+            startEditTodo(todo);
+          }}
         >
           {canDrag && (
-            <span className={styles.dragHandle}>
+            <span className={styles.dragHandle} data-interactive>
               <ReOrder24Regular />
             </span>
           )}
@@ -1493,6 +1519,7 @@ export function TodoPage() {
             checked={todo.completed}
             onChange={() => toggleTodo(todo)}
             onClick={(e) => e.stopPropagation()}
+            data-interactive
           />
 
           <div className={styles.todoContent}>
@@ -1554,6 +1581,7 @@ export function TodoPage() {
                             className={styles.claimedBadge}
                             style={{ cursor: "pointer" }}
                             onClick={(e) => e.stopPropagation()}
+                            data-interactive
                           >
                             {todo.claimedByAvatar ? (
                               <img
@@ -1621,6 +1649,7 @@ export function TodoPage() {
                       e.stopPropagation();
                       setCommentTodoId(todo.id);
                     }}
+                    data-interactive
                   >
                     <Comment24Regular style={{ fontSize: 14 }} />
                     {todo.commentCount}
@@ -2142,9 +2171,7 @@ export function TodoPage() {
           isSelected={selected.has(contextTodo.id)}
           canEdit={canModify(contextTodo)}
           canDelete={canDeleteTodo(contextTodo)}
-          canToggle={
-            contextTodo.userId === user?.id || hasPerm("complete_any_todo")
-          }
+          canToggle={canToggleTodo(contextTodo)}
           hasPerm={hasPerm}
           onClose={() => setContextMenu(null)}
           onAddBefore={() => {
@@ -2162,10 +2189,7 @@ export function TodoPage() {
           onOpenComments={() => setCommentTodoId(contextTodo.id)}
           onToggleSelect={(e) => toggleSelect(contextTodo.id, e)}
           onSelectAll={selectAll}
-          onEdit={() => {
-            setEditingId(contextTodo.id);
-            setEditTitle(contextTodo.title);
-          }}
+          onEdit={() => startEditTodo(contextTodo)}
           onToggleComplete={() => toggleTodo(contextTodo)}
           onClaim={() => claimTodo(contextTodo)}
           isClaimed={contextTodo.claimedBy !== null}
