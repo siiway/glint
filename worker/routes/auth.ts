@@ -10,6 +10,7 @@ import {
   SESSION_MIN_TTL_SECONDS,
 } from "../auth";
 import { userTeamsKvKey, USER_TEAMS_KV_TTL } from "../cross-app-auth";
+import { storeSiteToken } from "../siteToken";
 
 const auth = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -88,11 +89,27 @@ auth.post("/api/auth/callback", async (c) => {
   const teams = await fetchUserTeams(prism, tokens.access_token);
 
   // Detect whether this token was issued to an external app rather than to Glint.
+  // Also store as the site service token when site:user:read was granted with offline_access.
   let isAppToken = false;
   try {
     const info = await prism.introspectToken(tokens.access_token);
     if (info.client_id && info.client_id !== config.prism_client_id) {
       isAppToken = true;
+    }
+    if (
+      info.active &&
+      tokens.refresh_token &&
+      info.scope?.split(" ").includes("site:user:read")
+    ) {
+      await storeSiteToken(c.env.KV, {
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        accessTokenExpiresAt: tokens.expires_in
+          ? Date.now() + tokens.expires_in * 1000
+          : undefined,
+        grantedBy: userInfo.sub,
+        storedAt: Date.now(),
+      });
     }
   } catch {
     // If introspection fails, leave isAppToken false — don't block login.
@@ -115,6 +132,10 @@ auth.post("/api/auth/callback", async (c) => {
     displayName: userInfo.name,
     avatarUrl: userInfo.picture,
     accessToken: tokens.access_token,
+    accessTokenExpiresAt: tokens.expires_in
+      ? Date.now() + tokens.expires_in * 1000
+      : undefined,
+    refreshToken: tokens.refresh_token,
     expiresAt: Date.now() + ttl * 1000,
     teams,
     isAppToken,

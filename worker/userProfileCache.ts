@@ -1,5 +1,6 @@
 import type { AppConfig, SessionData } from "./types";
 import { getPrism } from "./auth";
+import { getSiteToken } from "./siteToken";
 
 type CachedProfile = { name: string; avatarUrl: string | null };
 
@@ -93,15 +94,19 @@ export async function resolveUserProfiles(
   }
 
   // For any IDs still unresolved, try site.getUser() (requires site:user:read).
+  // Prefer the stored site service token so regular users don't need the scope themselves.
   const stillMissing = [...missIds].filter((id) => !(id in nameMap));
   if (stillMissing.length > 0) {
     const prism = getPrism(config);
     const puts: Promise<void>[] = [];
 
+    const siteTokenData = await getSiteToken(kv);
+    const siteAccessToken = siteTokenData?.accessToken ?? session.accessToken;
+
     await Promise.allSettled(
       stillMissing.map(async (id) => {
         try {
-          const u = await prism.site.getUser(session.accessToken, id);
+          const u = await prism.site.getUser(siteAccessToken, id);
           const name = u.display_name || u.username;
           const avatarUrl: string | null = u.avatar_url ?? null;
 

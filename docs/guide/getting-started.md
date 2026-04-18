@@ -108,7 +108,8 @@ In your Prism instance, create a new OAuth application with the following settin
 | Field            | Value                                                              |
 | ---------------- | ------------------------------------------------------------------ |
 | Redirect URI     | `http://localhost:5173/callback` (dev) or `https://your.domain/callback` (prod) |
-| Scopes           | `openid profile email teams:read`                                  |
+| Allowed Scopes   | `openid profile email teams:read site:user:read offline_access`    |
+| Optional Scopes  | `site:user:read offline_access`                                    |
 | Client type      | Public (PKCE) **or** Confidential (client secret)                  |
 
 Note down the **Client ID**. If using a confidential client, also note the **Client Secret**. You will enter these in the initialization wizard on first visit.
@@ -195,3 +196,17 @@ Double-check the `allowed_team_id` in Settings → App Config, or set `ALLOWED_T
 ### Avatar images not loading
 
 Avatars are fetched directly from Prism's CDN by the browser. If Prism is on a private network, avatars may not be accessible from users' browsers. There is no avatar proxy in Glint — avatars must be publicly reachable.
+
+---
+
+## Session Behavior and Token Refresh
+
+### Session lifetime
+
+Each session has a configurable TTL (default: 24 hours minimum). The session is silently renewed in KV whenever fewer than 30 minutes remain before it expires, and the session cookie `maxAge` is updated accordingly.
+
+### Automatic Prism access token refresh
+
+If a user grants the `offline_access` scope during login, Glint stores both the access token and the refresh token in the session. The worker middleware proactively refreshes the Prism access token when fewer than 5 minutes remain before it expires — transparently, with no interruption to the ongoing request. If the refresh fails (e.g., the token was revoked), the existing token is used as a fallback until the session itself expires.
+
+Users who do not grant `offline_access` (e.g., non-admin users for whom the scope is optional and declined) are not affected — their session operates normally with a long-lived access token.

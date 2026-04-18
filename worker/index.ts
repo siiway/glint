@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Bindings, Variables } from "./types";
 import { processAutoRenew } from "./cron";
+import { refreshSiteToken } from "./siteToken";
 
 import initRoutes from "./routes/init";
 import authRoutes from "./routes/auth";
@@ -32,6 +33,6 @@ app.route("/", userSettingsRoutes);
 export default {
   fetch: app.fetch,
   async scheduled(_event: ScheduledEvent, env: Bindings) {
-    await processAutoRenew(env);
+    await Promise.all([processAutoRenew(env), refreshSiteToken(env.KV, env)]);
   },
 };

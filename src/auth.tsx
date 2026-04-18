@@ -72,7 +72,13 @@ function getPrism(): Promise<PrismClient> {
           baseUrl: cfg.baseUrl,
           clientId: cfg.clientId,
           redirectUri: cfg.redirectUri,
-          scopes: ["openid", "profile", "email", "teams:read"],
+          scopes: [
+            "openid",
+            "profile",
+            "email",
+            "teams:read",
+            "site:user:read",
+          ],
         }),
     );
   }
@@ -134,7 +140,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const prism = await getPrism();
 
     if (cfg.usePkce) {
-      const { url, pkce } = await prism.createAuthorizationUrl();
+      const { url, pkce } = await prism.createAuthorizationUrl({
+        optionalScopes: ["site:user:read"],
+      });
       sessionStorage.setItem("pkce_verifier", pkce.codeVerifier);
       sessionStorage.setItem("pkce_state", pkce.state);
       window.location.href = url;
@@ -145,7 +153,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         response_type: "code",
         client_id: cfg.clientId,
         redirect_uri: cfg.redirectUri,
-        scope: "openid profile email teams:read",
+        scope: "openid profile email teams:read site:user:read offline_access",
+        optional_scope: "site:user:read offline_access",
         state,
       });
       sessionStorage.setItem("pkce_state", state);

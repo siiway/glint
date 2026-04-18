@@ -1133,10 +1133,7 @@ export function TodoPage() {
         </MenuItem>
       )}
       {canModify(todo) && (
-        <MenuItem
-          icon={<Edit24Regular />}
-          onClick={() => startEditTodo(todo)}
-        >
+        <MenuItem icon={<Edit24Regular />} onClick={() => startEditTodo(todo)}>
           {t.edit}
         </MenuItem>
       )}

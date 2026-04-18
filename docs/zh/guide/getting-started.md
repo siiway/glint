@@ -108,7 +108,8 @@ wrangler d1 migrations apply glint-db
 | 字段         | 值                                                                    |
 | ------------ | --------------------------------------------------------------------- |
 | 重定向 URI   | `http://localhost:5173/callback`（开发）或 `https://your.domain/callback`（生产） |
-| 权限范围     | `openid profile email teams:read`                                     |
+| 允许的权限范围 | `openid profile email teams:read site:user:read offline_access`      |
+| 可选权限范围   | `site:user:read offline_access`                                      |
 | 客户端类型   | 公开（PKCE）**或** 机密（client secret）                              |
 
 记下**客户端 ID**，使用机密客户端时还需记下**客户端密钥**，在初始化向导中填写。
@@ -195,3 +196,17 @@ bun run deploy
 ### 头像图片无法加载
 
 头像由浏览器直接从 Prism 的 CDN 获取。若 Prism 部署在私有网络中，用户的浏览器可能无法访问头像。Glint 中没有头像代理——头像 URL 必须是公开可访问的。
+
+---
+
+## 会话行为与令牌刷新
+
+### 会话有效期
+
+每个会话都有可配置的 TTL（默认最少 24 小时）。当会话距离过期不足 30 分钟时，Worker 会静默地在 KV 中续期，并同步更新 Cookie 的 `maxAge`。
+
+### 自动刷新 Prism 访问令牌
+
+若用户在登录时授予了 `offline_access` 权限范围，Glint 会将访问令牌和刷新令牌一并存储在会话中。Worker 中间件会在访问令牌距离过期不足 5 分钟时自动刷新，整个过程对当前请求透明无感知。若刷新失败（例如令牌已被吊销），将继续使用现有令牌，直到会话本身过期。
+
+未授予 `offline_access` 的用户（例如该权限范围为可选且被用户拒绝的非管理员用户）不受影响——其会话将以普通长期访问令牌正常运行。

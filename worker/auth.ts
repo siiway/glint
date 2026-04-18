@@ -9,6 +9,7 @@ import type {
   TeamInfo,
   TeamRole,
 } from "./types";
+import { getAppConfig } from "./config";
 
 export const PERSONAL_SPACE_PREFIX = "personal:";
 export const SESSION_MIN_TTL_SECONDS = 24 * 60 * 60;
@@ -56,7 +57,14 @@ export function getPrism(config: AppConfig) {
     clientId: config.prism_client_id,
     clientSecret: config.prism_client_secret || undefined,
     redirectUri: config.prism_redirect_uri,
-    scopes: ["openid", "profile", "email", "teams:read", "site:user:read"],
+    scopes: [
+      "openid",
+      "profile",
+      "email",
+      "teams:read",
+      "site:user:read",
+      "offline_access",
+    ],
   });
 }
 
@@ -78,6 +86,36 @@ export async function fetchUserTeams(
     return [];
   }
 }
+
+/** Refresh the Prism access token using the stored refresh token and update KV. */
+export async function refreshAccessToken(
+  kv: KVNamespace,
+  sessionId: string,
+  session: SessionData,
+  env: Bindings,
+): Promise<SessionData> {
+  const config = await getAppConfig(kv, env);
+  const prism = getPrism(config);
+  const newTokens = await prism.refreshToken(session.refreshToken!);
+  const refreshed: SessionData = {
+    ...session,
+    accessToken: newTokens.access_token,
+    refreshToken: newTokens.refresh_token ?? session.refreshToken,
+    accessTokenExpiresAt: newTokens.expires_in
+      ? Date.now() + newTokens.expires_in * 1000
+      : session.accessTokenExpiresAt,
+  };
+  const ttl = Math.max(
+    Math.ceil((refreshed.expiresAt - Date.now()) / 1000),
+    SESSION_MIN_TTL_SECONDS,
+  );
+  await kv.put(`session:${sessionId}`, JSON.stringify(refreshed), {
+    expirationTtl: ttl,
+  });
+  return refreshed;
+}
+
+const TOKEN_REFRESH_WINDOW_MS = 5 * 60 * 1000; // refresh when < 5 min remaining
 
 export const requireAuth = createMiddleware<{
   Bindings: Bindings;
@@ -114,7 +152,26 @@ export const requireAuth = createMiddleware<{
     });
   }
 
-  c.set("session", activeSession);
+  // Proactively refresh the Prism access token when it's about to expire.
+  let finalSession = activeSession;
+  if (
+    finalSession.refreshToken &&
+    finalSession.accessTokenExpiresAt &&
+    Date.now() > finalSession.accessTokenExpiresAt - TOKEN_REFRESH_WINDOW_MS
+  ) {
+    try {
+      finalSession = await refreshAccessToken(
+        c.env.KV,
+        sessionId,
+        finalSession,
+        c.env,
+      );
+    } catch {
+      // Refresh failed — continue with the existing token.
+    }
+  }
+
+  c.set("session", finalSession);
   await next();
 });
 

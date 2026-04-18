@@ -46,6 +46,10 @@ export type SessionData = {
   displayName?: string;
   avatarUrl?: string;
   accessToken: string;
+  /** Unix ms when the Prism access token expires. Present when offline_access was granted. */
+  accessTokenExpiresAt?: number;
+  /** Prism refresh token. Present when offline_access was granted. */
+  refreshToken?: string;
   expiresAt: number;
   teams: TeamInfo[];
   /** True when the access token was issued to an external app, not to Glint directly. */
