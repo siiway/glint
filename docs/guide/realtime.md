@@ -38,12 +38,14 @@ All events include `setId` so the client can ignore events from other sets if th
 
 ## Client Behavior
 
-The `useWebSocket` hook manages the connection lifecycle:
+The `useRealtimeSync` hook manages the connection lifecycle:
 
 - Opens a connection when a set is selected and the user is authenticated.
+- In `auto` mode (default), it tries WebSocket first and falls back to SSE if the first WS attempt fails.
 - **Reconnects automatically** on close, using exponential backoff: 500 ms → 1 s → 2 s → … → 30 s cap.
 - All incoming events are applied **idempotently** to local state — `todo:created` checks for duplicates before appending, so the user's own actions (which also update local state optimistically) do not appear twice.
 - Closes cleanly when the component unmounts or the selected set changes.
+- A `101 Switching Protocols` with no immediate frames is normal while idle; events are pushed only when mutations happen. The server also sends an initial `realtime:ready` message after WS connect.
 
 ---
 

@@ -22,6 +22,10 @@ export class TodoSync {
       const pair = new WebSocketPair();
       const [client, server] = Object.values(pair);
       this.state.acceptWebSocket(server, [setId]);
+      // Initial message so clients/devtools can confirm the stream is alive.
+      try {
+        server.send(JSON.stringify({ type: "realtime:ready", setId }));
+      } catch {}
       return new Response(null, { status: 101, webSocket: client });
     }
 
