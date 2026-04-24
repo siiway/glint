@@ -41,7 +41,7 @@ sequenceDiagram
   AppBOwner->>Glint: API request with Bearer token
   Glint->>Prism: Introspect token, verify scope
   Prism-->>Glint: active + scope confirmed
-  Glint-->>AppBOwner: Todo data
+  Glint-->>AppBOwner: Data
 ```
 
 **Nothing is registered inside Glint.** App B registers Glint's scope inside Prism's own dashboard, and users grant access via Prism's standard consent screen.
@@ -60,15 +60,31 @@ sequenceDiagram
 
 A Glint owner must first define the permission scopes that App B can request. This is done directly in Prism's dashboard — not in Glint's UI.
 
-Log in to Prism, open Glint's app settings, go to **Permissions**, and add scope definitions:
+Log in to Prism, open Glint's app settings, go to **Permissions**, and add scope definitions. Only define the scopes your integrations actually need.
 
-| Scope key       | Suggested title     | Description                                 |
-| --------------- | ------------------- | ------------------------------------------- |
-| `read_todos`    | Read todos          | View todo sets and todos in any joined team |
-| `write_todos`   | Create & edit todos | Create and update todos                     |
-| `delete_todos`  | Delete todos        | Delete todos                                |
+### Available Scopes
 
-You can define as many or as few scopes as your use case requires.
+| Scope key          | Suggested title              | What it allows                                                   |
+| ------------------ | ---------------------------- | ---------------------------------------------------------------- |
+| `read_todos`       | Read todos & comments        | List sets, view todos, read comments                             |
+| `create_todos`     | Create todos                 | Create todos and sub-todos                                       |
+| `edit_todos`       | Edit todo titles             | Rename todos (own and others', per role)                         |
+| `complete_todos`   | Toggle completion            | Mark todos complete/incomplete (own and others', per role)       |
+| `delete_todos`     | Delete todos                 | Delete todos (own and others', per role)                         |
+| `manage_sets`      | Manage sets                  | Create, rename, and delete todo sets                             |
+| `comment`          | Post comments                | Add comments to todos                                            |
+| `delete_comments`  | Delete comments              | Delete comments (own and others', per role)                      |
+| `read_settings`    | Read workspace settings      | Read team settings (name, timezone, etc.)                        |
+| `manage_settings`  | Manage workspace settings    | Update team settings                                             |
+| `write_todos`      | Create & edit todos (legacy) | Legacy catch-all for create, edit, and complete — use specific scopes for new integrations |
+
+**Minimum for a read-only integration:** `read_todos`
+
+**Minimum for a todo-writing integration:** `read_todos`, `create_todos`
+
+**Recommended for a full automation integration:** `read_todos`, `create_todos`, `edit_todos`, `complete_todos`, `delete_todos`
+
+### Access Rules
 
 Optionally, set **access rules** to restrict which apps or users can register these scopes:
 
@@ -81,7 +97,7 @@ Without any allow rules, all apps are permitted by default.
 
 ## Step 2 — Register the Scope in App B (App B Developer)
 
-In **App B's** Prism dashboard → Settings → App Permissions, enter Glint's client ID and select the inner scope (e.g. `read_todos`). This adds:
+In **App B's** Prism dashboard → Settings → App Permissions, enter Glint's client ID and select the inner scopes your app needs. For example, selecting `read_todos` adds:
 
 ```
 app:prism_abc123:read_todos
@@ -97,37 +113,38 @@ curl -X PATCH https://prism.example.com/api/apps/<appB_id> \
   -H "Content-Type: application/json" \
   -d '{
     "allowed_scopes": [
-      "openid", "profile",
-      "app:prism_abc123:read_todos"
+      "openid", "profile", "teams:read",
+      "app:prism_abc123:read_todos",
+      "app:prism_abc123:create_todos"
     ]
   }'
 ```
+
+Request only the scopes your app genuinely needs. Users see the scope titles on the Prism consent screen.
 
 ---
 
 ## Step 3 — Request the Scope in the Authorization URL
 
-When App B redirects a user to Prism for login, include Glint's scope in the `scope` parameter:
+When App B redirects a user to Prism for login, include Glint's scopes in the `scope` parameter:
 
 ```
 https://prism.example.com/api/oauth/authorize
   ?client_id=<appB_client_id>
   &redirect_uri=https://appb.example.com/callback
   &response_type=code
-  &scope=openid+profile+app%3Aprism_abc123%3Aread_todos
+  &scope=openid+profile+teams%3Aread+app%3Aprism_abc123%3Aread_todos+app%3Aprism_abc123%3Acreate_todos
   &code_challenge=...
   &code_challenge_method=S256
 ```
 
-The user will see a consent card in Prism showing Glint's scope title and description as defined in Step 1.
+The user will see a consent card in Prism showing Glint's scope titles as defined in Step 1.
 
 ---
 
 ## Step 4 — Exchange the Code and Call Glint
 
-After the user approves and you complete the standard token exchange, the resulting access token's `scope` field will include `app:prism_abc123:read_todos`.
-
-Use it as a `Bearer` token when calling Glint:
+After the user approves and you complete the standard token exchange, use the resulting access token as a `Bearer` token when calling Glint:
 
 ```ts
 const response = await fetch(
@@ -152,13 +169,29 @@ Glint resolves team membership via two paths, in order:
 1. **KV cache** (fast path) — populated whenever the user logs in to Glint directly. If the user has logged in to Glint at least once, their team memberships are cached for 1 hour in KV.
 2. **Live Prism fetch** (fallback) — if the bearer token includes `teams:read` scope, Glint calls Prism's `/api/oauth/me/teams` in real time and caches the result.
 
-If neither path succeeds, the request returns `403` with an explanatory message. In practice you can avoid this by including `teams:read` in App B's requested scopes alongside the Glint scope.
+If neither path succeeds, the request returns `403` with an explanatory message. Always include `teams:read` in App B's requested scopes to ensure this fallback works for users who have never logged in to Glint.
 
-### Recommended Scope Set for App B
+### Recommended Minimum Scope Set
 
 ```
 openid profile teams:read app:prism_abc123:read_todos
 ```
+
+---
+
+## Permission Enforcement
+
+Possessing a Prism scope is a necessary but not sufficient condition for most write operations. Glint **also** enforces its own role-based permission system on every request.
+
+For example, a user with the `member` role and a `complete_todos` Prism scope will still receive `403` if the team's `complete_any_todo` permission is disabled for members. The two systems work in tandem:
+
+| Check | Where enforced | Failure response |
+| ----- | -------------- | ---------------- |
+| Token is active and scoped | Prism introspection | `401` / `403` |
+| User is a team member | Glint KV / Prism | `403` |
+| User has the Glint permission | Glint D1 (per-set or global) | `403` |
+
+Per-set permission overrides are respected. If a team has restricted `view_todos` for a specific set, cross-app requests to that set will be denied even if the global permission is open.
 
 ---
 
@@ -172,26 +205,16 @@ The user can choose to continue or sign out. This is a security safeguard and sh
 
 ---
 
-## Available Scopes
-
-| Scope key      | What it allows                                  |
-| -------------- | ----------------------------------------------- |
-| `read_todos`   | List sets and list todos in any joined team     |
-| `write_todos`  | Create todos, update todo title and completion  |
-| `delete_todos` | Delete todos                                    |
-
-All operations still respect Glint's per-team permission rules. If the user's team role lacks a permission (e.g., `create_todos`), the API returns `403` even with a valid `write_todos` scope.
-
----
-
 ## Error Reference
 
 | Status | Meaning                                                                          |
 | ------ | -------------------------------------------------------------------------------- |
 | `401`  | Missing or malformed `Authorization` header, or token is inactive/expired        |
-| `403`  | Token is missing the required scope; or user is not a member of the team         |
+| `403`  | Token is missing the required scope                                              |
+| `403`  | User is not a member of the team                                                 |
 | `403`  | Team membership unavailable (no KV cache and no `teams:read` in token scope)     |
-| `404`  | Set or todo not found, or does not belong to the requested team                  |
+| `403`  | User's Glint role permission is denied for this operation or set                 |
+| `404`  | Resource not found, or does not belong to the requested team                     |
 
 ---
 
@@ -201,58 +224,97 @@ All operations still respect Glint's per-team permission rules. If the user's te
 - App B's `client_secret` is never involved; only the `client_id` identifies the scope namespace.
 - If you want to restrict which apps can use Glint's scopes, set `app_allow` rules in Prism before publishing the `client_id` to integrators.
 - Revoking a user's App B consent in Prism also removes their access to Glint's resources — no extra action needed.
+- Cross-app tokens respect per-set permission overrides, not just global role permissions.
+- Use the most specific scopes available. Requesting `write_todos` gives broader access than `create_todos` alone.
 
 ---
 
 ## Full Example (TypeScript)
 
 ```ts
-async function getGlintSets(
-  accessToken: string,
-  glintBaseUrl: string,
-  teamId: string,
-) {
-  const res = await fetch(
-    `${glintBaseUrl}/api/cross-app/teams/${teamId}/sets`,
-    { headers: { Authorization: `Bearer ${accessToken}` } },
-  );
+const GLINT = "https://glint.example.com";
 
-  if (res.status === 401) throw new Error("Token inactive or missing");
-  if (res.status === 403) {
-    const { error } = await res.json();
-    throw new Error(`Forbidden: ${error}`);
-  }
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-  const { sets } = await res.json();
-  return sets as Array<{ id: string; name: string }>;
+async function listSets(token: string, teamId: string) {
+  const res = await fetch(`${GLINT}/api/cross-app/teams/${teamId}/sets`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error((await res.json()).error);
+  return (await res.json()).sets as Array<{ id: string; name: string }>;
 }
 
-async function createGlintTodo(
-  accessToken: string,
-  glintBaseUrl: string,
+async function listTodos(token: string, teamId: string, setId: string) {
+  const res = await fetch(
+    `${GLINT}/api/cross-app/teams/${teamId}/sets/${setId}/todos`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!res.ok) throw new Error((await res.json()).error);
+  return (await res.json()).todos;
+}
+
+async function createTodo(
+  token: string,
   teamId: string,
   setId: string,
   title: string,
+  parentId?: string,
 ) {
   const res = await fetch(
-    `${glintBaseUrl}/api/cross-app/teams/${teamId}/sets/${setId}/todos`,
+    `${GLINT}/api/cross-app/teams/${teamId}/sets/${setId}/todos`,
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ title }),
+      body: JSON.stringify({ title, parentId }),
     },
   );
+  if (!res.ok) throw new Error((await res.json()).error);
+  return (await res.json()).todo;
+}
 
-  if (!res.ok) {
-    const { error } = await res.json();
-    throw new Error(`Failed to create todo: ${error}`);
-  }
+async function completeTodo(token: string, teamId: string, todoId: string) {
+  const res = await fetch(
+    `${GLINT}/api/cross-app/teams/${teamId}/todos/${todoId}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ completed: true }),
+    },
+  );
+  if (!res.ok) throw new Error((await res.json()).error);
+}
 
-  const { todo } = await res.json();
-  return todo;
+async function postComment(
+  token: string,
+  teamId: string,
+  todoId: string,
+  body: string,
+) {
+  const res = await fetch(
+    `${GLINT}/api/cross-app/teams/${teamId}/todos/${todoId}/comments`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ body }),
+    },
+  );
+  if (!res.ok) throw new Error((await res.json()).error);
+  return (await res.json()).comment;
+}
+
+async function getSettings(token: string, teamId: string) {
+  const res = await fetch(
+    `${GLINT}/api/cross-app/teams/${teamId}/settings`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!res.ok) throw new Error((await res.json()).error);
+  return (await res.json()).settings;
 }
 ```

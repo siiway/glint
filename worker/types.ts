@@ -58,6 +58,8 @@ export type SessionData = {
 
 export type Variables = {
   session: SessionData;
+  /** Inner scopes (without the app:clientId: prefix) granted to the cross-app bearer token. */
+  crossAppScopes?: string[];
 };
 
 export type UserSettings = {
