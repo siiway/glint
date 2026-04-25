@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { Routes, Route, useParams, Navigate } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  useParams,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import {
   FluentProvider,
   webLightTheme,
@@ -26,6 +33,7 @@ import { TodoPage } from "./components/TodoPage";
 import { SharedPage } from "./components/SharedPage";
 import { CallbackPage } from "./components/CallbackPage";
 import { NotAuthorizedPage } from "./components/NotAuthorizedPage";
+import { buildLoginPath } from "./utils/authRedirect";
 
 function useColorScheme() {
   const [dark, setDark] = useState(
@@ -74,6 +82,10 @@ function AppShell() {
   } = useAuth();
   const { configured, markConfigured } = useInitStatus();
   const { t } = useI18n();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const currentPath = `${location.pathname}${location.search}${location.hash}`;
+  const loginPath = buildLoginPath(currentPath);
 
   if (loading || configured === null) {
     return (
@@ -101,7 +113,7 @@ function AppShell() {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={loginPath} replace />;
   }
 
   return (
@@ -114,7 +126,13 @@ function AppShell() {
           </MessageBarBody>
           <MessageBarActions
             containerAction={
-              <Button appearance="primary" onClick={() => void goToLogin()}>
+              <Button
+                appearance="primary"
+                onClick={() => {
+                  void goToLogin();
+                  navigate(loginPath, { replace: true });
+                }}
+              >
                 {t.sessionExpiredGoLogin}
               </Button>
             }

@@ -2037,7 +2037,7 @@ export function TodoPage() {
                         todo.completed &&
                         (i === 0 || !displayOrder[i - 1].completed);
 
-                      const elems: any[] = [];
+                      const elems: ReactNode[] = [];
                       if (insertHeader) {
                         elems.push(
                           <div

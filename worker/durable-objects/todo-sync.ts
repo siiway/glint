@@ -25,7 +25,9 @@ export class TodoSync {
       // Initial message so clients/devtools can confirm the stream is alive.
       try {
         server.send(JSON.stringify({ type: "realtime:ready", setId }));
-      } catch {}
+      } catch (error) {
+        void error;
+      }
       return new Response(null, { status: 101, webSocket: client });
     }
 
@@ -69,7 +71,9 @@ export class TodoSync {
       for (const ws of wsSockets) {
         try {
           ws.send(msg);
-        } catch {}
+        } catch (error) {
+          void error;
+        }
       }
 
       // SSE broadcast.
@@ -109,17 +113,21 @@ export class TodoSync {
     for (const [id, w] of dead) this.sseClients.get(id)?.delete(w);
   }
 
-  webSocketMessage(_ws: WebSocket, _msg: string | ArrayBuffer): void {}
+  webSocketMessage(): void {}
 
   webSocketClose(ws: WebSocket): void {
     try {
       ws.close();
-    } catch {}
+    } catch (error) {
+      void error;
+    }
   }
 
   webSocketError(ws: WebSocket): void {
     try {
       ws.close();
-    } catch {}
+    } catch (error) {
+      void error;
+    }
   }
 }

@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Spinner } from "@fluentui/react-components";
 import { useAuth } from "../auth";
+import { consumePostLoginRedirect } from "../utils/authRedirect";
 
 export function CallbackPage() {
   const { handleCallback } = useAuth();
@@ -22,12 +23,14 @@ export function CallbackPage() {
     sessionStorage.removeItem("pkce_state");
 
     if (!code || state !== storedState) {
+      consumePostLoginRedirect();
       navigate("/", { replace: true });
       return;
     }
 
     handleCallback(code, codeVerifier).then((ok) => {
-      navigate(ok ? "/" : "/?login_error=1", { replace: true });
+      const redirectPath = consumePostLoginRedirect();
+      navigate(ok ? redirectPath ?? "/" : "/?login_error=1", { replace: true });
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

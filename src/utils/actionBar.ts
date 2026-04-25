@@ -31,7 +31,9 @@ export function loadUserActionBar(): ActionKey[] | null {
     }
     const v = localStorage.getItem("glint_action_bar_user");
     if (v) return JSON.parse(v);
-  } catch {}
+  } catch (error) {
+    void error;
+  }
   return null;
 }
 
@@ -39,7 +41,9 @@ export function loadWorkspaceActionBar(spaceId: string): ActionKey[] | null {
   try {
     const v = localStorage.getItem(`glint_action_bar_ws_${spaceId}`);
     if (v) return JSON.parse(v);
-  } catch {}
+  } catch (error) {
+    void error;
+  }
   return null;
 }
 

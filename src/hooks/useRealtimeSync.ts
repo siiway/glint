@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect } from "react";
 import type { WsEvent } from "./useWebSocket";
 
 export type { WsEvent };
@@ -20,56 +20,58 @@ export function useRealtimeSync({
   enabled = true,
   transport = "auto",
 }: Options) {
-  const onEventRef = useRef(onEvent);
-  onEventRef.current = onEvent;
+  useEffect(() => {
+    if (!enabled) return;
 
-  const cleanupRef = useRef<(() => void) | null>(null);
-  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const retryDelay = useRef(500);
-  const unmounted = useRef(false);
+    let unmounted = false;
+    let cleanup: (() => void) | null = null;
+    let retry: ReturnType<typeof setTimeout> | null = null;
+    let retryDelay = 500;
 
-  const connectSse = useCallback(() => {
-    if (unmounted.current || !enabled) return;
-
-    const url = `/api/teams/${teamId}/sets/${setId}/sse`;
-    const es = new EventSource(url);
-
-    es.onmessage = (ev) => {
-      try {
-        const event = JSON.parse(ev.data as string) as WsEvent;
-        onEventRef.current(event);
-      } catch {}
+    const scheduleRetry = (fn: () => void) => {
+      const delay = retryDelay;
+      retryDelay = Math.min(delay * 2, 30000);
+      retry = setTimeout(fn, delay);
     };
 
-    es.onerror = () => {
-      es.close();
-      if (unmounted.current) return;
-      const delay = retryDelay.current;
-      retryDelay.current = Math.min(delay * 2, 30000);
-      retryRef.current = setTimeout(connectSse, delay);
+    const connectSse = () => {
+      if (unmounted) return;
+
+      const url = `/api/teams/${teamId}/sets/${setId}/sse`;
+      const es = new EventSource(url);
+
+      es.onmessage = (ev) => {
+        try {
+          const event = JSON.parse(ev.data as string) as WsEvent;
+          onEvent(event);
+        } catch (error) {
+          void error;
+        }
+      };
+
+      es.onopen = () => {
+        retryDelay = 500;
+      };
+
+      es.onerror = () => {
+        es.close();
+        if (unmounted) return;
+        scheduleRetry(connectSse);
+      };
+
+      cleanup = () => es.close();
     };
 
-    es.onopen = () => {
-      retryDelay.current = 500;
-    };
+    const connectWs = async (fallbackToSse: boolean) => {
+      if (unmounted) return;
 
-    cleanupRef.current = () => es.close();
-  }, [teamId, setId, enabled]);
-
-  const connectWs = useCallback(
-    async (fallbackToSse: boolean) => {
-      if (unmounted.current || !enabled) return;
-
-      // Probe before upgrading (503 = realtime not available, stop silently).
       try {
         const probe = await fetch(`/api/teams/${teamId}/sets/${setId}/ws`, {
           method: "HEAD",
         });
-        // 503 means durable objects not configured, don't retry.
         if (probe.status === 503) return;
-        // Other errors (like 426) are part of normal WebSocket upgrade flow, continue.
-      } catch {
-        // Network error during probe, continue to try WebSocket
+      } catch (error) {
+        void error;
       }
 
       const proto = location.protocol === "https:" ? "wss:" : "ws:";
@@ -77,52 +79,45 @@ export function useRealtimeSync({
       const socket = new WebSocket(url);
 
       socket.onopen = () => {
-        retryDelay.current = 500;
+        retryDelay = 500;
       };
 
       socket.onmessage = (ev) => {
         try {
           const event = JSON.parse(ev.data as string) as WsEvent;
-          onEventRef.current(event);
-        } catch {}
+          onEvent(event);
+        } catch (error) {
+          void error;
+        }
       };
 
       socket.onclose = () => {
-        if (unmounted.current) return;
+        if (unmounted) return;
         if (fallbackToSse) {
-          // WS failed on first attempt — fall back to SSE permanently for this session.
           connectSse();
           return;
         }
-        const delay = retryDelay.current;
-        retryDelay.current = Math.min(delay * 2, 30000);
-        retryRef.current = setTimeout(() => connectWs(false), delay);
+        scheduleRetry(() => {
+          void connectWs(false);
+        });
       };
 
       socket.onerror = () => socket.close();
-      cleanupRef.current = () => socket.close();
-    },
-    [teamId, setId, enabled, connectSse],
-  );
-
-  useEffect(() => {
-    if (!enabled) return;
-    unmounted.current = false;
-    retryDelay.current = 500;
+      cleanup = () => socket.close();
+    };
 
     if (transport === "sse") {
       connectSse();
     } else if (transport === "ws") {
       void connectWs(false);
     } else {
-      // "auto": try WS, fall back to SSE on first failure.
       void connectWs(true);
     }
 
     return () => {
-      unmounted.current = true;
-      if (retryRef.current) clearTimeout(retryRef.current);
-      cleanupRef.current?.();
+      unmounted = true;
+      if (retry) clearTimeout(retry);
+      cleanup?.();
     };
-  }, [transport, connectWs, connectSse, enabled]);
+  }, [teamId, setId, onEvent, enabled, transport]);
 }

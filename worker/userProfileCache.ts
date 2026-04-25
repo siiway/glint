@@ -1,6 +1,5 @@
 import type { AppConfig, SessionData } from "./types";
 import { getPrism } from "./auth";
-import { getSiteToken } from "./siteToken";
 
 type CachedProfile = { name: string; avatarUrl: string | null };
 
@@ -60,9 +59,8 @@ export async function resolveUserProfiles(
   if (missIds.size === 0) return { nameMap, avatarMap };
 
   // Fetch from Prism for cache misses.
-  // First try teams.get() to batch-resolve team members; then fall back to
-  // site.getUser() for IDs still missing (e.g. users not in the team or
-  // when the token doesn't carry teams:read).
+  // teams.get() batch-resolves team members and refreshes team-member cache.
+  // IDs not present in the team may remain unresolved.
   try {
     const prism = getPrism(config);
     const { members } = await prism.teams.get(session.accessToken, teamId);
@@ -89,46 +87,9 @@ export async function resolveUserProfiles(
     }
 
     await Promise.all(puts);
-  } catch {
-    // teams.get() failed or token lacks teams:read — fall through to site lookup.
-  }
-
-  // For any IDs still unresolved, try site.getUser() (requires site:user:read).
-  // Prefer the stored site service token so regular users don't need the scope themselves.
-  const stillMissing = [...missIds].filter((id) => !(id in nameMap));
-  if (stillMissing.length > 0) {
-    const prism = getPrism(config);
-    const puts: Promise<void>[] = [];
-
-    const siteTokenData = await getSiteToken(kv);
-    const siteAccessToken = siteTokenData?.accessToken ?? session.accessToken;
-
-    await Promise.allSettled(
-      stillMissing.map(async (id) => {
-        try {
-          const u = await prism.site.getUser(siteAccessToken, id);
-          const name = u.display_name || u.username;
-          const avatarUrl: string | null = u.avatar_url ?? null;
-
-          nameMap[id] = name;
-          if (avatarUrl) avatarMap[id] = avatarUrl;
-
-          if (ttl > 0) {
-            puts.push(
-              kv.put(
-                KV_PREFIX + id,
-                JSON.stringify({ name, avatarUrl } satisfies CachedProfile),
-                { expirationTtl: ttl },
-              ),
-            );
-          }
-        } catch {
-          // User not found or insufficient scope — leave unresolved.
-        }
-      }),
-    );
-
-    await Promise.all(puts);
+  } catch (error) {
+    // teams.get() failed or token lacks teams:read.
+    void error;
   }
 
   return { nameMap, avatarMap };

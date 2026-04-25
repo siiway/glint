@@ -11,14 +11,18 @@ function readCache(): UserSettings {
   try {
     const v = localStorage.getItem(LS_KEY);
     if (v) return JSON.parse(v) as UserSettings;
-  } catch {}
+  } catch (error) {
+    void error;
+  }
   return {};
 }
 
 function writeCache(s: UserSettings) {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(s));
-  } catch {}
+  } catch (error) {
+    void error;
+  }
 }
 
 export function useUserSettings() {
@@ -34,7 +38,9 @@ export function useUserSettings() {
           writeCache(data.settings);
         }
       })
-      .catch(() => {})
+      .catch((error: unknown) => {
+        void error;
+      })
       .finally(() => setLoading(false));
   }, []);
 

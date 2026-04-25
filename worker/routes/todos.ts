@@ -24,7 +24,9 @@ function broadcast(
         headers: { "Content-Type": "application/json" },
       }),
     );
-  } catch {}
+  } catch (error) {
+    void error;
+  }
 }
 
 const claimedBySupportCache = new WeakMap<D1Database, boolean>();

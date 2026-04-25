@@ -8,6 +8,10 @@ import {
   type ReactNode,
 } from "react";
 import { PrismClient } from "@siiway/prism";
+import {
+  readRedirectFromSearch,
+  rememberPostLoginRedirect,
+} from "./utils/authRedirect";
 
 export type TeamInfo = {
   id: string;
@@ -138,11 +142,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async () => {
     const cfg = await getConfig();
     const prism = await getPrism();
+    const redirectFromSearch = readRedirectFromSearch(window.location.search);
+    const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    rememberPostLoginRedirect(
+      redirectFromSearch ?? (window.location.pathname === "/login" ? null : currentPath),
+    );
 
     if (cfg.usePkce) {
-      const { url, pkce } = await prism.createAuthorizationUrl({
-        optionalScopes: ["site:user:read"],
-      });
+      const { url, pkce } = await prism.createAuthorizationUrl();
       sessionStorage.setItem("pkce_verifier", pkce.codeVerifier);
       sessionStorage.setItem("pkce_state", pkce.state);
       window.location.href = url;
