@@ -3,6 +3,7 @@ import type { Bindings, Variables } from "../types";
 import { requireWorkbenchAuth } from "../workbenchAuth";
 import { getTeamRole, isPersonalSpaceId } from "../auth";
 import { resolveWorkbenchTeamId } from "../config";
+import { listTodos, patchTodo } from "../handlers/todos";
 
 const workbench = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -85,7 +86,7 @@ workbench.get(
 
     const [sets, counts] = await Promise.all([
       c.env.DB.prepare(
-        "SELECT id, name, description, sort_order FROM todo_sets WHERE team_id = ? ORDER BY sort_order ASC, name ASC",
+        "SELECT id, name, sort_order FROM todo_sets WHERE team_id = ? ORDER BY sort_order ASC, name ASC",
       )
         .bind(teamId)
         .all(),
@@ -115,7 +116,6 @@ workbench.get(
         return {
           id: row.id as string,
           name: row.name as string,
-          description: (row.description as string) || null,
           sortOrder: row.sort_order as number,
           total: stats.total,
           completed: stats.completed,
@@ -225,6 +225,26 @@ workbench.get(
       })),
     });
   },
+);
+
+/**
+ * GET /api/workbench/teams/:teamId/sets/:setId/todos
+ * Lists todos for a specific set. Delegates to the shared listTodos handler.
+ */
+workbench.get(
+  "/api/workbench/teams/:teamId/sets/:setId/todos",
+  requireWorkbenchAuth,
+  listTodos,
+);
+
+/**
+ * PATCH /api/workbench/teams/:teamId/todos/:todoId
+ * Update a todo (title, completion, sort order). Delegates to the shared patchTodo handler.
+ */
+workbench.patch(
+  "/api/workbench/teams/:teamId/todos/:todoId",
+  requireWorkbenchAuth,
+  patchTodo,
 );
 
 export default workbench;

@@ -19,6 +19,13 @@ export { TodoSync } from "./durable-objects/todo-sync";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
+app.onError((err, c) => {
+  const message = err instanceof Error ? err.message : String(err);
+  const stack = err instanceof Error ? err.stack : undefined;
+  console.error("Unhandled worker error:", message, stack);
+  return c.json({ error: message, stack }, 500);
+});
+
 app.route("/", initRoutes);
 app.route("/", authRoutes);
 app.route("/", settingsRoutes);
