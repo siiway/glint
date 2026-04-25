@@ -236,6 +236,12 @@ export function SettingsPage({
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [deletingLinkId, setDeletingLinkId] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [registeringPerms, setRegisteringPerms] = useState(false);
+  const [registerResult, setRegisterResult] = useState<{
+    ok: boolean;
+    message: string;
+    failures?: { scope: string; error?: string }[];
+  } | null>(null);
 
   const canManage =
     permsData?.role === "owner" || permsData?.role === "co-owner" || false;
@@ -407,6 +413,63 @@ export function SettingsPage({
       body: JSON.stringify(editAppConfig),
     });
     setSaving(false);
+  };
+
+  const registerPermissions = async () => {
+    setRegisteringPerms(true);
+    setRegisterResult(null);
+    try {
+      const res = await fetch("/api/init/register-permissions", {
+        method: "POST",
+      });
+      const data = (await res.json()) as
+        | {
+            registered: number;
+            failed: number;
+            total: number;
+            results: { scope: string; ok: boolean; error?: string }[];
+          }
+        | { error: string };
+      if (!res.ok || "error" in data) {
+        setRegisterResult({
+          ok: false,
+          message: t.appConfigRegisterPermissionsError.replace(
+            "{error}",
+            "error" in data ? data.error : `HTTP ${res.status}`,
+          ),
+        });
+        return;
+      }
+      const failures = data.results.filter((r) => !r.ok);
+      if (data.failed === 0) {
+        setRegisterResult({
+          ok: true,
+          message: t.appConfigRegisterPermissionsAllOk.replace(
+            "{total}",
+            String(data.total),
+          ),
+        });
+      } else {
+        setRegisterResult({
+          ok: false,
+          message: t.appConfigRegisterPermissionsResult
+            .replace("{ok}", String(data.registered))
+            .replace("{total}", String(data.total))
+            .replace("{failed}", String(data.failed)),
+          failures,
+        });
+      }
+    } catch (e) {
+      setRegisterResult({
+        ok: false,
+        message: t.appConfigRegisterPermissionsError.replace(
+          "{error}",
+          e instanceof Error ? e.message : String(e),
+        ),
+      });
+    } finally {
+      setRegisteringPerms(false);
+    }
   };
 
   const togglePerm = (role: string, key: string) => {
@@ -1339,6 +1402,60 @@ export function SettingsPage({
                 );
               })}
             </div>
+
+            <Divider style={{ margin: "16px 0" }} />
+
+            <Title3 className={styles.sectionTitle}>
+              {t.appConfigRegisterPermissions}
+            </Title3>
+            <Body1
+              style={{
+                fontSize: 12,
+                color: tokens.colorNeutralForeground4,
+                display: "block",
+                marginBottom: 8,
+              }}
+            >
+              {t.appConfigRegisterPermissionsHint}
+            </Body1>
+            <Button
+              appearance="secondary"
+              onClick={registerPermissions}
+              disabled={registeringPerms}
+            >
+              {registeringPerms
+                ? t.appConfigRegisterPermissionsRunning
+                : t.appConfigRegisterPermissionsButton}
+            </Button>
+            {registerResult && (
+              <div
+                style={{
+                  marginTop: 12,
+                  padding: "8px 12px",
+                  borderRadius: tokens.borderRadiusMedium,
+                  backgroundColor: registerResult.ok
+                    ? tokens.colorPaletteGreenBackground2
+                    : tokens.colorPaletteRedBackground2,
+                  color: registerResult.ok
+                    ? tokens.colorPaletteGreenForeground2
+                    : tokens.colorPaletteRedForeground2,
+                  fontSize: 13,
+                }}
+              >
+                <div>{registerResult.message}</div>
+                {registerResult.failures &&
+                  registerResult.failures.length > 0 && (
+                    <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>
+                      {registerResult.failures.map((f) => (
+                        <li key={f.scope}>
+                          <code>{f.scope}</code>
+                          {f.error ? `: ${f.error}` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+              </div>
+            )}
 
             <div className={styles.saveBar}>
               <Button

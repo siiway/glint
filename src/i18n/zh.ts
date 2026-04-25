@@ -311,6 +311,15 @@ const zh: typeof en = {
   appConfigUserProfileCacheTtl: "用户资料缓存时长（秒）",
   appConfigUserProfileCacheTtlHint:
     "从 Prism 解析的显示名称和头像的缓存时长。设为 0 则每次实时获取。默认值：86400（1 天）。",
+  appConfigRegisterPermissions: "注册权限",
+  appConfigRegisterPermissionsHint:
+    "将 Glint 导出的跨应用 OAuth 权限范围推送到 Prism，使其在授权同意页显示为友好名称。需要在 Prism 应用上配置客户端密钥并启用 `allow_self_register_permissions`。",
+  appConfigRegisterPermissionsButton: "注册到 Prism",
+  appConfigRegisterPermissionsRunning: "注册中…",
+  appConfigRegisterPermissionsResult:
+    "已注册 {ok}/{total} 个权限。{failed} 个失败。",
+  appConfigRegisterPermissionsAllOk: "全部 {total} 个权限均已注册。",
+  appConfigRegisterPermissionsError: "注册失败：{error}",
 
   // Permission labels
   permLabel_manage_settings: "管理设置",

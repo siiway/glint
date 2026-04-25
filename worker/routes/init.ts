@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { getCookie } from "hono/cookie";
+import { PrismError } from "@siiway/prism";
 import type { Bindings, Variables, AppConfig, SessionData } from "../types";
 import {
   getAppConfig,
@@ -7,7 +8,8 @@ import {
   getTeamSettings,
   parseAllowedTeamIds,
 } from "../config";
-import { getTeamRole } from "../auth";
+import { getPrism, getTeamRole } from "../auth";
+import { CROSS_APP_SCOPES } from "../crossAppScopes";
 
 const init = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -178,6 +180,78 @@ init.post("/api/init/setup", async (c) => {
 
   await c.env.KV.put("init:configured", "true");
   return c.json({ ok: true });
+});
+
+/**
+ * Register Glint's exported cross-app OAuth scopes with Prism so the consent
+ * screen shows friendly titles/descriptions when other apps request them.
+ *
+ * Authenticates as the Glint OAuth app itself (HTTP Basic with client
+ * credentials), so the configured app must have a client secret and
+ * `allow_self_register_permissions` enabled in Prism.
+ */
+init.post("/api/init/register-permissions", async (c) => {
+  const sessionId = getCookie(c, "session");
+  if (!sessionId) return c.json({ error: "Unauthorized" }, 401);
+  const cached = await c.env.KV.get(`session:${sessionId}`, "json");
+  if (!cached) return c.json({ error: "Unauthorized" }, 401);
+  const session = cached as SessionData;
+
+  const config = await getAppConfig(c.env.KV, c.env);
+  const allowedTeamIds = parseAllowedTeamIds(config.allowed_team_id);
+  if (allowedTeamIds.length > 0) {
+    const isOwner = allowedTeamIds.some(
+      (teamId) => getTeamRole(session, teamId) === "owner",
+    );
+    if (!isOwner)
+      return c.json({ error: "Only team owner can register permissions" }, 403);
+  }
+
+  if (!config.prism_client_secret) {
+    return c.json(
+      {
+        error:
+          "A client secret is required to register permissions as the app. Configure one in App Config (or disable PKCE).",
+      },
+      400,
+    );
+  }
+  if (!config.prism_client_id) {
+    return c.json({ error: "Prism client ID is not configured." }, 400);
+  }
+
+  const prism = getPrism(config);
+  const results: {
+    scope: string;
+    ok: boolean;
+    error?: string;
+  }[] = [];
+
+  for (const def of CROSS_APP_SCOPES) {
+    try {
+      await prism.appScopePermissions.upsertDefinitionAsSelf(
+        config.prism_client_id,
+        def,
+      );
+      results.push({ scope: def.scope, ok: true });
+    } catch (err) {
+      const message =
+        err instanceof PrismError
+          ? `${err.message}${err.code ? ` (${err.code})` : ""}`
+          : err instanceof Error
+            ? err.message
+            : "Unknown error";
+      results.push({ scope: def.scope, ok: false, error: message });
+    }
+  }
+
+  const failed = results.filter((r) => !r.ok).length;
+  return c.json({
+    registered: results.length - failed,
+    failed,
+    total: results.length,
+    results,
+  });
 });
 
 export default init;

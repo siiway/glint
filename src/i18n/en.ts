@@ -324,6 +324,15 @@ export default {
   appConfigUserProfileCacheTtl: "User Profile Cache (seconds)",
   appConfigUserProfileCacheTtlHint:
     "How long to cache resolved display names and avatars from Prism. Set to 0 to always fetch live. Default: 86400 (1 day).",
+  appConfigRegisterPermissions: "Register Permissions",
+  appConfigRegisterPermissionsHint:
+    "Push Glint's exported cross-app OAuth scopes to Prism so they show with friendly titles on the consent screen. Requires a client secret and `allow_self_register_permissions` on the Prism app.",
+  appConfigRegisterPermissionsButton: "Register with Prism",
+  appConfigRegisterPermissionsRunning: "Registering…",
+  appConfigRegisterPermissionsResult:
+    "Registered {ok} of {total} scope(s). {failed} failed.",
+  appConfigRegisterPermissionsAllOk: "All {total} scope(s) registered.",
+  appConfigRegisterPermissionsError: "Registration failed: {error}",
 
   // Permission labels
   permLabel_manage_settings: "Manage Settings",
