@@ -257,6 +257,7 @@ export function SettingsPage({
     (permsData?.global?.[(permsData?.role as string) ?? ""]
       ?.manage_permissions ??
       false);
+  const canManageAppConfig = permsData?.role === "owner";
 
   // Fetch all data
   const fetchData = useCallback(async () => {
@@ -307,6 +308,12 @@ export function SettingsPage({
       void fetchData();
     });
   }, [fetchData]);
+
+  useEffect(() => {
+    if (activeTab === "appconfig" && !canManageAppConfig) {
+      setActiveTab("preferences");
+    }
+  }, [activeTab, canManageAppConfig]);
 
   // When scope changes, load the right perms
   useEffect(() => {
@@ -520,7 +527,9 @@ export function SettingsPage({
           <Tab value="branding">{t.settingsTabBranding}</Tab>
           <Tab value="permissions">{t.settingsTabPermissions}</Tab>
           <Tab value="sharelinks">{t.settingsTabShareLinks}</Tab>
-          {canManage && <Tab value="appconfig">{t.settingsTabAppConfig}</Tab>}
+          {canManageAppConfig && (
+            <Tab value="appconfig">{t.settingsTabAppConfig}</Tab>
+          )}
         </TabList>
 
         {activeTab === "preferences" && (
@@ -1153,7 +1162,7 @@ export function SettingsPage({
           </div>
         )}
 
-        {activeTab === "appconfig" && canManage && editAppConfig && (
+        {activeTab === "appconfig" && canManageAppConfig && editAppConfig && (
           <div className={styles.section}>
             <Title3 className={styles.sectionTitle}>
               {t.appConfigPrismOAuth}
