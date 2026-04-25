@@ -14,6 +14,7 @@ import sharesRoutes from "./routes/shares";
 import crossAppRoutes from "./routes/cross-app";
 import wsRoutes from "./routes/ws";
 import userSettingsRoutes from "./routes/userSettings";
+import workbenchRoutes from "./routes/workbench";
 export { TodoSync } from "./durable-objects/todo-sync";
 
 const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
@@ -29,6 +30,7 @@ app.route("/", sharesRoutes);
 app.route("/", crossAppRoutes);
 app.route("/", wsRoutes);
 app.route("/", userSettingsRoutes);
+app.route("/", workbenchRoutes);
 
 export default {
   fetch: app.fetch,

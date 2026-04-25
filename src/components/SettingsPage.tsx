@@ -88,6 +88,7 @@ type TeamSettings = {
   default_set_name: string;
   allow_member_create_sets: boolean;
   default_timezone: string;
+  workbench_id?: string;
 };
 
 type PermissionKey = string;
@@ -236,6 +237,7 @@ export function SettingsPage({
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [deletingLinkId, setDeletingLinkId] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [editWorkbenchId, setEditWorkbenchId] = useState<string | null>(null);
   const [registeringPerms, setRegisteringPerms] = useState(false);
   const [registerResult, setRegisterResult] = useState<{
     ok: boolean;
@@ -333,6 +335,21 @@ export function SettingsPage({
       setEditPerms(merged);
     });
   }, [permScope, permsData]);
+
+  const saveWorkbenchId = async () => {
+    if (editWorkbenchId === null) return;
+    setSaving(true);
+    const res = await fetch(`/api/teams/${teamId}/workbench-id`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workbench_id: editWorkbenchId }),
+    });
+    if (res.ok) {
+      setEditSettings((s) => s && { ...s, workbench_id: editWorkbenchId });
+      setEditWorkbenchId(null);
+    }
+    setSaving(false);
+  };
 
   const saveSettings = async () => {
     if (!editSettings) return;
@@ -897,6 +914,55 @@ export function SettingsPage({
                 disabled={!canManage}
                 placeholder="UTC"
               />
+            </div>
+
+            <Divider style={{ margin: "16px 0" }} />
+
+            <Title3 className={styles.sectionTitle}>Workbench Integration</Title3>
+            <div className={styles.field}>
+              <Body2 className={styles.fieldLabel}>Workbench ID</Body2>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {editWorkbenchId !== null ? (
+                  <>
+                    <Input
+                      value={editWorkbenchId}
+                      onChange={(_, d) => setEditWorkbenchId(d.value)}
+                      style={{ flex: 1 }}
+                    />
+                    <Button size="small" appearance="primary" icon={<Save24Regular />} onClick={() => void saveWorkbenchId()} disabled={saving} />
+                    <Button size="small" appearance="subtle" onClick={() => setEditWorkbenchId(null)}>Cancel</Button>
+                  </>
+                ) : (
+                  <>
+                    <Input
+                      value={editSettings.workbench_id ?? teamId}
+                      readOnly
+                      style={{ flex: 1 }}
+                    />
+                    <Tooltip content="Copy to clipboard" relationship="label">
+                      <Button
+                        size="small"
+                        appearance="subtle"
+                        icon={<Copy24Regular />}
+                        onClick={() => void navigator.clipboard.writeText(editSettings.workbench_id ?? teamId)}
+                      />
+                    </Tooltip>
+                    {canManage && (
+                      <Tooltip content="Edit" relationship="label">
+                        <Button
+                          size="small"
+                          appearance="subtle"
+                          icon={<Edit24Regular />}
+                          onClick={() => setEditWorkbenchId(editSettings.workbench_id ?? teamId)}
+                        />
+                      </Tooltip>
+                    )}
+                  </>
+                )}
+              </div>
+              <Body2 style={{ color: tokens.colorNeutralForeground3, marginTop: 4, fontSize: "12px" }}>
+                Paste this ID into Workbench's team settings to connect to this team.
+              </Body2>
             </div>
 
             {canManage && (

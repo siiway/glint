@@ -36,3 +36,4 @@ dist-ssr
 # docs
 docs/.vitepress/dist
 docs/.vitepress/cache
+/glint.iml

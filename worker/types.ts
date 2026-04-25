@@ -77,6 +77,8 @@ export type TeamSettings = {
   default_set_name: string;
   allow_member_create_sets: boolean;
   default_timezone: string;
+  /** Identifier used by Workbench to address this team. Defaults to the Prism team ID. */
+  workbench_id?: string;
 };
 
 export const DEFAULT_SETTINGS: TeamSettings = {
