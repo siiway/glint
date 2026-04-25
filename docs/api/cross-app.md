@@ -23,6 +23,10 @@ After verifying the token, Glint resolves the user's team membership from either
 
 Each endpoint requires a specific Prism scope **and** the corresponding Glint role permission. Both must be satisfied.
 
+::: tip Registering these scopes in Prism
+The [Cross-App Integration guide](/guide/cross-app#importing-the-scope-definitions-into-prism) ships a copy-pasteable JSON block of all scope definitions, ready for Prism's **Import** dialog (Glint app → Permissions → Import).
+:::
+
 | Scope              | Endpoints permitted                                                         |
 | ------------------ | --------------------------------------------------------------------------- |
 | `read_todos`       | `GET /api/cross-app/teams/:teamId/sets`                                     |

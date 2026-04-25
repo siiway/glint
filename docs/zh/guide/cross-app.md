@@ -62,13 +62,89 @@ Glint 的所有者必须首先在 Prism 的控制台中定义 App B 可以申请
 
 登录 Prism，打开 Glint 的应用设置，进入 **Permissions（权限）** 选项卡，添加如下权限范围定义：
 
-| Scope 键名      | 建议标题          | 说明                                        |
-| --------------- | ----------------- | ------------------------------------------- |
-| `read_todos`    | 读取待办事项      | 查看已加入团队中的待办分组和待办事项        |
-| `write_todos`   | 创建和编辑待办    | 创建和更新待办事项                          |
-| `delete_todos`  | 删除待办事项      | 删除待办事项                                |
+| Scope 键名         | 建议标题             | 说明                                               |
+| ------------------ | -------------------- | -------------------------------------------------- |
+| `read_todos`       | 读取待办与评论       | 列出分组、查看待办、读取评论                       |
+| `create_todos`     | 创建待办             | 新建待办与子待办                                   |
+| `edit_todos`       | 编辑待办             | 修改待办标题                                       |
+| `complete_todos`   | 切换完成状态         | 标记待办完成或未完成                               |
+| `delete_todos`     | 删除待办             | 删除待办                                           |
+| `manage_sets`      | 管理分组             | 新建、重命名、删除待办分组                         |
+| `comment`          | 发布评论             | 在待办下添加评论                                   |
+| `delete_comments`  | 删除评论             | 删除自己或他人的评论（视团队权限）                 |
+| `read_settings`    | 读取团队设置         | 读取团队品牌与偏好                                 |
+| `manage_settings`  | 管理团队设置         | 修改团队品牌与偏好                                 |
+| `write_todos`      | 创建/编辑待办（旧版）| 旧版兼容范围，覆盖创建、编辑、完成；新接入请使用细分 scope |
 
-可根据实际需求定义任意数量的 scope。
+只需定义你实际需要的 scope。
+
+### 一键导入到 Prism
+
+不想逐条手动添加？将下面的 JSON 直接粘贴到 Prism 的 **Import** 对话框（Glint 应用 → Permissions → Import）即可。同名 scope 会被覆盖更新。
+
+```json
+[
+  {
+    "scope": "read_todos",
+    "title": "读取待办与评论",
+    "description": "列出分组、查看待办、读取评论。"
+  },
+  {
+    "scope": "create_todos",
+    "title": "创建待办",
+    "description": "新建待办与子待办。"
+  },
+  {
+    "scope": "edit_todos",
+    "title": "编辑待办",
+    "description": "修改待办标题。"
+  },
+  {
+    "scope": "complete_todos",
+    "title": "切换完成状态",
+    "description": "标记待办完成或未完成。"
+  },
+  {
+    "scope": "delete_todos",
+    "title": "删除待办",
+    "description": "删除待办。"
+  },
+  {
+    "scope": "write_todos",
+    "title": "创建/编辑待办（旧版）",
+    "description": "旧版兼容范围，覆盖创建、编辑与完成。新接入请使用细分 scope。"
+  },
+  {
+    "scope": "manage_sets",
+    "title": "管理分组",
+    "description": "新建、重命名、删除待办分组。"
+  },
+  {
+    "scope": "comment",
+    "title": "发布评论",
+    "description": "在待办下添加评论。"
+  },
+  {
+    "scope": "delete_comments",
+    "title": "删除评论",
+    "description": "删除自己的评论；具备团队权限时可删除他人评论。"
+  },
+  {
+    "scope": "read_settings",
+    "title": "读取团队设置",
+    "description": "读取团队品牌与偏好。"
+  },
+  {
+    "scope": "manage_settings",
+    "title": "管理团队设置",
+    "description": "修改团队品牌与偏好。"
+  }
+]
+```
+
+::: tip 一键替代方案
+如果 Glint 应用已经配置了 client secret，并在 Prism 中启用了 `allow_self_manage_exported_permissions`，Glint 所有者可以直接在 Glint 内点击 **设置 → 应用配置 → 注册权限** 把上述定义推送到 Prism。
+:::
 
 可选地，可以设置**访问规则**来限制哪些应用或用户可以注册这些 scope：
 
@@ -86,6 +162,14 @@ Glint 的所有者必须首先在 Prism 的控制台中定义 App B 可以申请
 ```
 app:prism_abc123:read_todos
 ```
+
+### 一键生成 App B 的允许 scope
+
+填入你的 Glint Client ID，勾选 App B 真正需要的权限，然后点 **复制**，粘贴到 Prism 的 **Import scopes** 对话框（App B → 设置 → Allowed Scopes → Import scopes）即可。已存在的 scope 会保留，新 scope 会被合并进去。**导入后请记得点击保存。**
+
+<ScopeBuilder />
+
+只勾选你真正需要的 scope，其他留空即可。用户会在 Prism 授权页看到这些 scope 的标题。
 
 也可通过 API 完成：
 

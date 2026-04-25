@@ -84,6 +84,74 @@ Log in to Prism, open Glint's app settings, go to **Permissions**, and add scope
 
 **Recommended for a full automation integration:** `read_todos`, `create_todos`, `edit_todos`, `complete_todos`, `delete_todos`
 
+### Importing the Scope Definitions into Prism
+
+Instead of typing each definition by hand, paste the JSON block below into Prism's **Import** dialog (Glint app → Permissions → Import). Existing definitions with the same `scope` are updated in place.
+
+```json
+[
+  {
+    "scope": "read_todos",
+    "title": "Read todos",
+    "description": "List sets, read todos, and read comments."
+  },
+  {
+    "scope": "create_todos",
+    "title": "Create todos",
+    "description": "Add new todos and sub-todos."
+  },
+  {
+    "scope": "edit_todos",
+    "title": "Edit todos",
+    "description": "Edit todo titles."
+  },
+  {
+    "scope": "complete_todos",
+    "title": "Complete todos",
+    "description": "Toggle completion on todos."
+  },
+  {
+    "scope": "delete_todos",
+    "title": "Delete todos",
+    "description": "Delete todos."
+  },
+  {
+    "scope": "write_todos",
+    "title": "Write todos (legacy)",
+    "description": "Legacy catch-all covering create, edit, and complete. Prefer the more specific scopes."
+  },
+  {
+    "scope": "manage_sets",
+    "title": "Manage sets",
+    "description": "Create, rename, and delete todo sets."
+  },
+  {
+    "scope": "comment",
+    "title": "Post comments",
+    "description": "Add comments to todos."
+  },
+  {
+    "scope": "delete_comments",
+    "title": "Delete comments",
+    "description": "Delete own comments, or any comment with team permission."
+  },
+  {
+    "scope": "read_settings",
+    "title": "Read team settings",
+    "description": "Read team branding and preferences."
+  },
+  {
+    "scope": "manage_settings",
+    "title": "Manage team settings",
+    "description": "Edit team branding and preferences."
+  }
+]
+```
+
+::: tip One-click alternative
+If your Glint app has a client secret and `allow_self_manage_exported_permissions` is enabled in Prism, a Glint owner can hit **Settings → App Config → Register Permissions** to push these same definitions to Prism without leaving Glint.
+:::
+
 ### Access Rules
 
 Optionally, set **access rules** to restrict which apps or users can register these scopes:
@@ -105,6 +173,14 @@ app:prism_abc123:read_todos
 
 to App B's `allowed_scopes`. This step is gated by any `owner_allow` rules Glint's admin may have set.
 
+### Build App B's Allowed Scopes
+
+Paste your Glint client ID, tick the permissions App B needs, then click **Copy** and paste the result into Prism's **Import scopes** dialog (App B → Settings → Allowed Scopes → Import scopes). Existing scopes are kept; new ones are merged in. **Don't forget to click Save afterwards.**
+
+<ScopeBuilder />
+
+Request only the scopes your app genuinely needs — leave the rest unticked. Users see the scope titles on the Prism consent screen.
+
 Alternatively, via API:
 
 ```bash
@@ -119,8 +195,6 @@ curl -X PATCH https://prism.example.com/api/apps/<appB_id> \
     ]
   }'
 ```
-
-Request only the scopes your app genuinely needs. Users see the scope titles on the Prism consent screen.
 
 ---
 
