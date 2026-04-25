@@ -29,10 +29,13 @@ The [Cross-App Integration guide](/guide/cross-app#importing-the-scope-definitio
 
 | Scope              | Endpoints permitted                                                         |
 | ------------------ | --------------------------------------------------------------------------- |
-| `read_todos`       | `GET /api/cross-app/teams/:teamId/sets`                                     |
+| `read_todos`       | `GET /api/cross-app/me`                                                     |
+|                    | `GET /api/cross-app/teams/:teamId/sets`                                     |
 |                    | `GET /api/cross-app/teams/:teamId/sets/:setId/todos`                        |
 |                    | `GET /api/cross-app/teams/:teamId/todos/:todoId/comments`                   |
 |                    | `GET /api/cross-app/teams/:teamId/sets/:setId/export`                       |
+|                    | `GET /api/cross-app/teams/:teamId/sets/:setId/sse`                          |
+|                    | `* /api/cross-app/teams/:teamId/sets/:setId/ws` (WebSocket upgrade)         |
 | `create_todos`     | `POST /api/cross-app/teams/:teamId/sets/:setId/todos`                       |
 |                    | `POST /api/cross-app/teams/:teamId/sets/:setId/import` (append mode)        |
 | `edit_todos`       | `PATCH /api/cross-app/teams/:teamId/todos/:todoId` (title field only)       |
@@ -53,6 +56,35 @@ The [Cross-App Integration guide](/guide/cross-app#importing-the-scope-definitio
 | `write_todos`      | Legacy catch-all: accepted wherever `create_todos`, `edit_todos`, or `complete_todos` is required |
 
 The `write_todos` scope is kept for backward compatibility with existing integrations. New integrations should request the specific scopes they need.
+
+---
+
+## Identity
+
+### `GET /api/cross-app/me`
+
+Resolve the calling user from the bearer token. Useful for showing "logged in as X" in App B without making a separate Prism userinfo call.
+
+**Required scope:** `read_todos` (re-used as the lowest-friction baseline)
+
+**Response `200`:**
+
+```json
+{
+  "user": {
+    "id": "user_id",
+    "username": "alice",
+    "displayName": "Alice Liddell",
+    "avatarUrl": "https://example.com/a.png",
+    "teams": [
+      { "id": "team_id", "name": "Tea Party", "role": "owner", "avatarUrl": null }
+    ]
+  },
+  "grantedScopes": ["read_todos", "create_todos", "..."]
+}
+```
+
+`grantedScopes` lists the inner scopes (without the `app:<glint_id>:` prefix) granted by this token, so App B can branch on them client-side instead of probing endpoints.
 
 ---
 
@@ -741,6 +773,45 @@ Only the fields listed below are accepted; any other keys are ignored:
 | `401`  | Token missing or inactive                      |
 | `403`  | Token lacks `manage_settings` scope            |
 | `403`  | User's `manage_settings` permission denied     |
+
+---
+
+## Realtime
+
+Subscribe to live updates for a single set. Both endpoints require `read_todos` and team membership; events are pushed for any todo, comment, or claim change in that set, regardless of which client made the change (native UI, cross-app API, or share link).
+
+WebSocket clients must include `Authorization: Bearer <token>` on the upgrade request — browser `WebSocket` doesn't support custom headers, so most cross-app integrations will run from a server or a non-browser client.
+
+### `GET /api/cross-app/teams/:teamId/sets/:setId/sse`
+
+Server-Sent Events stream. Re-uses the same Durable Object as the native UI so events are identical.
+
+**Required scope:** `read_todos`
+
+**Response:** `text/event-stream` with events such as:
+
+```
+event: todo:created
+data: {"setId":"uuid","todo":{...}}
+
+event: todo:updated
+data: {"setId":"uuid","todo":{"id":"uuid","completed":true}}
+
+event: todo:claimed
+data: {"setId":"uuid","id":"uuid","claimedBy":"user_id","claimedByName":"Alice","claimedByAvatar":null}
+```
+
+### `* /api/cross-app/teams/:teamId/sets/:setId/ws`
+
+WebSocket upgrade endpoint. Same event payloads as SSE.
+
+**Required scope:** `read_todos`
+
+| Status | Cause                                                        |
+| ------ | ------------------------------------------------------------ |
+| `200`  | `HEAD` probe — confirms the endpoint is reachable            |
+| `426`  | `GET` without `Upgrade: websocket` header                    |
+| `503`  | Durable Object binding `TODO_SYNC` is missing on the worker  |
 
 ---
 
