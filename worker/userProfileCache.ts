@@ -83,7 +83,11 @@ export async function resolveUserProfiles(
         puts.push(
           kv.put(
             KV_PREFIX + m.user_id,
-            JSON.stringify({ name, username, avatarUrl } satisfies CachedProfile),
+            JSON.stringify({
+              name,
+              username,
+              avatarUrl,
+            } satisfies CachedProfile),
             { expirationTtl: ttl },
           ),
         );

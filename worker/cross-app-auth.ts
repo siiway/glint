@@ -13,12 +13,19 @@
  * session from a previous Glint login.
  *
  * Scope names (defined in Prism as app:<glint_client_id>:<inner>):
- *   read_todos    — list sets and read todos
- *   create_todos  — create new todos
- *   edit_todos    — edit todo titles
- *   complete_todos — toggle todo completion
- *   delete_todos  — delete todos
- *   write_todos   — legacy catch-all: accepted wherever create/edit/complete is needed
+ *   read_todos      — list sets and read todos
+ *   create_todos    — create new todos
+ *   edit_todos      — edit todo titles
+ *   complete_todos  — toggle todo completion
+ *   delete_todos    — delete todos
+ *   reorder_todos   — change todo sort order
+ *   claim_todos     — claim/unclaim todos
+ *   write_todos     — legacy catch-all: accepted wherever create/edit/complete is needed
+ *   manage_sets     — create/rename/delete/reorder/configure sets, bulk import/export
+ *   comment         — post comments
+ *   delete_comments — delete comments
+ *   read_settings   — read team settings
+ *   manage_settings — manage team settings
  */
 
 import { createMiddleware } from "hono/factory";

@@ -66,12 +66,14 @@ Log in to Prism, open Glint's app settings, go to **Permissions**, and add scope
 
 | Scope key          | Suggested title              | What it allows                                                   |
 | ------------------ | ---------------------------- | ---------------------------------------------------------------- |
-| `read_todos`       | Read todos & comments        | List sets, view todos, read comments                             |
-| `create_todos`     | Create todos                 | Create todos and sub-todos                                       |
+| `read_todos`       | Read todos & comments        | List sets, view todos, read comments, export set content         |
+| `create_todos`     | Create todos                 | Create todos and sub-todos; import into existing sets            |
 | `edit_todos`       | Edit todo titles             | Rename todos (own and others', per role)                         |
 | `complete_todos`   | Toggle completion            | Mark todos complete/incomplete (own and others', per role)       |
 | `delete_todos`     | Delete todos                 | Delete todos (own and others', per role)                         |
-| `manage_sets`      | Manage sets                  | Create, rename, and delete todo sets                             |
+| `reorder_todos`    | Reorder todos                | Change todo sort order (drag-and-drop equivalent)                |
+| `claim_todos`      | Claim todos                  | Claim or release a todo to/from yourself                         |
+| `manage_sets`      | Manage sets                  | Create, rename, delete, reorder, and configure sets (auto-renew, timezone, split-completed). Also covers bulk import-as-new-set and replace-mode imports. |
 | `comment`          | Post comments                | Add comments to todos                                            |
 | `delete_comments`  | Delete comments              | Delete comments (own and others', per role)                      |
 | `read_settings`    | Read workspace settings      | Read team settings (name, timezone, etc.)                        |
@@ -82,7 +84,7 @@ Log in to Prism, open Glint's app settings, go to **Permissions**, and add scope
 
 **Minimum for a todo-writing integration:** `read_todos`, `create_todos`
 
-**Recommended for a full automation integration:** `read_todos`, `create_todos`, `edit_todos`, `complete_todos`, `delete_todos`
+**Recommended for a full automation integration:** `read_todos`, `create_todos`, `edit_todos`, `complete_todos`, `delete_todos`, `reorder_todos`, `claim_todos`
 
 ### Importing the Scope Definitions into Prism
 
@@ -116,6 +118,16 @@ Instead of typing each definition by hand, paste the JSON block below into Prism
     "description": "Delete todos."
   },
   {
+    "scope": "reorder_todos",
+    "title": "Reorder todos",
+    "description": "Change todo sort order (drag-and-drop equivalent)."
+  },
+  {
+    "scope": "claim_todos",
+    "title": "Claim todos",
+    "description": "Assign or release a todo to/from yourself."
+  },
+  {
     "scope": "write_todos",
     "title": "Write todos (legacy)",
     "description": "Legacy catch-all covering create, edit, and complete. Prefer the more specific scopes."
@@ -123,7 +135,7 @@ Instead of typing each definition by hand, paste the JSON block below into Prism
   {
     "scope": "manage_sets",
     "title": "Manage sets",
-    "description": "Create, rename, and delete todo sets."
+    "description": "Create, rename, delete, reorder, and configure todo sets (auto-renew, timezone, split-completed). Also covers bulk import/export of set contents."
   },
   {
     "scope": "comment",

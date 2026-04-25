@@ -39,6 +39,16 @@ export const CROSS_APP_SCOPES: CrossAppScopeDef[] = [
     description: "Delete todos.",
   },
   {
+    scope: "reorder_todos",
+    title: "Reorder todos",
+    description: "Change todo sort order (drag-and-drop equivalent).",
+  },
+  {
+    scope: "claim_todos",
+    title: "Claim todos",
+    description: "Assign or release a todo to/from yourself.",
+  },
+  {
     scope: "write_todos",
     title: "Write todos (legacy)",
     description:
@@ -47,7 +57,8 @@ export const CROSS_APP_SCOPES: CrossAppScopeDef[] = [
   {
     scope: "manage_sets",
     title: "Manage sets",
-    description: "Create, rename, and delete todo sets.",
+    description:
+      "Create, rename, delete, reorder, and configure todo sets (auto-renew, timezone, split-completed). Also covers bulk import/export of set contents.",
   },
   {
     scope: "comment",

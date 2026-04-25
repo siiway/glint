@@ -145,7 +145,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const redirectFromSearch = readRedirectFromSearch(window.location.search);
     const currentPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     rememberPostLoginRedirect(
-      redirectFromSearch ?? (window.location.pathname === "/login" ? null : currentPath),
+      redirectFromSearch ??
+        (window.location.pathname === "/login" ? null : currentPath),
     );
 
     if (cfg.usePkce) {

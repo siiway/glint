@@ -32,13 +32,20 @@ The [Cross-App Integration guide](/guide/cross-app#importing-the-scope-definitio
 | `read_todos`       | `GET /api/cross-app/teams/:teamId/sets`                                     |
 |                    | `GET /api/cross-app/teams/:teamId/sets/:setId/todos`                        |
 |                    | `GET /api/cross-app/teams/:teamId/todos/:todoId/comments`                   |
+|                    | `GET /api/cross-app/teams/:teamId/sets/:setId/export`                       |
 | `create_todos`     | `POST /api/cross-app/teams/:teamId/sets/:setId/todos`                       |
+|                    | `POST /api/cross-app/teams/:teamId/sets/:setId/import` (append mode)        |
 | `edit_todos`       | `PATCH /api/cross-app/teams/:teamId/todos/:todoId` (title field only)       |
 | `complete_todos`   | `PATCH /api/cross-app/teams/:teamId/todos/:todoId` (completed field only)   |
 | `delete_todos`     | `DELETE /api/cross-app/teams/:teamId/todos/:todoId`                         |
+| `reorder_todos`    | `POST /api/cross-app/teams/:teamId/todos/reorder`                           |
+| `claim_todos`      | `POST /api/cross-app/teams/:teamId/todos/:todoId/claim`                     |
 | `manage_sets`      | `POST /api/cross-app/teams/:teamId/sets`                                    |
-|                    | `PATCH /api/cross-app/teams/:teamId/sets/:setId`                            |
+|                    | `PATCH /api/cross-app/teams/:teamId/sets/:setId` (incl. auto-renew, timezone, split-completed) |
 |                    | `DELETE /api/cross-app/teams/:teamId/sets/:setId`                           |
+|                    | `POST /api/cross-app/teams/:teamId/sets/reorder`                            |
+|                    | `POST /api/cross-app/teams/:teamId/sets/import` (import-as-new-set)         |
+|                    | `POST /api/cross-app/teams/:teamId/sets/:setId/import` with `mode: "replace"` (also requires `create_todos`) |
 | `comment`          | `POST /api/cross-app/teams/:teamId/todos/:todoId/comments`                  |
 | `delete_comments`  | `DELETE /api/cross-app/teams/:teamId/todos/:todoId/comments/:commentId`     |
 | `read_settings`    | `GET /api/cross-app/teams/:teamId/settings`                                 |
@@ -62,8 +69,18 @@ List all todo sets in a team.
 ```json
 {
   "sets": [
-    { "id": "uuid", "name": "Sprint 12" },
-    { "id": "uuid", "name": "Backlog" }
+    {
+      "id": "uuid",
+      "userId": "user_id_of_creator",
+      "name": "Sprint 12",
+      "sortOrder": 1,
+      "autoRenew": false,
+      "renewTime": "00:00",
+      "timezone": "",
+      "lastRenewedAt": null,
+      "splitCompleted": false,
+      "createdAt": "2026-04-17T09:00:00.000Z"
+    }
   ]
 }
 ```
@@ -121,7 +138,7 @@ Create a new todo set. Requires the `manage_sets` Glint permission.
 
 ### `PATCH /api/cross-app/teams/:teamId/sets/:setId`
 
-Rename a set. Requires the `manage_sets` Glint permission, or the requesting user must own the set.
+Rename or reconfigure a set. Requires the `manage_sets` Glint permission, or the requesting user must own the set.
 
 **Required scope:** `manage_sets`
 
@@ -132,11 +149,25 @@ Rename a set. Requires the `manage_sets` Glint permission, or the requesting use
 | `teamId`  | Prism team ID   |
 | `setId`   | Todo set ID     |
 
-**Request body (all fields optional):**
+**Request body (all fields optional, send only the ones you want to change):**
 
 ```json
-{ "name": "Renamed Set" }
+{
+  "name": "Renamed Set",
+  "autoRenew": true,
+  "renewTime": "06:00",
+  "timezone": "America/Los_Angeles",
+  "splitCompleted": true
+}
 ```
+
+| Field            | Type    | Description                                                           |
+| ---------------- | ------- | --------------------------------------------------------------------- |
+| `name`           | string  | New name (whitespace trimmed, must not be empty if sent)              |
+| `autoRenew`      | boolean | Enable daily reset of completed todos                                 |
+| `renewTime`      | string  | `HH:MM` time of day for auto-renew                                    |
+| `timezone`       | string  | IANA timezone (empty = team default)                                  |
+| `splitCompleted` | boolean | Show completed root todos in their own section                        |
 
 **Response `200`:**
 
@@ -179,6 +210,132 @@ Delete a set and all its todos. Requires `manage_sets` permission, or the reques
 
 ---
 
+### `POST /api/cross-app/teams/:teamId/sets/reorder`
+
+Persist a new sort order for sets after a drag-and-drop reorder. Send only the sets whose `sortOrder` changed.
+
+**Required scope:** `manage_sets`
+
+**Request body:**
+
+```json
+{
+  "items": [
+    { "id": "set-uuid-1", "sortOrder": 1 },
+    { "id": "set-uuid-2", "sortOrder": 2 }
+  ]
+}
+```
+
+**Response `200`:** `{ "ok": true }`
+
+**Errors:** `400` empty `items`; `401` token; `403` scope or permission.
+
+---
+
+### `GET /api/cross-app/teams/:teamId/sets/:setId/export`
+
+Export a set as Markdown, JSON, or YAML. Mirrors the native export endpoint.
+
+**Required scope:** `read_todos`
+
+**Query params:**
+
+| Param             | Default | Description                                       |
+| ----------------- | ------- | ------------------------------------------------- |
+| `format`          | `md`    | One of `md`, `json`, `yaml`                       |
+| `includeComments` | `0`     | Set to `1` to include comments in the export      |
+
+**Response `200`:**
+
+```json
+{
+  "format": "md",
+  "fileName": "Sprint_12.md",
+  "content": "- [x] First todo\n- [ ] Second todo"
+}
+```
+
+**Errors:** `403` scope or `view_todos` permission; `404` set not found.
+
+---
+
+### `POST /api/cross-app/teams/:teamId/sets/:setId/import`
+
+Import todos into an existing set. `mode: "replace"` wipes existing todos first and additionally requires the `manage_sets` scope and permission.
+
+**Required scope:** `create_todos` or `write_todos` (replace mode also requires `manage_sets`)
+
+**Request body:**
+
+```json
+{
+  "format": "md",
+  "content": "- [ ] Todo A\n- [ ] Todo B",
+  "mode": "append",
+  "includeComments": false,
+  "insertAt": "bottom"
+}
+```
+
+| Field             | Type    | Default    | Description                                                |
+| ----------------- | ------- | ---------- | ---------------------------------------------------------- |
+| `format`          | string  | `"md"`     | `md`, `json`, or `yaml`                                    |
+| `content`         | string  | —          | The serialized payload to import                           |
+| `mode`            | string  | `"append"` | `"append"` or `"replace"` (replace requires `manage_sets`) |
+| `includeComments` | boolean | `false`    | Import comments embedded in the payload                    |
+| `insertAt`        | string  | `"bottom"` | `"top"` or `"bottom"`                                      |
+
+**Response `200`:** `{ "ok": true, "imported": 7 }`
+
+**Errors:** `400` parse failure or empty content; `403` missing scope/permission (replace mode without `manage_sets`).
+
+---
+
+### `POST /api/cross-app/teams/:teamId/sets/import`
+
+Import a payload as a brand-new set in the team.
+
+**Required scope:** `manage_sets`
+
+**Request body:**
+
+```json
+{
+  "format": "yaml",
+  "content": "version: 1\nset:\n  id: my-set-id\n  name: Imported\ntodos: []",
+  "includeComments": false,
+  "setName": "Optional override",
+  "setId": "optional-override-uuid"
+}
+```
+
+For markdown imports the set ID is always generated; `setName` defaults to `"Imported Set"` if not supplied.
+
+**Response `200`:**
+
+```json
+{
+  "ok": true,
+  "imported": 0,
+  "set": {
+    "id": "uuid",
+    "userId": "user_id_of_creator",
+    "name": "Imported",
+    "sortOrder": 4,
+    "autoRenew": false,
+    "renewTime": "00:00",
+    "timezone": "",
+    "lastRenewedAt": null,
+    "splitCompleted": false
+  }
+}
+```
+
+**Errors:** `400` empty content / missing name / parse failure; `409` `setId` already exists in this team.
+
+---
+
 ## Todos
 
 ### `GET /api/cross-app/teams/:teamId/sets/:setId/todos`
@@ -194,19 +351,29 @@ List all todos in a set. Respects the user's `view_todos` permission.
   "todos": [
     {
       "id": "uuid",
+      "userId": "user_id_of_creator",
       "parentId": null,
       "title": "Write unit tests",
       "completed": false,
       "sortOrder": 1,
+      "commentCount": 2,
+      "claimedBy": "user_id_or_null",
+      "claimedByName": "Display Name",
+      "claimedByAvatar": "https://example.com/a.png",
       "createdAt": "2026-04-01T10:00:00.000Z",
       "updatedAt": "2026-04-01T10:00:00.000Z"
     },
     {
       "id": "uuid-2",
+      "userId": "user_id_of_creator",
       "parentId": "uuid",
       "title": "Cover edge cases",
       "completed": true,
       "sortOrder": 1,
+      "commentCount": 0,
+      "claimedBy": null,
+      "claimedByName": null,
+      "claimedByAvatar": null,
       "createdAt": "2026-04-01T10:05:00.000Z",
       "updatedAt": "2026-04-02T08:00:00.000Z"
     }
@@ -214,7 +381,7 @@ List all todos in a set. Respects the user's `view_todos` permission.
 }
 ```
 
-Todos are returned flat. Sub-todos have a non-null `parentId` referencing their parent.
+Todos are returned flat. Sub-todos have a non-null `parentId` referencing their parent. `claimedByName` / `claimedByAvatar` are resolved from Prism for team spaces; for personal spaces only the calling user is resolved.
 
 **Errors:**
 
@@ -339,6 +506,58 @@ Delete a todo. Requires `delete_own_todos` for own todos, `delete_any_todo` for 
 | `403`  | Token lacks `delete_todos` scope                                 |
 | `403`  | User's `delete_own_todos` or `delete_any_todo` permission denied |
 | `404`  | Todo not found or does not belong to `teamId`                    |
+
+---
+
+### `POST /api/cross-app/teams/:teamId/todos/reorder`
+
+Persist new sort orders for one or more todos after a drag-and-drop reorder. Sub-todos and root todos can be sent in the same batch.
+
+**Required scope:** `reorder_todos`
+
+**Request body:**
+
+```json
+{
+  "items": [
+    { "id": "todo-uuid-1", "sortOrder": 1 },
+    { "id": "todo-uuid-2", "sortOrder": 2 }
+  ]
+}
+```
+
+**Response `200`:** `{ "ok": true }`
+
+**Errors:** `400` empty `items`; `401` token; `403` missing scope or `reorder_todos` permission.
+
+---
+
+### `POST /api/cross-app/teams/:teamId/todos/:todoId/claim`
+
+Toggle the claim on a todo: claims for the caller if unclaimed, releases if claimed by the caller. Returns `409` if claimed by someone else.
+
+**Required scope:** `claim_todos`
+
+**Response `200`:**
+
+```json
+{
+  "ok": true,
+  "claimedBy": "user_id_or_null",
+  "claimedByName": "Display Name or null",
+  "claimedByAvatar": "https://example.com/a.png"
+}
+```
+
+**Errors:**
+
+| Status | Cause                                                              |
+| ------ | ------------------------------------------------------------------ |
+| `401`  | Token missing or inactive                                          |
+| `403`  | Token lacks `claim_todos` scope or user lacks `claim_todos` permission |
+| `404`  | Todo not found or does not belong to `teamId`                      |
+| `409`  | Already claimed by another user                                    |
+| `503`  | Database missing the `claimed_by` column (run migrations)          |
 
 ---
 

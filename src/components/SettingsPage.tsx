@@ -250,8 +250,7 @@ export function SettingsPage({
   const canManageSetLinks =
     permsData?.role === "owner" ||
     permsData?.role === "co-owner" ||
-    (permsData?.global?.[(permsData?.role as string) ?? ""]
-      ?.manage_set_links ??
+    (permsData?.global?.[(permsData?.role as string) ?? ""]?.manage_set_links ??
       false);
   const canManagePerms =
     permsData?.role === "owner" ||
@@ -918,7 +917,9 @@ export function SettingsPage({
 
             <Divider style={{ margin: "16px 0" }} />
 
-            <Title3 className={styles.sectionTitle}>Workbench Integration</Title3>
+            <Title3 className={styles.sectionTitle}>
+              Workbench Integration
+            </Title3>
             <div className={styles.field}>
               <Body2 className={styles.fieldLabel}>Workbench ID</Body2>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -929,8 +930,20 @@ export function SettingsPage({
                       onChange={(_, d) => setEditWorkbenchId(d.value)}
                       style={{ flex: 1 }}
                     />
-                    <Button size="small" appearance="primary" icon={<Save24Regular />} onClick={() => void saveWorkbenchId()} disabled={saving} />
-                    <Button size="small" appearance="subtle" onClick={() => setEditWorkbenchId(null)}>Cancel</Button>
+                    <Button
+                      size="small"
+                      appearance="primary"
+                      icon={<Save24Regular />}
+                      onClick={() => void saveWorkbenchId()}
+                      disabled={saving}
+                    />
+                    <Button
+                      size="small"
+                      appearance="subtle"
+                      onClick={() => setEditWorkbenchId(null)}
+                    >
+                      Cancel
+                    </Button>
                   </>
                 ) : (
                   <>
@@ -944,7 +957,11 @@ export function SettingsPage({
                         size="small"
                         appearance="subtle"
                         icon={<Copy24Regular />}
-                        onClick={() => void navigator.clipboard.writeText(editSettings.workbench_id ?? teamId)}
+                        onClick={() =>
+                          void navigator.clipboard.writeText(
+                            editSettings.workbench_id ?? teamId,
+                          )
+                        }
                       />
                     </Tooltip>
                     {canManage && (
@@ -953,15 +970,26 @@ export function SettingsPage({
                           size="small"
                           appearance="subtle"
                           icon={<Edit24Regular />}
-                          onClick={() => setEditWorkbenchId(editSettings.workbench_id ?? teamId)}
+                          onClick={() =>
+                            setEditWorkbenchId(
+                              editSettings.workbench_id ?? teamId,
+                            )
+                          }
                         />
                       </Tooltip>
                     )}
                   </>
                 )}
               </div>
-              <Body2 style={{ color: tokens.colorNeutralForeground3, marginTop: 4, fontSize: "12px" }}>
-                Paste this ID into Workbench's team settings to connect to this team.
+              <Body2
+                style={{
+                  color: tokens.colorNeutralForeground3,
+                  marginTop: 4,
+                  fontSize: "12px",
+                }}
+              >
+                Paste this ID into Workbench's team settings to connect to this
+                team.
               </Body2>
             </div>
 

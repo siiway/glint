@@ -39,7 +39,10 @@ export async function getTeamSettings(
   teamId: string,
 ): Promise<TeamSettings> {
   const raw = await kv.get(`team_settings:${teamId}`, "json");
-  const s: TeamSettings = { ...DEFAULT_SETTINGS, ...((raw as Partial<TeamSettings> | null) ?? {}) };
+  const s: TeamSettings = {
+    ...DEFAULT_SETTINGS,
+    ...((raw as Partial<TeamSettings> | null) ?? {}),
+  };
   if (!s.workbench_id) s.workbench_id = teamId;
   return s;
 }
@@ -64,7 +67,10 @@ export async function setWorkbenchId(
   teamId: string,
   newWorkbenchId: string,
 ): Promise<void> {
-  const raw = await kv.get(`team_settings:${teamId}`, "json") as Partial<TeamSettings> | null;
+  const raw = (await kv.get(
+    `team_settings:${teamId}`,
+    "json",
+  )) as Partial<TeamSettings> | null;
   const oldWorkbenchId = raw?.workbench_id;
   if (oldWorkbenchId && oldWorkbenchId !== teamId) {
     await kv.delete(`wbid:${oldWorkbenchId}`);
@@ -83,7 +89,9 @@ export async function resolveWorkbenchTeamId(
   kv: KVNamespace,
   workbenchId: string,
 ): Promise<string> {
-  const entry = await kv.get(`wbid:${workbenchId}`, "json") as { teamId: string } | null;
+  const entry = (await kv.get(`wbid:${workbenchId}`, "json")) as {
+    teamId: string;
+  } | null;
   return entry?.teamId ?? workbenchId;
 }
 

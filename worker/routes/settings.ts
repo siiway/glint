@@ -60,8 +60,14 @@ settings.put("/api/teams/:teamId/workbench-id", requireAuth, async (c) => {
   const role = getTeamRole(session, teamId);
   if (!role) return c.json({ error: "Not a member of this team" }, 403);
 
-  const canEdit = await hasPermission(c.env.DB, teamId, role, "manage_settings");
-  if (!canEdit) return c.json({ error: "No permission to manage settings" }, 403);
+  const canEdit = await hasPermission(
+    c.env.DB,
+    teamId,
+    role,
+    "manage_settings",
+  );
+  if (!canEdit)
+    return c.json({ error: "No permission to manage settings" }, 403);
 
   const body = await c.req.json<{ workbench_id: string }>();
   const newId = (body.workbench_id ?? "").trim();

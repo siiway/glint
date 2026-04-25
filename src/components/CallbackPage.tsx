@@ -30,7 +30,9 @@ export function CallbackPage() {
 
     handleCallback(code, codeVerifier).then((ok) => {
       const redirectPath = consumePostLoginRedirect();
-      navigate(ok ? redirectPath ?? "/" : "/?login_error=1", { replace: true });
+      navigate(ok ? (redirectPath ?? "/") : "/?login_error=1", {
+        replace: true,
+      });
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

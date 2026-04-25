@@ -58,9 +58,19 @@ const APP_SCOPES: ScopeItem[] = [
   },
   { key: "delete_todos", en: "Delete todos", zh: "删除待办" },
   {
+    key: "reorder_todos",
+    en: "Reorder todos (drag-and-drop)",
+    zh: "调整待办顺序（拖拽排序）",
+  },
+  {
+    key: "claim_todos",
+    en: "Claim / unclaim todos",
+    zh: "认领 / 取消认领待办",
+  },
+  {
     key: "manage_sets",
-    en: "Manage todo sets (create / rename / delete)",
-    zh: "管理分组（新建/重命名/删除）",
+    en: "Manage sets (create/rename/delete/reorder/configure, bulk import-export)",
+    zh: "管理分组（新建/重命名/删除/排序/配置，批量导入导出）",
   },
   { key: "comment", en: "Post comments", zh: "发布评论" },
   {

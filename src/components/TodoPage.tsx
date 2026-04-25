@@ -608,15 +608,15 @@ export function TodoPage() {
             }
             case "todo:claimed":
               return prev.map((t) =>
-                    t.id === event.id
-                      ? {
-                          ...t,
-                          claimedBy: event.claimedBy,
-                          claimedByName: event.claimedByName,
-                          claimedByUsername: event.claimedByUsername ?? null,
-                          claimedByAvatar: event.claimedByAvatar,
-                        }
-                      : t,
+                t.id === event.id
+                  ? {
+                      ...t,
+                      claimedBy: event.claimedBy,
+                      claimedByName: event.claimedByName,
+                      claimedByUsername: event.claimedByUsername ?? null,
+                      claimedByAvatar: event.claimedByAvatar,
+                    }
+                  : t,
               );
             default:
               return prev;
