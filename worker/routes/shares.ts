@@ -122,8 +122,8 @@ shares.post(
     const role = getTeamRole(session, teamId);
     if (!role) return c.json({ error: "Not a member of this team" }, 403);
 
-    if (!(await hasPermission(c.env.DB, teamId, role, "manage_sets"))) {
-      return c.json({ error: "No permission to manage sets" }, 403);
+    if (!(await hasPermission(c.env.DB, teamId, role, "manage_set_links"))) {
+      return c.json({ error: "No permission to manage set links" }, 403);
     }
 
     const body = await c.req.json<{
@@ -199,8 +199,8 @@ shares.patch(
     const role = getTeamRole(session, teamId);
     if (!role) return c.json({ error: "Not a member of this team" }, 403);
 
-    if (!(await hasPermission(c.env.DB, teamId, role, "manage_sets"))) {
-      return c.json({ error: "No permission to manage sets" }, 403);
+    if (!(await hasPermission(c.env.DB, teamId, role, "manage_set_links"))) {
+      return c.json({ error: "No permission to manage set links" }, 403);
     }
 
     const body = await c.req.json<{
@@ -282,8 +282,8 @@ shares.delete(
     const role = getTeamRole(session, teamId);
     if (!role) return c.json({ error: "Not a member of this team" }, 403);
 
-    if (!(await hasPermission(c.env.DB, teamId, role, "manage_sets"))) {
-      return c.json({ error: "No permission to manage sets" }, 403);
+    if (!(await hasPermission(c.env.DB, teamId, role, "manage_set_links"))) {
+      return c.json({ error: "No permission to manage set links" }, 403);
     }
 
     await c.env.DB.prepare(

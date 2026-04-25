@@ -169,6 +169,7 @@ type Props = {
   siteLogo: string;
   canManageSettings: boolean;
   canManageSets: boolean;
+  canManageSetLinks: boolean;
   onOpenSettings: () => void;
   onAddSet: (name: string) => Promise<void>;
   onImportSet: (set: TodoSet) => void;
@@ -196,6 +197,7 @@ export function Sidebar({
   siteLogo,
   canManageSettings,
   canManageSets,
+  canManageSetLinks,
   onOpenSettings,
   onAddSet,
   onImportSet,
@@ -605,7 +607,7 @@ export function Sidebar({
       teamId={selectedSpaceId}
       setId={linksSetId}
       setName={sets.find((s) => s.id === linksSetId)?.name ?? ""}
-      canManage={canManageSets}
+      canManage={canManageSetLinks}
     />
   ) : null;
 

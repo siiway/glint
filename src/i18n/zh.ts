@@ -319,6 +319,8 @@ const zh: typeof en = {
   permDesc_manage_permissions: "编辑权限规则",
   permLabel_manage_sets: "管理分组",
   permDesc_manage_sets: "创建、重命名、删除、排序待办分组",
+  permLabel_manage_set_links: "管理分组链接",
+  permDesc_manage_set_links: "管理分组分享链接与 badge",
   permLabel_create_todos: "创建任务",
   permDesc_create_todos: "添加新任务",
   permLabel_edit_own_todos: "编辑自己的任务",

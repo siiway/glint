@@ -239,6 +239,12 @@ export function SettingsPage({
 
   const canManage =
     permsData?.role === "owner" || permsData?.role === "co-owner" || false;
+  const canManageSetLinks =
+    permsData?.role === "owner" ||
+    permsData?.role === "co-owner" ||
+    (permsData?.global?.[(permsData?.role as string) ?? ""]
+      ?.manage_set_links ??
+      false);
   const canManagePerms =
     permsData?.role === "owner" ||
     permsData?.role === "co-owner" ||
@@ -1065,7 +1071,7 @@ export function SettingsPage({
                                   : undefined}
                               </Button>
                             </Tooltip>
-                            {canManage && (
+                            {canManageSetLinks && (
                               <Button
                                 appearance="transparent"
                                 size="small"

@@ -1855,6 +1855,7 @@ export function TodoPage() {
           siteLogo={siteLogo}
           canManageSettings={selectedSpace?.kind === "team"}
           canManageSets={hasPerm("manage_sets")}
+          canManageSetLinks={hasPerm("manage_set_links")}
           onOpenSettings={() => navigate(`/${selectedSpaceId}/settings`)}
           onAddSet={handleAddSet}
           onImportSet={(set) => {

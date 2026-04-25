@@ -332,6 +332,8 @@ export default {
   permDesc_manage_permissions: "Edit permission rules",
   permLabel_manage_sets: "Manage Sets",
   permDesc_manage_sets: "Create, rename, delete, reorder todo sets",
+  permLabel_manage_set_links: "Manage Set Links",
+  permDesc_manage_set_links: "Manage set share links and badges",
   permLabel_create_todos: "Create Todos",
   permDesc_create_todos: "Add new todos",
   permLabel_edit_own_todos: "Edit Own Todos",
