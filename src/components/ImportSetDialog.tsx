@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Button,
   Checkbox,
@@ -134,18 +134,18 @@ export function ImportSetDialog({ open, onClose, teamId, onImported }: Props) {
   const [format, setFormat] = useState<TransferFormat>("json");
   const [includeComments, setIncludeComments] = useState(false);
   const [content, setContent] = useState("");
-  const [generatedSetId, setGeneratedSetId] = useState(crypto.randomUUID());
-  const [setId, setSetId] = useState("");
+  const [generatedSetId, setGeneratedSetId] = useState(() =>
+    crypto.randomUUID(),
+  );
   const [setName, setSetName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [prevOpenFormat, setPrevOpenFormat] = useState({ open, format });
 
-  useEffect(() => {
-    if (!open) return;
-    const id = crypto.randomUUID();
-    setGeneratedSetId(id);
-    if (format === "md") setSetId(id);
-  }, [open, format]);
+  if (prevOpenFormat.open !== open || prevOpenFormat.format !== format) {
+    setPrevOpenFormat({ open, format });
+    if (open) setGeneratedSetId(crypto.randomUUID());
+  }
 
   const parsed = useMemo(() => {
     if (!content.trim()) {
@@ -194,18 +194,21 @@ export function ImportSetDialog({ open, onClose, teamId, onImported }: Props) {
     }
   }, [content, format, generatedSetId, t.transferParseError]);
 
-  useEffect(() => {
-    if (format === "md") {
-      setSetId(generatedSetId);
-      return;
-    }
-    setSetId(parsed.parsedSetId || generatedSetId);
-  }, [format, parsed.parsedSetId, generatedSetId]);
+  const setId = parsed.parsedSetId || generatedSetId;
 
-  useEffect(() => {
-    if (format === "md") return;
-    setSetName(parsed.parsedSetName || "");
-  }, [format, parsed.parsedSetName]);
+  const [prevNameSync, setPrevNameSync] = useState({
+    format,
+    parsedSetName: parsed.parsedSetName,
+  });
+  if (
+    prevNameSync.format !== format ||
+    prevNameSync.parsedSetName !== parsed.parsedSetName
+  ) {
+    setPrevNameSync({ format, parsedSetName: parsed.parsedSetName });
+    if (format !== "md") {
+      setSetName(parsed.parsedSetName || "");
+    }
+  }
 
   const stats = useMemo(() => collectStats(parsed.todos), [parsed.todos]);
 
@@ -353,7 +356,6 @@ export function ImportSetDialog({ open, onClose, teamId, onImported }: Props) {
             <div className={styles.row} style={{ marginTop: 12 }}>
               <Input
                 value={setId}
-                onChange={(_, d) => setSetId(d.value)}
                 disabled
                 style={{ flex: 1, minWidth: 220 }}
                 placeholder={t.transferSetId}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Button,
   Input,
@@ -25,13 +25,16 @@ export function CreateSetDialog({ open, onClose, onCreate }: Props) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [prevOpen, setPrevOpen] = useState(open);
 
-  useEffect(() => {
-    if (!open) return;
-    setName("");
-    setBusy(false);
-    setError(null);
-  }, [open]);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      setName("");
+      setBusy(false);
+      setError(null);
+    }
+  }
 
   const handleCreate = async () => {
     if (!name.trim() || busy) return;

@@ -245,7 +245,9 @@ export function SharedPage({ token }: Props) {
   }, [apiBase, emailParam, emailSubmitted]);
 
   useEffect(() => {
-    fetchData();
+    queueMicrotask(() => {
+      void fetchData();
+    });
   }, [fetchData]);
 
   const rootTodos = todos

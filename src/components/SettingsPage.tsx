@@ -310,11 +310,9 @@ export function SettingsPage({
     });
   }, [fetchData]);
 
-  useEffect(() => {
-    if (activeTab === "appconfig" && !canManageAppConfig) {
-      setActiveTab("preferences");
-    }
-  }, [activeTab, canManageAppConfig]);
+  if (activeTab === "appconfig" && !canManageAppConfig) {
+    setActiveTab("preferences");
+  }
 
   // When scope changes, load the right perms
   useEffect(() => {

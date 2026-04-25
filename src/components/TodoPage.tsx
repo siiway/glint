@@ -381,9 +381,6 @@ export function TodoPage() {
   const [hoveredTodoId, setHoveredTodoId] = useState<string | null>(null);
   const [siteDefaultActions, setSiteDefaultActions] =
     useState<ActionKey[]>(BUILTIN_SITE_DEFAULT);
-  const [actionBarActions, setActionBarActions] = useState<ActionKey[]>(() =>
-    getEffectiveActions("", BUILTIN_SITE_DEFAULT),
-  );
 
   // Import dialog
   const [transferMode, setTransferMode] = useState<"import" | "export">(
@@ -402,11 +399,19 @@ export function TodoPage() {
     todoId: string;
   } | null>(null);
 
+  const actionBarActions = useMemo(
+    () => getEffectiveActions(selectedSpaceId, siteDefaultActions),
+    [selectedSpaceId, siteDefaultActions],
+  );
+
   // ─── Effects ─────────────────────────────────────────────────────────────
 
-  useEffect(() => {
+  const [prevSelectedSetIdForSelection, setPrevSelectedSetIdForSelection] =
+    useState(selectedSetId);
+  if (prevSelectedSetIdForSelection !== selectedSetId) {
+    setPrevSelectedSetIdForSelection(selectedSetId);
     setSelected(new Set());
-  }, [selectedSetId]);
+  }
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -436,12 +441,6 @@ export function TodoPage() {
   }, []);
 
   useEffect(() => {
-    setActionBarActions(
-      getEffectiveActions(selectedSpaceId, siteDefaultActions),
-    );
-  }, [selectedSpaceId, siteDefaultActions]);
-
-  useEffect(() => {
     if (!contextMenu) return;
     const handler = () => setContextMenu(null);
     window.addEventListener("click", handler);
@@ -468,9 +467,11 @@ export function TodoPage() {
   useEffect(() => {
     if (!selectedSpaceId) return;
     if (selectedSpace?.kind !== "team") {
-      setSiteName("Glint");
-      setSiteLogo("");
-      setDefaultTimezone("UTC");
+      queueMicrotask(() => {
+        setSiteName("Glint");
+        setSiteLogo("");
+        setDefaultTimezone("UTC");
+      });
       return;
     }
     fetch(`/api/teams/${selectedSpaceId}/settings`)
@@ -518,7 +519,9 @@ export function TodoPage() {
   }, [selectedSpaceId, navigate]);
 
   useEffect(() => {
-    fetchSets();
+    queueMicrotask(() => {
+      void fetchSets();
+    });
   }, [fetchSets]);
 
   // After sets load, auto-navigate to a valid set if the URL has none or an invalid one
@@ -569,7 +572,9 @@ export function TodoPage() {
   }, [selectedSpaceId, selectedSetId]);
 
   useEffect(() => {
-    fetchTodos();
+    queueMicrotask(() => {
+      void fetchTodos();
+    });
   }, [fetchTodos]);
 
   const { settings: userSettings, update: updateUserSettings } =

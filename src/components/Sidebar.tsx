@@ -232,17 +232,20 @@ export function Sidebar({
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragCounter = useRef(0);
 
-  const handleDragStart = (i: number) => setDragIndex(i);
-  const handleDragEnter = (i: number) => {
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    setDragIndex(Number(e.currentTarget.dataset.dragIndex));
+  };
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     dragCounter.current++;
-    setDragOverIndex(i);
+    setDragOverIndex(Number(e.currentTarget.dataset.dragIndex));
   };
   const handleDragLeave = () => {
     dragCounter.current--;
     if (dragCounter.current === 0) setDragOverIndex(null);
   };
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
-  const handleDrop = (dropIndex: number) => {
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    const dropIndex = Number(e.currentTarget.dataset.dragIndex);
     dragCounter.current = 0;
     setDragOverIndex(null);
     if (dragIndex === null || dragIndex === dropIndex) {
@@ -283,11 +286,12 @@ export function Sidebar({
               if (isMobile) onDrawerChange(false);
             }}
             draggable={canDrag}
-            onDragStart={canDrag ? () => handleDragStart(i) : undefined}
-            onDragEnter={canDrag ? () => handleDragEnter(i) : undefined}
+            data-drag-index={i}
+            onDragStart={canDrag ? handleDragStart : undefined}
+            onDragEnter={canDrag ? handleDragEnter : undefined}
             onDragLeave={canDrag ? handleDragLeave : undefined}
             onDragOver={canDrag ? handleDragOver : undefined}
-            onDrop={canDrag ? () => handleDrop(i) : undefined}
+            onDrop={canDrag ? handleDrop : undefined}
             onDragEnd={canDrag ? handleDragEnd : undefined}
           >
             <Folder24Regular />
