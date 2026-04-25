@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import type { Bindings, Variables, PermissionKey } from "../types";
-import { requireAuth, getTeamRole } from "../auth";
+import { requireAuth, getTeamRole, isPersonalSpaceId } from "../auth";
+import { getAppConfig } from "../config";
 import { hasPermission } from "../permissions";
+import { resolveUserProfiles } from "../userProfileCache";
 
 const comments = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
@@ -28,11 +30,34 @@ comments.get(
       .bind(todoId)
       .all();
 
+    const commenterIds = new Set(
+      result.results
+        .map((r) => r.user_id as string | null)
+        .filter((id): id is string => !!id),
+    );
+    let nameMap: Record<string, string> = {};
+    let avatarMap: Record<string, string> = {};
+    if (commenterIds.size > 0) {
+      const config = await getAppConfig(c.env.KV);
+      const ids = isPersonalSpaceId(teamId, session.userId)
+        ? new Set([session.userId])
+        : commenterIds;
+      ({ nameMap, avatarMap } = await resolveUserProfiles(
+        c.env.KV,
+        config,
+        session,
+        teamId,
+        ids,
+      ));
+    }
+
     return c.json({
       comments: result.results.map((r) => ({
         id: r.id as string,
         userId: r.user_id as string,
         username: r.username as string,
+        displayName: nameMap[r.user_id as string] ?? (r.username as string),
+        avatarUrl: avatarMap[r.user_id as string] ?? null,
         body: r.body as string,
         createdAt: r.created_at as string,
       })),
@@ -79,6 +104,8 @@ comments.post(
           id,
           userId: session.userId,
           username: session.username,
+          displayName: session.displayName || session.username,
+          avatarUrl: session.avatarUrl || null,
           body: body.trim(),
           createdAt: new Date().toISOString(),
         },

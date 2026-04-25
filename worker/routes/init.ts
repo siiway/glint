@@ -229,7 +229,8 @@ init.post("/api/init/register-permissions", async (c) => {
 
   for (const def of CROSS_APP_SCOPES) {
     try {
-      await prism.appScopePermissions.upsertDefinitionAsSelf(
+      await prism.appScopePermissions.upsertDefinition(
+        session.accessToken,
         config.prism_client_id,
         def,
       );

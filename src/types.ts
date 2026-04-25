@@ -8,6 +8,7 @@ export type Todo = {
   commentCount: number;
   claimedBy: string | null;
   claimedByName: string | null;
+  claimedByUsername?: string | null;
   claimedByAvatar: string | null;
 
   createdAt: string;
@@ -32,6 +33,8 @@ export type Comment = {
   id: string;
   userId: string;
   username: string;
+  displayName?: string;
+  avatarUrl?: string | null;
   body: string;
   createdAt: string;
 };

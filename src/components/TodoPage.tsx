@@ -241,6 +241,11 @@ const useStyles = makeStyles({
     fontSize: "11px",
     color: tokens.colorNeutralForeground3,
   },
+  claimedFlyoutUsername: {
+    fontSize: "11px",
+    color: tokens.colorNeutralForeground4,
+    fontFamily: "'Cascadia Code', 'Cascadia Mono', Consolas, monospace",
+  },
   empty: {
     textAlign: "center" as const,
     padding: "48px 0",
@@ -603,14 +608,15 @@ export function TodoPage() {
             }
             case "todo:claimed":
               return prev.map((t) =>
-                t.id === event.id
-                  ? {
-                      ...t,
-                      claimedBy: event.claimedBy,
-                      claimedByName: event.claimedByName,
-                      claimedByAvatar: event.claimedByAvatar,
-                    }
-                  : t,
+                    t.id === event.id
+                      ? {
+                          ...t,
+                          claimedBy: event.claimedBy,
+                          claimedByName: event.claimedByName,
+                          claimedByUsername: event.claimedByUsername ?? null,
+                          claimedByAvatar: event.claimedByAvatar,
+                        }
+                      : t,
               );
             default:
               return prev;
@@ -709,6 +715,7 @@ export function TodoPage() {
     const newName = unclaiming
       ? null
       : user?.displayName || user?.username || null;
+    const newUsername = unclaiming ? null : (user?.username ?? null);
     const newAvatar = unclaiming ? null : user?.avatarUrl || null;
     setTodos((prev) =>
       prev.map((t) =>
@@ -717,6 +724,7 @@ export function TodoPage() {
               ...t,
               claimedBy: newClaimed,
               claimedByName: newName,
+              claimedByUsername: newUsername,
               claimedByAvatar: newAvatar,
             }
           : t,
@@ -1570,6 +1578,9 @@ export function TodoPage() {
                       (todo.claimedBy === user?.id
                         ? user?.displayName || user?.username
                         : null);
+                    const claimerUsername =
+                      todo.claimedByUsername ||
+                      (todo.claimedBy === user?.id ? user?.username : null);
                     const isMe = todo.claimedBy === user?.id;
                     return (
                       <Popover trapFocus={false} withArrow size="small">
@@ -1613,6 +1624,11 @@ export function TodoPage() {
                               <span className={styles.claimedFlyoutName}>
                                 {claimer ?? "Unknown user"}
                               </span>
+                              {claimerUsername && (
+                                <span className={styles.claimedFlyoutUsername}>
+                                  @{claimerUsername}
+                                </span>
+                              )}
                               <span className={styles.claimedFlyoutSub}>
                                 {t.actionClaimedStatus}
                               </span>

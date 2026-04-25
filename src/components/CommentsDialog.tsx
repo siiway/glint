@@ -43,6 +43,10 @@ const useStyles = makeStyles({
     flex: 1,
     minWidth: 0,
   },
+  commentUsername: {
+    color: tokens.colorNeutralForeground4,
+    fontFamily: "'Cascadia Code', 'Cascadia Mono', Consolas, monospace",
+  },
   commentInput: {
     display: "flex",
     gap: "8px",
@@ -155,7 +159,11 @@ export function CommentsDialog({
                 <div className={styles.commentList}>
                   {comments.map((c) => (
                     <div key={c.id} className={styles.commentItem}>
-                      <Avatar name={c.username} size={24} />
+                      <Avatar
+                        name={c.displayName || c.username}
+                        image={c.avatarUrl ? { src: c.avatarUrl } : undefined}
+                        size={24}
+                      />
                       <div className={styles.commentContent}>
                         <div
                           style={{
@@ -165,8 +173,11 @@ export function CommentsDialog({
                           }}
                         >
                           <Body2 style={{ fontWeight: 600 }}>
-                            {c.username}
+                            {c.displayName || c.username}
                           </Body2>
+                          <Caption1 className={styles.commentUsername}>
+                            @{c.username}
+                          </Caption1>
                           <Caption1>
                             {new Date(c.createdAt).toLocaleString()}
                           </Caption1>

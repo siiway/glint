@@ -19,6 +19,7 @@ export type WsEvent =
       id: string;
       claimedBy: string | null;
       claimedByName: string | null;
+      claimedByUsername?: string | null;
       claimedByAvatar: string | null;
     };
 

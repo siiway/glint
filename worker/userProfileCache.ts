@@ -1,7 +1,11 @@
 import type { AppConfig, SessionData } from "./types";
 import { getPrism } from "./auth";
 
-type CachedProfile = { name: string; avatarUrl: string | null };
+type CachedProfile = {
+  name: string;
+  username?: string | null;
+  avatarUrl: string | null;
+};
 
 const KV_PREFIX = "user_profile:";
 const DEFAULT_TTL = 86400;
@@ -21,23 +25,26 @@ export async function resolveUserProfiles(
   userIds: Set<string>,
 ): Promise<{
   nameMap: Record<string, string>;
+  usernameMap: Record<string, string>;
   avatarMap: Record<string, string>;
 }> {
   const nameMap: Record<string, string> = {};
+  const usernameMap: Record<string, string> = {};
   const avatarMap: Record<string, string> = {};
 
-  if (userIds.size === 0) return { nameMap, avatarMap };
+  if (userIds.size === 0) return { nameMap, usernameMap, avatarMap };
 
   const ttl = config.user_profile_cache_ttl ?? DEFAULT_TTL;
 
   // Always resolve the current user from the session — no KV or Prism call needed.
   if (userIds.has(session.userId)) {
     nameMap[session.userId] = session.displayName || session.username;
+    usernameMap[session.userId] = session.username;
     if (session.avatarUrl) avatarMap[session.userId] = session.avatarUrl;
   }
 
   const remaining = new Set([...userIds].filter((id) => id !== session.userId));
-  if (remaining.size === 0) return { nameMap, avatarMap };
+  if (remaining.size === 0) return { nameMap, usernameMap, avatarMap };
 
   // Check KV cache for all remaining IDs in parallel.
   const cacheResults = await Promise.all(
@@ -50,13 +57,14 @@ export async function resolveUserProfiles(
   for (const { id, v } of cacheResults) {
     if (v) {
       nameMap[id] = v.name;
+      if (v.username) usernameMap[id] = v.username;
       if (v.avatarUrl) avatarMap[id] = v.avatarUrl;
     } else {
       missIds.add(id);
     }
   }
 
-  if (missIds.size === 0) return { nameMap, avatarMap };
+  if (missIds.size === 0) return { nameMap, usernameMap, avatarMap };
 
   // Fetch from Prism for cache misses.
   // teams.get() batch-resolves team members and refreshes team-member cache.
@@ -68,13 +76,14 @@ export async function resolveUserProfiles(
     const puts: Promise<void>[] = [];
     for (const m of members) {
       const name = m.display_name || m.username;
+      const username = m.username;
       const avatarUrl: string | null = m.avatar_url ?? null;
 
       if (ttl > 0) {
         puts.push(
           kv.put(
             KV_PREFIX + m.user_id,
-            JSON.stringify({ name, avatarUrl } satisfies CachedProfile),
+            JSON.stringify({ name, username, avatarUrl } satisfies CachedProfile),
             { expirationTtl: ttl },
           ),
         );
@@ -82,6 +91,7 @@ export async function resolveUserProfiles(
 
       if (userIds.has(m.user_id)) {
         nameMap[m.user_id] = name;
+        usernameMap[m.user_id] = username;
         if (avatarUrl) avatarMap[m.user_id] = avatarUrl;
       }
     }
@@ -92,5 +102,5 @@ export async function resolveUserProfiles(
     void error;
   }
 
-  return { nameMap, avatarMap };
+  return { nameMap, usernameMap, avatarMap };
 }

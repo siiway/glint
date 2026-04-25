@@ -82,6 +82,7 @@ todos.get("/api/teams/:teamId/sets/:setId/todos", requireAuth, async (c) => {
       .filter((id): id is string => !!id),
   );
   let nameMap: Record<string, string> = {};
+  let usernameMap: Record<string, string> = {};
   let avatarMap: Record<string, string> = {};
 
   if (claimedIds.size > 0) {
@@ -89,7 +90,7 @@ todos.get("/api/teams/:teamId/sets/:setId/todos", requireAuth, async (c) => {
     const ids = isPersonalSpaceId(teamId, session.userId)
       ? new Set([session.userId]) // only the current user can claim in personal space
       : claimedIds;
-    ({ nameMap, avatarMap } = await resolveUserProfiles(
+    ({ nameMap, usernameMap, avatarMap } = await resolveUserProfiles(
       c.env.KV,
       config,
       session,
@@ -111,6 +112,7 @@ todos.get("/api/teams/:teamId/sets/:setId/todos", requireAuth, async (c) => {
         commentCount: countMap[row.id as string] ?? 0,
         claimedBy,
         claimedByName: claimedBy ? (nameMap[claimedBy] ?? null) : null,
+        claimedByUsername: claimedBy ? (usernameMap[claimedBy] ?? null) : null,
         claimedByAvatar: claimedBy ? (avatarMap[claimedBy] ?? null) : null,
         createdAt: row.created_at as string,
         updatedAt: row.updated_at as string,
@@ -400,6 +402,7 @@ todos.post("/api/teams/:teamId/todos/:id/claim", requireAuth, async (c) => {
   const claimedByName = claimedBy
     ? session.displayName || session.username
     : null;
+  const claimedByUsername = claimedBy ? session.username : null;
   const claimedByAvatar = claimedBy ? session.avatarUrl || null : null;
 
   broadcast(c.env, teamId, {
@@ -408,10 +411,17 @@ todos.post("/api/teams/:teamId/todos/:id/claim", requireAuth, async (c) => {
     id: todoId,
     claimedBy,
     claimedByName,
+    claimedByUsername,
     claimedByAvatar,
   });
 
-  return c.json({ ok: true, claimedBy, claimedByName, claimedByAvatar });
+  return c.json({
+    ok: true,
+    claimedBy,
+    claimedByName,
+    claimedByUsername,
+    claimedByAvatar,
+  });
 });
 
 export default todos;
