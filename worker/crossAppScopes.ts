@@ -80,4 +80,16 @@ export const CROSS_APP_SCOPES: CrossAppScopeDef[] = [
     title: "Manage team settings",
     description: "Edit team branding and preferences.",
   },
+  {
+    scope: "manage_permissions",
+    title: "Manage team permissions",
+    description:
+      "Read and write the team's permission matrix (admin/member role permissions, global and per-set overrides).",
+  },
+  {
+    scope: "workbench",
+    title: "Workbench full access (bundle)",
+    description:
+      "Convenience bundle scope: grants every cross-app permission Glint exposes (read/write todos, sets, comments, claims, permissions, settings). Equivalent to granting the full granular scope set in one click. Intended for trusted first-party clients like Workbench. Approve with caution.",
+  },
 ];

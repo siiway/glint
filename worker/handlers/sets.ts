@@ -31,25 +31,50 @@ export const listSets = async (c: Ctx): Promise<Response> => {
 
   await ensureDefaultSet(c.env.DB, c.env.KV, teamId, session.userId);
 
-  const result = await c.env.DB.prepare(
-    "SELECT id, user_id, name, sort_order, auto_renew, renew_time, timezone, last_renewed_at, split_completed, created_at FROM todo_sets WHERE team_id = ? ORDER BY sort_order ASC",
-  )
-    .bind(teamId)
-    .all();
+  const [result, counts] = await Promise.all([
+    c.env.DB.prepare(
+      "SELECT id, user_id, name, sort_order, auto_renew, renew_time, timezone, last_renewed_at, split_completed, created_at FROM todo_sets WHERE team_id = ? ORDER BY sort_order ASC",
+    )
+      .bind(teamId)
+      .all(),
+    c.env.DB.prepare(
+      `SELECT set_id,
+            COUNT(*) as total,
+            SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as completed
+     FROM todos WHERE team_id = ? AND parent_id IS NULL
+     GROUP BY set_id`,
+    )
+      .bind(teamId)
+      .all(),
+  ]);
+
+  const countMap: Record<string, { total: number; completed: number }> = {};
+  for (const r of counts.results) {
+    countMap[r.set_id as string] = {
+      total: r.total as number,
+      completed: r.completed as number,
+    };
+  }
 
   return c.json({
-    sets: result.results.map((r) => ({
-      id: r.id as string,
-      userId: r.user_id as string,
-      name: r.name as string,
-      sortOrder: r.sort_order as number,
-      autoRenew: r.auto_renew === 1,
-      renewTime: r.renew_time as string,
-      timezone: r.timezone as string,
-      lastRenewedAt: (r.last_renewed_at as string) || null,
-      splitCompleted: r.split_completed === 1,
-      createdAt: r.created_at as string,
-    })),
+    sets: result.results.map((r) => {
+      const stats = countMap[r.id as string] ?? { total: 0, completed: 0 };
+      return {
+        id: r.id as string,
+        userId: r.user_id as string,
+        name: r.name as string,
+        sortOrder: r.sort_order as number,
+        autoRenew: r.auto_renew === 1,
+        renewTime: r.renew_time as string,
+        timezone: r.timezone as string,
+        lastRenewedAt: (r.last_renewed_at as string) || null,
+        splitCompleted: r.split_completed === 1,
+        createdAt: r.created_at as string,
+        total: stats.total,
+        completed: stats.completed,
+        pending: stats.total - stats.completed,
+      };
+    }),
     role,
   });
 };

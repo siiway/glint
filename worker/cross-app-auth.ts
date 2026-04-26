@@ -42,15 +42,24 @@ export function userTeamsKvKey(userId: string) {
 }
 
 /**
+ * "Bundle" scope — a token granted this single scope passes every cross-app
+ * permission check Glint exposes. Intended for trusted first-party clients
+ * (e.g. Workbench) that would otherwise need to request the entire scope set.
+ * Treat with care: this is broad.
+ */
+export const WORKBENCH_BUNDLE_SCOPE = "workbench";
+
+/**
  * Returns true if the cross-app bearer token was granted any of the specified
- * inner scopes. Call this inside route handlers after requireCrossAppAuth has
- * already run and populated crossAppScopes in context.
+ * inner scopes, OR the workbench bundle scope. Call this inside route handlers
+ * after requireCrossAppAuth has already run.
  */
 export function hasCrossAppScope(
   c: Context<{ Bindings: Bindings; Variables: Variables }>,
   ...innerScopes: string[]
 ): boolean {
   const granted = c.get("crossAppScopes") ?? [];
+  if (granted.includes(WORKBENCH_BUNDLE_SCOPE)) return true;
   return innerScopes.some((s) => granted.includes(s));
 }
 
@@ -74,6 +83,7 @@ export function requireCrossAppAuth(innerScope: string | string[]) {
       const requiredScopes = innerScopes.map(
         (s) => `app:${config.prism_client_id}:${s}`,
       );
+      const bundleScope = `app:${config.prism_client_id}:${WORKBENCH_BUNDLE_SCOPE}`;
 
       // 1. Introspect the token — Prism verifies it is active and returns claims.
       const info = await prism.introspectToken(token);
@@ -81,12 +91,17 @@ export function requireCrossAppAuth(innerScope: string | string[]) {
         return c.json({ error: "Token inactive or expired" }, 401);
       }
 
-      // 2. Confirm at least one of the required cross-app scopes is granted.
+      // 2. Confirm at least one of the required cross-app scopes is granted,
+      //    or the workbench bundle scope (which authorises everything).
       const grantedScopes = (info.scope ?? "").split(" ");
-      if (!requiredScopes.some((s) => grantedScopes.includes(s))) {
+      const passesBundle = grantedScopes.includes(bundleScope);
+      const passesGranular = requiredScopes.some((s) =>
+        grantedScopes.includes(s),
+      );
+      if (!passesBundle && !passesGranular) {
         return c.json(
           {
-            error: `Missing required scope. Token must include one of: ${innerScopes.join(", ")}`,
+            error: `Missing required scope. Token must include one of: ${innerScopes.join(", ")} (or the bundle scope "${WORKBENCH_BUNDLE_SCOPE}")`,
           },
           403,
         );

@@ -57,6 +57,13 @@ import { getSettings, patchSettings } from "../handlers/settings";
 import { getCrossAppMe } from "../handlers/me";
 import { handleSse, handleWsUpgrade } from "../realtime";
 import { patchTodo } from "../handlers/todos";
+import { getOverview, getMyTodos, getFeed } from "../handlers/dashboard";
+import {
+  getPermissionsMe,
+  getPermissionsAll,
+  upsertPermissions,
+  deletePermissions,
+} from "../handlers/permissions";
 
 const crossApp = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 const route = crossAppRoute(crossApp);
@@ -144,6 +151,25 @@ route.delete(
 // ─── Settings ───────────────────────────────────────────────────────────────
 route.get("/teams/:teamId/settings", "read_settings", getSettings);
 route.patch("/teams/:teamId/settings", "manage_settings", patchSettings);
+
+// ─── Dashboard (workbench-style aggregations) ───────────────────────────────
+// All three reuse `read_todos` since they're aggregated views over the same
+// data class as listTodos / listSets.
+route.get("/teams/:teamId/overview", "read_todos", getOverview);
+route.get("/teams/:teamId/my-todos", "read_todos", getMyTodos);
+route.get("/teams/:teamId/feed", "read_todos", getFeed);
+
+// ─── Permissions ────────────────────────────────────────────────────────────
+// Reading effective permissions for the calling user uses the lowest-friction
+// scope; reading or writing the full matrix requires `manage_permissions`.
+route.get("/teams/:teamId/permissions/me", "read_todos", getPermissionsMe);
+route.get("/teams/:teamId/permissions", "manage_permissions", getPermissionsAll);
+route.put("/teams/:teamId/permissions", "manage_permissions", upsertPermissions);
+route.delete(
+  "/teams/:teamId/permissions",
+  "manage_permissions",
+  deletePermissions,
+);
 
 // ─── Realtime ───────────────────────────────────────────────────────────────
 // Both endpoints require team membership. WebSocket upgrades from non-browser
