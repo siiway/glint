@@ -105,7 +105,8 @@ export const createTodo = async (c: Ctx): Promise<Response> => {
     title: string;
     parentId?: string;
   }>();
-  if (!title?.trim()) return c.json({ error: "Title is required" }, 400);
+  const trimmedTitle = title?.trim();
+  if (!trimmedTitle) return c.json({ error: "Title is required" }, 400);
 
   const permKey: PermissionKey = parentId ? "add_subtodos" : "create_todos";
   if (!(await hasPermission(c.env.DB, teamId, role, permKey, setId))) {
@@ -126,6 +127,15 @@ export const createTodo = async (c: Ctx): Promise<Response> => {
       .bind(parentId, setId, teamId)
       .first();
     if (!parent) return c.json({ error: "Parent todo not found" }, 404);
+  }
+
+  const duplicated = await c.env.DB.prepare(
+    "SELECT id FROM todos WHERE set_id = ? AND team_id = ? AND title = ?",
+  )
+    .bind(setId, teamId, trimmedTitle)
+    .first<{ id: string }>();
+  if (duplicated) {
+    return c.json({ error: "Todo item title already exists in this todo list" }, 409);
   }
 
   const maxRow = await c.env.DB.prepare(
@@ -149,7 +159,7 @@ export const createTodo = async (c: Ctx): Promise<Response> => {
       teamId,
       session.userId,
       parentId ?? null,
-      title.trim(),
+      trimmedTitle,
       sortOrder,
       now,
       now,
@@ -160,7 +170,7 @@ export const createTodo = async (c: Ctx): Promise<Response> => {
     id,
     userId: session.userId,
     parentId: parentId ?? null,
-    title: title.trim(),
+    title: trimmedTitle,
     completed: false,
     sortOrder,
     commentCount: 0,
@@ -233,8 +243,21 @@ export const patchTodo = async (c: Ctx): Promise<Response> => {
   const values: (string | number)[] = [];
 
   if (body.title !== undefined) {
+    const trimmedTitle = body.title.trim();
+    if (!trimmedTitle) return c.json({ error: "Title is required" }, 400);
+    const duplicated = await c.env.DB.prepare(
+      "SELECT id FROM todos WHERE set_id = ? AND team_id = ? AND title = ? AND id != ?",
+    )
+      .bind(existing.set_id, teamId, trimmedTitle, todoId)
+      .first<{ id: string }>();
+    if (duplicated) {
+      return c.json(
+        { error: "Todo item title already exists in this todo list" },
+        409,
+      );
+    }
     updates.push("title = ?");
-    values.push(body.title.trim());
+    values.push(trimmedTitle);
   }
   if (body.completed !== undefined) {
     updates.push("completed = ?");

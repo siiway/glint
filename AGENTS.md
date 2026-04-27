@@ -11,3 +11,7 @@ Use Bun for all package and script commands in this repository.
 - Add dev deps: `bun add -d <package>`
 
 Avoid npm, pnpm, and yarn unless the user explicitly asks for them.
+
+## Contributing
+
+Also follow the instructions in `CONTRIBUTING.md`.

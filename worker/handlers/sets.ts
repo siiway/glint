@@ -23,6 +23,26 @@ import {
 
 type Ctx = Context<{ Bindings: Bindings; Variables: Variables }>;
 
+function collectTransferTitles(nodes: TransferTodo[]): string[] {
+  const titles: string[] = [];
+  const stack = [...nodes];
+  while (stack.length > 0) {
+    const node = stack.pop()!;
+    titles.push(node.title.trim());
+    if (node.children?.length) stack.push(...node.children);
+  }
+  return titles;
+}
+
+function findDuplicateTitle(titles: string[]): string | null {
+  const seen = new Set<string>();
+  for (const title of titles) {
+    if (seen.has(title)) return title;
+    seen.add(title);
+  }
+  return null;
+}
+
 export const listSets = async (c: Ctx): Promise<Response> => {
   const teamId = c.req.param("teamId")!;
   const session = c.get("session");
@@ -90,7 +110,17 @@ export const createSet = async (c: Ctx): Promise<Response> => {
   }
 
   const { name } = await c.req.json<{ name: string }>();
-  if (!name?.trim()) return c.json({ error: "Name is required" }, 400);
+  const trimmedName = name?.trim();
+  if (!trimmedName) return c.json({ error: "Name is required" }, 400);
+
+  const duplicated = await c.env.DB.prepare(
+    "SELECT id FROM todo_sets WHERE team_id = ? AND name = ?",
+  )
+    .bind(teamId, trimmedName)
+    .first<{ id: string }>();
+  if (duplicated) {
+    return c.json({ error: "Todo list name already exists in this team" }, 409);
+  }
 
   const maxRow = await c.env.DB.prepare(
     "SELECT COALESCE(MAX(sort_order), 0) as m FROM todo_sets WHERE team_id = ?",
@@ -104,7 +134,7 @@ export const createSet = async (c: Ctx): Promise<Response> => {
   await c.env.DB.prepare(
     "INSERT INTO todo_sets (id, team_id, user_id, name, sort_order) VALUES (?, ?, ?, ?, ?)",
   )
-    .bind(id, teamId, session.userId, name.trim(), sortOrder)
+    .bind(id, teamId, session.userId, trimmedName, sortOrder)
     .run();
 
   return c.json(
@@ -112,7 +142,7 @@ export const createSet = async (c: Ctx): Promise<Response> => {
       set: {
         id,
         userId: session.userId,
-        name: name.trim(),
+        name: trimmedName,
         sortOrder,
         autoRenew: false,
         renewTime: "00:00",
@@ -162,9 +192,18 @@ export const patchSet = async (c: Ctx): Promise<Response> => {
   const values: (string | number)[] = [];
 
   if (body.name !== undefined) {
-    if (!body.name.trim()) return c.json({ error: "Name is required" }, 400);
+    const trimmedName = body.name.trim();
+    if (!trimmedName) return c.json({ error: "Name is required" }, 400);
+    const duplicated = await c.env.DB.prepare(
+      "SELECT id FROM todo_sets WHERE team_id = ? AND name = ? AND id != ?",
+    )
+      .bind(teamId, trimmedName, setId)
+      .first<{ id: string }>();
+    if (duplicated) {
+      return c.json({ error: "Todo list name already exists in this team" }, 409);
+    }
     updates.push("name = ?");
-    values.push(body.name.trim());
+    values.push(trimmedName);
   }
   if (body.autoRenew !== undefined) {
     updates.push("auto_renew = ?");
@@ -317,6 +356,22 @@ export const importIntoSet = async (c: Ctx): Promise<Response> => {
   const mode = body.mode || "append";
   const insertAt = body.insertAt === "top" ? "top" : "bottom";
 
+  let todosToImport: TransferTodo[] = [];
+  try {
+    todosToImport = parseImportContent(format, body.content).todos;
+  } catch {
+    return c.json({ error: "Failed to parse import content" }, 400);
+  }
+
+  const importedTitles = collectTransferTitles(todosToImport);
+  const duplicatedTitle = findDuplicateTitle(importedTitles);
+  if (duplicatedTitle) {
+    return c.json(
+      { error: `Todo item title already exists in this todo list: ${duplicatedTitle}` },
+      409,
+    );
+  }
+
   if (mode === "replace") {
     if (!(await hasPermission(c.env.DB, teamId, role, "manage_sets"))) {
       return c.json({ error: "No permission to replace set content" }, 403);
@@ -324,13 +379,26 @@ export const importIntoSet = async (c: Ctx): Promise<Response> => {
     await c.env.DB.prepare("DELETE FROM todos WHERE set_id = ? AND team_id = ?")
       .bind(setId, teamId)
       .run();
-  }
-
-  let todosToImport: TransferTodo[] = [];
-  try {
-    todosToImport = parseImportContent(format, body.content).todos;
-  } catch {
-    return c.json({ error: "Failed to parse import content" }, 400);
+  } else if (importedTitles.length > 0) {
+    const existingRows = await c.env.DB.prepare(
+      "SELECT title FROM todos WHERE set_id = ? AND team_id = ?",
+    )
+      .bind(setId, teamId)
+      .all();
+    const existingTitles = new Set(
+      existingRows.results.map((row) => row.title as string),
+    );
+    const conflictedTitle = importedTitles.find((title) =>
+      existingTitles.has(title),
+    );
+    if (conflictedTitle) {
+      return c.json(
+        {
+          error: `Todo item title already exists in this todo list: ${conflictedTitle}`,
+        },
+        409,
+      );
+    }
   }
 
   if (insertAt === "top" && todosToImport.length > 0) {
@@ -396,6 +464,15 @@ export const importNewSet = async (c: Ctx): Promise<Response> => {
   ).trim();
   if (!setName) return c.json({ error: "Set name is required" }, 400);
 
+  const duplicatedSetName = await c.env.DB.prepare(
+    "SELECT id FROM todo_sets WHERE team_id = ? AND name = ?",
+  )
+    .bind(teamId, setName)
+    .first<{ id: string }>();
+  if (duplicatedSetName) {
+    return c.json({ error: "Todo list name already exists in this team" }, 409);
+  }
+
   const setId =
     format === "md"
       ? crypto.randomUUID()
@@ -408,6 +485,15 @@ export const importNewSet = async (c: Ctx): Promise<Response> => {
     .bind(setId, teamId)
     .first<{ id: string }>();
   if (existing) return c.json({ error: "Set id already exists" }, 409);
+
+  const importedTitles = collectTransferTitles(parsed.todos);
+  const duplicatedTitle = findDuplicateTitle(importedTitles);
+  if (duplicatedTitle) {
+    return c.json(
+      { error: `Todo item title already exists in this todo list: ${duplicatedTitle}` },
+      409,
+    );
+  }
 
   const maxRow = await c.env.DB.prepare(
     "SELECT COALESCE(MAX(sort_order), 0) as m FROM todo_sets WHERE team_id = ?",
