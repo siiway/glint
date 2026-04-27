@@ -88,8 +88,8 @@ export const CROSS_APP_SCOPES: CrossAppScopeDef[] = [
   },
   {
     scope: "workbench",
-    title: "Workbench full access (bundle)",
+    title: "Workbench access (bundle)",
     description:
-      "Convenience bundle scope: grants every cross-app permission Glint exposes (read/write todos, sets, comments, claims, permissions, settings). Equivalent to granting the full granular scope set in one click. Intended for trusted first-party clients like Workbench. Approve with caution.",
+      "Convenience bundle: grants read/write on todos, sets, comments, claims, settings — everything Workbench needs in normal use. Does NOT include manage_permissions; an app that needs to modify the team permission matrix must request that scope explicitly.",
   },
 ];

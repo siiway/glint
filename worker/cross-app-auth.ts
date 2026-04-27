@@ -42,24 +42,34 @@ export function userTeamsKvKey(userId: string) {
 }
 
 /**
- * "Bundle" scope — a token granted this single scope passes every cross-app
- * permission check Glint exposes. Intended for trusted first-party clients
- * (e.g. Workbench) that would otherwise need to request the entire scope set.
- * Treat with care: this is broad.
+ * "Bundle" scope — a token granted this single scope passes most cross-app
+ * permission checks Glint exposes. Intended for trusted first-party clients
+ * (e.g. Workbench) that would otherwise need to request a long granular set.
+ *
+ * Sensitive scopes are excluded from the bundle on purpose: even a bundle
+ * token cannot mutate the team's permission matrix. Apps that legitimately
+ * need those operations must request the granular scope (e.g.
+ * `manage_permissions`) explicitly so the user sees it on the consent page.
  */
 export const WORKBENCH_BUNDLE_SCOPE = "workbench";
 
+const BUNDLE_EXCLUDED_SCOPES = new Set(["manage_permissions"]);
+
 /**
  * Returns true if the cross-app bearer token was granted any of the specified
- * inner scopes, OR the workbench bundle scope. Call this inside route handlers
- * after requireCrossAppAuth has already run.
+ * inner scopes, OR the workbench bundle scope (when the requested scope is
+ * NOT in the bundle exclusion list). Call this inside route handlers after
+ * requireCrossAppAuth has already run.
  */
 export function hasCrossAppScope(
   c: Context<{ Bindings: Bindings; Variables: Variables }>,
   ...innerScopes: string[]
 ): boolean {
   const granted = c.get("crossAppScopes") ?? [];
-  if (granted.includes(WORKBENCH_BUNDLE_SCOPE)) return true;
+  const requiresExcluded = innerScopes.every((s) =>
+    BUNDLE_EXCLUDED_SCOPES.has(s),
+  );
+  if (!requiresExcluded && granted.includes(WORKBENCH_BUNDLE_SCOPE)) return true;
   return innerScopes.some((s) => granted.includes(s));
 }
 
@@ -92,16 +102,24 @@ export function requireCrossAppAuth(innerScope: string | string[]) {
       }
 
       // 2. Confirm at least one of the required cross-app scopes is granted,
-      //    or the workbench bundle scope (which authorises everything).
+      //    or the workbench bundle scope (which authorises everything except
+      //    the BUNDLE_EXCLUDED_SCOPES — those must be requested granularly).
       const grantedScopes = (info.scope ?? "").split(" ");
-      const passesBundle = grantedScopes.includes(bundleScope);
+      const requiresExcluded = innerScopes.every((s) =>
+        BUNDLE_EXCLUDED_SCOPES.has(s),
+      );
+      const passesBundle =
+        !requiresExcluded && grantedScopes.includes(bundleScope);
       const passesGranular = requiredScopes.some((s) =>
         grantedScopes.includes(s),
       );
       if (!passesBundle && !passesGranular) {
+        const bundleHint = requiresExcluded
+          ? "" // bundle doesn't help here
+          : ` (or the bundle scope "${WORKBENCH_BUNDLE_SCOPE}")`;
         return c.json(
           {
-            error: `Missing required scope. Token must include one of: ${innerScopes.join(", ")} (or the bundle scope "${WORKBENCH_BUNDLE_SCOPE}")`,
+            error: `Missing required scope. Token must include one of: ${innerScopes.join(", ")}${bundleHint}`,
           },
           403,
         );

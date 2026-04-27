@@ -160,10 +160,13 @@ route.get("/teams/:teamId/my-todos", "read_todos", getMyTodos);
 route.get("/teams/:teamId/feed", "read_todos", getFeed);
 
 // ─── Permissions ────────────────────────────────────────────────────────────
-// Reading effective permissions for the calling user uses the lowest-friction
-// scope; reading or writing the full matrix requires `manage_permissions`.
+// Reads (effective + full matrix) use `read_todos` — the matrix is policy
+// metadata, not user data, and any team member with read access already
+// implicitly knows their own permissions. Writes require `manage_permissions`,
+// which is excluded from the bundle scope on purpose so first-party clients
+// can't accidentally mutate the team's permission policy.
 route.get("/teams/:teamId/permissions/me", "read_todos", getPermissionsMe);
-route.get("/teams/:teamId/permissions", "manage_permissions", getPermissionsAll);
+route.get("/teams/:teamId/permissions", "read_todos", getPermissionsAll);
 route.put("/teams/:teamId/permissions", "manage_permissions", upsertPermissions);
 route.delete(
   "/teams/:teamId/permissions",
