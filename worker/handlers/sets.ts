@@ -23,22 +23,24 @@ import {
 
 type Ctx = Context<{ Bindings: Bindings; Variables: Variables }>;
 
-function collectTransferTitles(nodes: TransferTodo[]): string[] {
-  const titles: string[] = [];
-  const stack = [...nodes];
-  while (stack.length > 0) {
-    const node = stack.pop()!;
-    titles.push(node.title.trim());
-    if (node.children?.length) stack.push(...node.children);
-  }
-  return titles;
-}
-
 function findDuplicateTitle(titles: string[]): string | null {
   const seen = new Set<string>();
   for (const title of titles) {
     if (seen.has(title)) return title;
     seen.add(title);
+  }
+  return null;
+}
+
+function findDuplicateTitleInSiblingLevels(nodes: TransferTodo[]): string | null {
+  const siblingTitles = nodes.map((node) => node.title.trim());
+  const duplicated = findDuplicateTitle(siblingTitles);
+  if (duplicated) return duplicated;
+  for (const node of nodes) {
+    if (node.children?.length) {
+      const childDuplicated = findDuplicateTitleInSiblingLevels(node.children);
+      if (childDuplicated) return childDuplicated;
+    }
   }
   return null;
 }
@@ -363,11 +365,12 @@ export const importIntoSet = async (c: Ctx): Promise<Response> => {
     return c.json({ error: "Failed to parse import content" }, 400);
   }
 
-  const importedTitles = collectTransferTitles(todosToImport);
-  const duplicatedTitle = findDuplicateTitle(importedTitles);
+  const duplicatedTitle = findDuplicateTitleInSiblingLevels(todosToImport);
   if (duplicatedTitle) {
     return c.json(
-      { error: `Todo item title already exists in this todo list: ${duplicatedTitle}` },
+      {
+        error: `Todo item title already exists among sibling todos: ${duplicatedTitle}`,
+      },
       409,
     );
   }
@@ -379,22 +382,24 @@ export const importIntoSet = async (c: Ctx): Promise<Response> => {
     await c.env.DB.prepare("DELETE FROM todos WHERE set_id = ? AND team_id = ?")
       .bind(setId, teamId)
       .run();
-  } else if (importedTitles.length > 0) {
+  } else if (todosToImport.length > 0) {
     const existingRows = await c.env.DB.prepare(
-      "SELECT title FROM todos WHERE set_id = ? AND team_id = ?",
+      "SELECT title FROM todos WHERE set_id = ? AND team_id = ? AND parent_id IS NULL",
     )
       .bind(setId, teamId)
       .all();
     const existingTitles = new Set(
       existingRows.results.map((row) => row.title as string),
     );
-    const conflictedTitle = importedTitles.find((title) =>
+    const conflictedTitle = todosToImport
+      .map((todo) => todo.title.trim())
+      .find((title) =>
       existingTitles.has(title),
-    );
+      );
     if (conflictedTitle) {
       return c.json(
         {
-          error: `Todo item title already exists in this todo list: ${conflictedTitle}`,
+          error: `Todo item title already exists among sibling todos: ${conflictedTitle}`,
         },
         409,
       );
@@ -486,11 +491,12 @@ export const importNewSet = async (c: Ctx): Promise<Response> => {
     .first<{ id: string }>();
   if (existing) return c.json({ error: "Set id already exists" }, 409);
 
-  const importedTitles = collectTransferTitles(parsed.todos);
-  const duplicatedTitle = findDuplicateTitle(importedTitles);
+  const duplicatedTitle = findDuplicateTitleInSiblingLevels(parsed.todos);
   if (duplicatedTitle) {
     return c.json(
-      { error: `Todo item title already exists in this todo list: ${duplicatedTitle}` },
+      {
+        error: `Todo item title already exists among sibling todos: ${duplicatedTitle}`,
+      },
       409,
     );
   }

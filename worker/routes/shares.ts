@@ -417,7 +417,8 @@ shares.post("/api/shared/:token/todos", async (c) => {
   if (!link.can_create) {
     return c.json({ error: "This link does not allow creating todos" }, 403);
   }
-  if (!title?.trim()) return c.json({ error: "Title is required" }, 400);
+  const trimmedTitle = title?.trim();
+  if (!trimmedTitle) return c.json({ error: "Title is required" }, 400);
 
   if (parentId) {
     const parent = await c.env.DB.prepare(
@@ -426,6 +427,25 @@ shares.post("/api/shared/:token/todos", async (c) => {
       .bind(parentId, link.set_id, link.team_id)
       .first();
     if (!parent) return c.json({ error: "Parent todo not found" }, 404);
+  }
+
+  const normalizedParentId = parentId ?? null;
+  const duplicated = await c.env.DB.prepare(
+    "SELECT id FROM todos WHERE set_id = ? AND team_id = ? AND title = ? AND ((parent_id IS NULL AND ? IS NULL) OR parent_id = ?)",
+  )
+    .bind(
+      link.set_id,
+      link.team_id,
+      trimmedTitle,
+      normalizedParentId,
+      normalizedParentId,
+    )
+    .first<{ id: string }>();
+  if (duplicated) {
+    return c.json(
+      { error: "Todo item title already exists among sibling todos" },
+      409,
+    );
   }
 
   const maxRow = await c.env.DB.prepare(
@@ -448,7 +468,7 @@ shares.post("/api/shared/:token/todos", async (c) => {
       link.team_id,
       "shared",
       parentId ?? null,
-      title.trim(),
+      trimmedTitle,
       sortOrder,
     )
     .run();
@@ -459,7 +479,7 @@ shares.post("/api/shared/:token/todos", async (c) => {
         id,
         userId: "shared",
         parentId: parentId ?? null,
-        title: title.trim(),
+        title: trimmedTitle,
         completed: false,
         sortOrder,
         commentCount: 0,
@@ -505,18 +525,39 @@ shares.patch("/api/shared/:token/todos/:id", async (c) => {
   }
 
   const existing = await c.env.DB.prepare(
-    "SELECT id FROM todos WHERE id = ? AND set_id = ? AND team_id = ?",
+    "SELECT id, parent_id FROM todos WHERE id = ? AND set_id = ? AND team_id = ?",
   )
     .bind(todoId, link.set_id, link.team_id)
-    .first();
+    .first<{ id: string; parent_id: string | null }>();
   if (!existing) return c.json({ error: "Not found" }, 404);
 
   const updates: string[] = [];
   const values: (string | number)[] = [];
 
   if (body.title !== undefined) {
+    const trimmedTitle = body.title.trim();
+    if (!trimmedTitle) return c.json({ error: "Title is required" }, 400);
+    const normalizedParentId = existing.parent_id ?? null;
+    const duplicated = await c.env.DB.prepare(
+      "SELECT id FROM todos WHERE set_id = ? AND team_id = ? AND title = ? AND id != ? AND ((parent_id IS NULL AND ? IS NULL) OR parent_id = ?)",
+    )
+      .bind(
+        link.set_id,
+        link.team_id,
+        trimmedTitle,
+        todoId,
+        normalizedParentId,
+        normalizedParentId,
+      )
+      .first<{ id: string }>();
+    if (duplicated) {
+      return c.json(
+        { error: "Todo item title already exists among sibling todos" },
+        409,
+      );
+    }
     updates.push("title = ?");
-    values.push(body.title.trim());
+    values.push(trimmedTitle);
   }
   if (body.completed !== undefined) {
     updates.push("completed = ?");

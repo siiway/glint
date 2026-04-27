@@ -129,13 +129,17 @@ export const createTodo = async (c: Ctx): Promise<Response> => {
     if (!parent) return c.json({ error: "Parent todo not found" }, 404);
   }
 
+  const normalizedParentId = parentId ?? null;
   const duplicated = await c.env.DB.prepare(
-    "SELECT id FROM todos WHERE set_id = ? AND team_id = ? AND title = ?",
+    "SELECT id FROM todos WHERE set_id = ? AND team_id = ? AND title = ? AND ((parent_id IS NULL AND ? IS NULL) OR parent_id = ?)",
   )
-    .bind(setId, teamId, trimmedTitle)
+    .bind(setId, teamId, trimmedTitle, normalizedParentId, normalizedParentId)
     .first<{ id: string }>();
   if (duplicated) {
-    return c.json({ error: "Todo item title already exists in this todo list" }, 409);
+    return c.json(
+      { error: "Todo item title already exists among sibling todos" },
+      409,
+    );
   }
 
   const maxRow = await c.env.DB.prepare(
@@ -193,10 +197,10 @@ export const patchTodo = async (c: Ctx): Promise<Response> => {
   if (!role) return c.json({ error: "Not a member of this team" }, 403);
 
   const existing = await c.env.DB.prepare(
-    "SELECT id, user_id, set_id FROM todos WHERE id = ? AND team_id = ?",
+    "SELECT id, user_id, set_id, parent_id FROM todos WHERE id = ? AND team_id = ?",
   )
     .bind(todoId, teamId)
-    .first<{ id: string; user_id: string; set_id: string }>();
+    .first<{ id: string; user_id: string; set_id: string; parent_id: string | null }>();
   if (!existing) return c.json({ error: "Not found" }, 404);
 
   const isOwner = existing.user_id === session.userId;
@@ -245,14 +249,22 @@ export const patchTodo = async (c: Ctx): Promise<Response> => {
   if (body.title !== undefined) {
     const trimmedTitle = body.title.trim();
     if (!trimmedTitle) return c.json({ error: "Title is required" }, 400);
+    const normalizedParentId = existing.parent_id ?? null;
     const duplicated = await c.env.DB.prepare(
-      "SELECT id FROM todos WHERE set_id = ? AND team_id = ? AND title = ? AND id != ?",
+      "SELECT id FROM todos WHERE set_id = ? AND team_id = ? AND title = ? AND id != ? AND ((parent_id IS NULL AND ? IS NULL) OR parent_id = ?)",
     )
-      .bind(existing.set_id, teamId, trimmedTitle, todoId)
+      .bind(
+        existing.set_id,
+        teamId,
+        trimmedTitle,
+        todoId,
+        normalizedParentId,
+        normalizedParentId,
+      )
       .first<{ id: string }>();
     if (duplicated) {
       return c.json(
-        { error: "Todo item title already exists in this todo list" },
+        { error: "Todo item title already exists among sibling todos" },
         409,
       );
     }
