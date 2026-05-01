@@ -13,6 +13,7 @@ import {
   PersonAvailable24Regular,
   PersonDelete24Regular,
 } from "@fluentui/react-icons";
+import { useLayoutEffect, useRef } from "react";
 import type { Todo } from "../types";
 import { useI18n } from "../i18n";
 
@@ -104,9 +105,28 @@ export function TodoContextMenu({
 }: Props) {
   const styles = useStyles();
   const { t } = useI18n();
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const menuEl = menuRef.current;
+    if (!menuEl) return;
+
+    const padding = 8;
+    const maxX = window.innerWidth - menuEl.offsetWidth - padding;
+    const maxY = window.innerHeight - menuEl.offsetHeight - padding;
+    const clampedX = Math.max(padding, Math.min(x, maxX));
+    const clampedY = Math.max(padding, Math.min(y, maxY));
+    menuEl.style.left = `${clampedX}px`;
+    menuEl.style.top = `${clampedY}px`;
+  });
 
   return (
-    <div className={styles.menu} style={{ left: x, top: y }} onClick={onClose}>
+    <div
+      ref={menuRef}
+      className={styles.menu}
+      style={{ left: x, top: y }}
+      onClick={onClose}
+    >
       <button className={styles.item} onClick={onAddBefore}>
         <ArrowUp24Regular /> {t.actionAddBefore}
       </button>
