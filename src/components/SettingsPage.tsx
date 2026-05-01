@@ -242,6 +242,11 @@ export function SettingsPage({
     message: string;
     failures?: { scope: string; error?: string }[];
   } | null>(null);
+  const [prefsSaveNotice, setPrefsSaveNotice] = useState<{
+    scope: "user" | "workspace" | "transport";
+    ok: boolean;
+    message: string;
+  } | null>(null);
 
   const canManage =
     permsData?.role === "owner" || permsData?.role === "co-owner" || false;
@@ -381,15 +386,44 @@ export function SettingsPage({
     setSaving(false);
   };
 
+  const getErrorMessage = (error: unknown) =>
+    error instanceof Error ? error.message : String(error);
+
   const saveUserActions = async () => {
-    await onUpdateUserSettings({ action_bar: editUserActions });
+    try {
+      await onUpdateUserSettings({ action_bar: editUserActions });
+      setPrefsSaveNotice({
+        scope: "user",
+        ok: true,
+        message: t.settingsSaveSuccess,
+      });
+    } catch (error) {
+      setPrefsSaveNotice({
+        scope: "user",
+        ok: false,
+        message: t.settingsSaveFailed.replace("{error}", getErrorMessage(error)),
+      });
+    }
   };
 
   const resetUserActions = async () => {
-    await onUpdateUserSettings({ action_bar: null });
-    setEditUserActions(
-      (loadWorkspaceActionBar(teamId) ?? siteDefault) as ActionKey[],
-    );
+    try {
+      await onUpdateUserSettings({ action_bar: null });
+      setEditUserActions(
+        (loadWorkspaceActionBar(teamId) ?? siteDefault) as ActionKey[],
+      );
+      setPrefsSaveNotice({
+        scope: "user",
+        ok: true,
+        message: t.settingsSaveSuccess,
+      });
+    } catch (error) {
+      setPrefsSaveNotice({
+        scope: "user",
+        ok: false,
+        message: t.settingsSaveFailed.replace("{error}", getErrorMessage(error)),
+      });
+    }
   };
 
   const saveWsActions = () => {
@@ -397,15 +431,38 @@ export function SettingsPage({
       `glint_action_bar_ws_${teamId}`,
       JSON.stringify(editWsActions),
     );
+    setPrefsSaveNotice({
+      scope: "workspace",
+      ok: true,
+      message: t.settingsSaveSuccess,
+    });
   };
 
   const resetWsActions = () => {
     localStorage.removeItem(`glint_action_bar_ws_${teamId}`);
     setEditWsActions(siteDefault as ActionKey[]);
+    setPrefsSaveNotice({
+      scope: "workspace",
+      ok: true,
+      message: t.settingsSaveSuccess,
+    });
   };
 
   const saveTransport = async () => {
-    await onUpdateUserSettings({ realtime_transport: editTransport });
+    try {
+      await onUpdateUserSettings({ realtime_transport: editTransport });
+      setPrefsSaveNotice({
+        scope: "transport",
+        ok: true,
+        message: t.settingsSaveSuccess,
+      });
+    } catch (error) {
+      setPrefsSaveNotice({
+        scope: "transport",
+        ok: false,
+        message: t.settingsSaveFailed.replace("{error}", getErrorMessage(error)),
+      });
+    }
   };
 
   const saveAppConfig = async () => {
@@ -607,6 +664,18 @@ export function SettingsPage({
                 </Button>
               )}
             </div>
+            {prefsSaveNotice?.scope === "user" && (
+              <Body2
+                style={{
+                  marginTop: 8,
+                  color: prefsSaveNotice.ok
+                    ? tokens.colorPaletteGreenForeground2
+                    : tokens.colorPaletteRedForeground2,
+                }}
+              >
+                {prefsSaveNotice.message}
+              </Body2>
+            )}
 
             {/* Workspace-level action bar (owners only) */}
             {(canManage || permsData?.role === "admin") && (
@@ -693,6 +762,18 @@ export function SettingsPage({
                     </Button>
                   )}
                 </div>
+                {prefsSaveNotice?.scope === "workspace" && (
+                  <Body2
+                    style={{
+                      marginTop: 8,
+                      color: prefsSaveNotice.ok
+                        ? tokens.colorPaletteGreenForeground2
+                        : tokens.colorPaletteRedForeground2,
+                    }}
+                  >
+                    {prefsSaveNotice.message}
+                  </Body2>
+                )}
               </>
             )}
 
@@ -728,6 +809,18 @@ export function SettingsPage({
                 {t.save}
               </Button>
             </div>
+            {prefsSaveNotice?.scope === "transport" && (
+              <Body2
+                style={{
+                  marginTop: 8,
+                  color: prefsSaveNotice.ok
+                    ? tokens.colorPaletteGreenForeground2
+                    : tokens.colorPaletteRedForeground2,
+                }}
+              >
+                {prefsSaveNotice.message}
+              </Body2>
+            )}
 
             {/* Site default (read-only) */}
             <Divider style={{ margin: "16px 0" }} />

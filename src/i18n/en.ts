@@ -272,6 +272,8 @@ export default {
   settingsTabPreferences: "My Preferences",
   settingsTabAppConfig: "App Config",
   settingsLoadingSettings: "Loading settings...",
+  settingsSaveSuccess: "Saved.",
+  settingsSaveFailed: "Save failed: {error}",
 
   // Settings - Branding
   brandingSiteTitle: "Site Branding",

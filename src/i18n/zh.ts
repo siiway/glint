@@ -262,6 +262,8 @@ const zh: typeof en = {
   settingsTabPreferences: "我的偏好",
   settingsTabAppConfig: "应用配置",
   settingsLoadingSettings: "加载设置...",
+  settingsSaveSuccess: "保存成功。",
+  settingsSaveFailed: "保存失败：{error}",
 
   // Settings - Branding
   brandingSiteTitle: "站点品牌",
