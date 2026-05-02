@@ -723,10 +723,10 @@ shares.get("/api/shared/:token/todo-list.svg", async (c) => {
   }
 
   const set = await c.env.DB.prepare(
-    "SELECT name FROM todo_sets WHERE id = ? AND team_id = ?",
+    "SELECT name, split_completed FROM todo_sets WHERE id = ? AND team_id = ?",
   )
     .bind(link.set_id, link.team_id)
-    .first<{ name: string }>();
+    .first<{ name: string; split_completed: number }>();
 
   if (!set) {
     const svg = renderTodoList({
@@ -762,8 +762,18 @@ shares.get("/api/shared/:token/todo-list.svg", async (c) => {
     childrenMap.get(pid)!.push(row);
   }
 
+  const splitCompleted = set.split_completed === 1;
+  const orderedRootRows = (() => {
+    const roots = childrenMap.get(null) ?? [];
+    if (!splitCompleted) return roots;
+    return [
+      ...roots.filter((row) => row.completed !== 1),
+      ...roots.filter((row) => row.completed === 1),
+    ];
+  })();
+
   const todos: TodoItem[] = [];
-  function walk(parentId: string | null, depth: number) {
+  function walkChildren(parentId: string, depth: number) {
     const children = childrenMap.get(parentId) ?? [];
     for (const row of children) {
       todos.push({
@@ -771,10 +781,18 @@ shares.get("/api/shared/:token/todo-list.svg", async (c) => {
         completed: row.completed === 1,
         depth,
       });
-      walk(row.id, depth + 1);
+      walkChildren(row.id, depth + 1);
     }
   }
-  walk(null, 0);
+
+  for (const row of orderedRootRows) {
+    todos.push({
+      title: row.title,
+      completed: row.completed === 1,
+      depth: 0,
+    });
+    walkChildren(row.id, 1);
+  }
 
   const q = c.req.query();
   const theme = q.theme === "dark" ? "dark" : "light";
