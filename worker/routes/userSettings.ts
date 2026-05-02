@@ -20,7 +20,11 @@ userSettings.put("/api/user/settings", requireAuth, async (c) => {
   const existing =
     (await c.env.KV.get<UserSettings>(KV_KEY(session.userId), "json")) ?? {};
 
-  const allowed: (keyof UserSettings)[] = ["action_bar", "realtime_transport"];
+  const allowed: (keyof UserSettings)[] = [
+    "action_bar",
+    "realtime_transport",
+    "workspace_favicon",
+  ];
   const patch: UserSettings = { ...existing };
   for (const key of allowed) {
     if (key in body) (patch as Record<string, unknown>)[key] = body[key];

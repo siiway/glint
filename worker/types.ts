@@ -67,6 +67,8 @@ export type UserSettings = {
   action_bar?: string[] | null;
   /** Preferred realtime transport. "auto" tries WS then falls back to SSE. */
   realtime_transport?: "ws" | "sse" | "auto";
+  /** Whether browser favicon follows the currently selected workspace icon. */
+  workspace_favicon?: boolean;
 };
 
 export type TeamSettings = {

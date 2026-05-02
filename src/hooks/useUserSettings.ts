@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 export type UserSettings = {
   action_bar?: string[] | null;
   realtime_transport?: "ws" | "sse" | "auto";
+  workspace_favicon?: boolean;
 };
 
 const LS_KEY = "glint_user_settings_cache";
@@ -45,17 +46,34 @@ export function useUserSettings() {
   }, []);
 
   const update = useCallback(async (patch: Partial<UserSettings>) => {
-    // Optimistic local update.
+    let previous: UserSettings | null = null;
     setSettings((prev) => {
+      previous = prev;
       const next = { ...prev, ...patch };
       writeCache(next);
       return next;
     });
-    await fetch("/api/user/settings", {
+
+    const res = await fetch("/api/user/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
     });
+
+    if (!res.ok) {
+      if (previous) {
+        setSettings(previous);
+        writeCache(previous);
+      }
+      let message = `HTTP ${res.status}`;
+      try {
+        const data = (await res.json()) as { error?: string };
+        if (data.error) message = data.error;
+      } catch (error) {
+        void error;
+      }
+      throw new Error(message);
+    }
   }, []);
 
   return { settings, loading, update };

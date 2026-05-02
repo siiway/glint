@@ -272,6 +272,28 @@ const useStyles = makeStyles({
   },
 });
 
+function ensureFaviconLink() {
+  const existing = document.querySelector<HTMLLinkElement>(
+    "link[rel~='icon']",
+  );
+  if (existing) return existing;
+  const link = document.createElement("link");
+  link.rel = "icon";
+  document.head.appendChild(link);
+  return link;
+}
+
+function makeLetterFavicon(name: string) {
+  const first = Array.from(name.trim())[0] ?? "G";
+  const letter = first.toLocaleUpperCase();
+  const escaped = letter
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#0f6cbd"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="34" font-weight="700">${escaped}</text></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function TodoPage() {
@@ -337,6 +359,7 @@ export function TodoPage() {
   const [defaultTimezone, setDefaultTimezone] = useState("UTC");
 
   const selectedSpace = spaces.find((space) => space.id === selectedSpaceId);
+  const defaultFaviconHref = useRef<string | null>(null);
 
   // Todo UI state
   const [newTitle, setNewTitle] = useState("");
@@ -579,6 +602,33 @@ export function TodoPage() {
 
   const { settings: userSettings, update: updateUserSettings } =
     useUserSettings();
+
+  useEffect(() => {
+    const favicon = ensureFaviconLink();
+    if (!defaultFaviconHref.current) {
+      defaultFaviconHref.current = favicon.href || "/favicon.svg";
+    }
+    if (!userSettings.workspace_favicon) {
+      favicon.href = defaultFaviconHref.current;
+      favicon.type = "image/svg+xml";
+      return;
+    }
+
+    const iconUrl = selectedSpace?.avatarUrl?.trim();
+    if (iconUrl) {
+      favicon.href = iconUrl;
+      favicon.removeAttribute("type");
+      return;
+    }
+
+    favicon.href = makeLetterFavicon(selectedSpace?.name ?? "Glint");
+    favicon.type = "image/svg+xml";
+  }, [
+    userSettings.workspace_favicon,
+    selectedSpace?.id,
+    selectedSpace?.name,
+    selectedSpace?.avatarUrl,
+  ]);
 
   useRealtimeSync({
     teamId: selectedSpaceId,

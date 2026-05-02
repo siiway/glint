@@ -143,6 +143,9 @@ const zh: typeof en = {
   userPrefsRealtimeWs: "仅 WebSocket",
   userPrefsRealtimeSse: "仅服务器推送事件（SSE）",
   userPrefsRealtimeHint: "WebSocket 更高效；SSE 在严格代理环境下也能正常工作。",
+  userPrefsWorkspaceFavicon: "将当前工作区图标用作 favicon",
+  userPrefsWorkspaceFaviconHint:
+    "当工作区没有图标时，Glint 会根据工作区名称生成字母 favicon。",
 
   // Selection bar
   selectionCount: "已选择 {count} 项",

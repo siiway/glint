@@ -149,6 +149,9 @@ export default {
   userPrefsRealtimeSse: "Server-Sent Events only",
   userPrefsRealtimeHint:
     "WebSocket is more efficient; SSE works through strict proxies.",
+  userPrefsWorkspaceFavicon: "Use current workspace icon as favicon",
+  userPrefsWorkspaceFaviconHint:
+    "When a workspace has no icon, Glint generates a letter favicon from its name.",
 
   // Selection bar
   selectionCount: "{count} selected",
