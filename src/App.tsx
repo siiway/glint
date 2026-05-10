@@ -32,6 +32,7 @@ import { LoginPage } from "./components/LoginPage";
 import { TodoPage } from "./components/TodoPage";
 import { SharedPage } from "./components/SharedPage";
 import { CallbackPage } from "./components/CallbackPage";
+import { LoginFailedPage } from "./components/LoginFailedPage";
 import { NotAuthorizedPage } from "./components/NotAuthorizedPage";
 import { buildLoginPath } from "./utils/authRedirect";
 
@@ -178,6 +179,14 @@ export default function App() {
               element={
                 <PageLayout>
                   <LoginPage />
+                </PageLayout>
+              }
+            />
+            <Route
+              path="/login-failed"
+              element={
+                <PageLayout>
+                  <LoginFailedPage />
                 </PageLayout>
               }
             />

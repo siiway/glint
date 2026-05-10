@@ -28,6 +28,21 @@ export default {
     "Your edits are still on this page. Copy what you need, then sign in again.",
   sessionExpiredGoLogin: "Go to login",
 
+  // Login failed page
+  loginFailedTitle: "Sign-in failed",
+  loginFailedTryAgain: "Try again",
+  loginFailedDescDefault: "We couldn't complete sign-in. Please try again.",
+  loginFailedDescStateMismatch:
+    "The sign-in request expired or didn't match. Please start over and try again.",
+  loginFailedDescProviderDenied:
+    "The identity provider declined the sign-in request.",
+  loginFailedDescNotAuthorized:
+    "Your account isn't a member of any team allowed to use this site.",
+  loginFailedDescExchangeFailed:
+    "We couldn't validate the sign-in response from the identity provider. Please try again.",
+  loginFailedDescNetworkError:
+    "We couldn't reach the server. Check your connection and try again.",
+
   // Footer
   footerGitHub: "GitHub",
   footerLicense: "Licensed under the",

@@ -36,6 +36,15 @@ type AuthConfig = {
   usePkce: boolean;
 };
 
+export type LoginFailureReason =
+  | "not_authorized"
+  | "exchange_failed"
+  | "network_error";
+
+export type CallbackResult =
+  | { ok: true }
+  | { ok: false; reason: LoginFailureReason; message?: string };
+
 type AuthContextType = {
   user: User | null;
   loading: boolean;
@@ -45,7 +54,10 @@ type AuthContextType = {
   login: () => Promise<void>;
   logout: () => Promise<void>;
   goToLogin: () => Promise<void>;
-  handleCallback: (code: string, codeVerifier?: string) => Promise<boolean>;
+  handleCallback: (
+    code: string,
+    codeVerifier?: string,
+  ) => Promise<CallbackResult>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -171,23 +183,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleCallback = useCallback(
-    async (code: string, codeVerifier?: string): Promise<boolean> => {
+    async (code: string, codeVerifier?: string): Promise<CallbackResult> => {
       const body: { code: string; codeVerifier?: string } = { code };
       if (codeVerifier) body.codeVerifier = codeVerifier;
 
-      const res = await fetch("/api/auth/callback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      let res: Response;
+      try {
+        res = await fetch("/api/auth/callback", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      } catch {
+        return { ok: false, reason: "network_error" };
+      }
 
-      if (!res.ok) return false;
+      if (!res.ok) {
+        const errorBody = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        const reason: LoginFailureReason =
+          res.status === 403 ? "not_authorized" : "exchange_failed";
+        return { ok: false, reason, message: errorBody.error };
+      }
 
       const data: { user: User } = await res.json();
       setUser(data.user);
       setSessionExpiredNotice(false);
       if (data.user?.isAppToken) setAppTokenWarning(true);
-      return true;
+      return { ok: true };
     },
     [],
   );

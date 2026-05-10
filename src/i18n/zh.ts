@@ -30,6 +30,16 @@ const zh: typeof en = {
     "当前页面输入仍保留。请先复制内容，然后点击按钮重新登录。",
   sessionExpiredGoLogin: "前往登录",
 
+  // Login failed page
+  loginFailedTitle: "登录失败",
+  loginFailedTryAgain: "重试",
+  loginFailedDescDefault: "无法完成登录，请重试。",
+  loginFailedDescStateMismatch: "登录请求已过期或不匹配，请重新发起登录。",
+  loginFailedDescProviderDenied: "身份提供方拒绝了本次登录请求。",
+  loginFailedDescNotAuthorized: "您的账号不属于本站点允许的任何团队。",
+  loginFailedDescExchangeFailed: "无法验证身份提供方返回的登录信息，请重试。",
+  loginFailedDescNetworkError: "无法连接到服务器，请检查网络后重试。",
+
   // Footer
   footerGitHub: "GitHub",
   footerLicense: "基于",
