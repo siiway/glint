@@ -88,6 +88,8 @@ const zh: typeof en = {
   todoSelectSet: "选择一个待办分组",
   todoSubTodoPlaceholder: "子任务标题...",
   todoItemCount: "{count} 个任务 | {count} 个任务",
+  todoItemCountDetailed:
+    "{count} 个任务 - {completed} 个已完成 - {incomplete} 个未完成 | {count} 个任务 - {completed} 个已完成 - {incomplete} 个未完成",
   todoImportMarkdown: "从 Markdown 导入",
   todoImportMarkdownDesc: "粘贴 Markdown 清单。支持通过缩进嵌套子任务。",
   todoImportMarkdownPlaceholder: "- [x] 已完成\n- [ ] 待完成\n  - [ ] 子任务",
@@ -156,6 +158,8 @@ const zh: typeof en = {
   userPrefsWorkspaceFavicon: "将当前工作区图标用作 favicon",
   userPrefsWorkspaceFaviconHint:
     "当工作区没有图标时，Glint 会根据工作区名称生成字母 favicon。",
+  userPrefsDetailedStatus: "显示详细任务状态",
+  userPrefsDetailedStatusHint: "在页面右上角显示已完成和未完成任务的具体数量。",
 
   // Selection bar
   selectionCount: "已选择 {count} 项",

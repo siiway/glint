@@ -4,6 +4,7 @@ export type UserSettings = {
   action_bar?: string[] | null;
   realtime_transport?: "ws" | "sse" | "auto";
   workspace_favicon?: boolean;
+  detailed_status?: boolean;
 };
 
 const LS_KEY = "glint_user_settings_cache";

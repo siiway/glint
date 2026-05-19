@@ -1990,13 +1990,28 @@ export function TodoPage() {
                   </Title2>
                 </div>
                 <Caption1 style={{ whiteSpace: "nowrap" }}>
-                  {rootTodos.length === 1
-                    ? t.todoItemCount
-                        .split(" | ")[0]
-                        .replace("{count}", String(rootTodos.length))
-                    : (
-                        t.todoItemCount.split(" | ")[1] ?? t.todoItemCount
-                      ).replace("{count}", String(rootTodos.length))}
+                  {userSettings.detailed_status ? (
+                    rootTodos.length === 1
+                      ? t.todoItemCountDetailed
+                          .split(" | ")[0]
+                          .replace("{count}", String(rootTodos.length))
+                          .replace("{completed}", String(rootTodos.filter((t) => t.completed).length))
+                          .replace("{incomplete}", String(rootTodos.filter((t) => !t.completed).length))
+                      : (
+                          t.todoItemCountDetailed.split(" | ")[1] ?? t.todoItemCountDetailed
+                        )
+                          .replace("{count}", String(rootTodos.length))
+                          .replace("{completed}", String(rootTodos.filter((t) => t.completed).length))
+                          .replace("{incomplete}", String(rootTodos.filter((t) => !t.completed).length))
+                  ) : (
+                    rootTodos.length === 1
+                      ? t.todoItemCount
+                          .split(" | ")[0]
+                          .replace("{count}", String(rootTodos.length))
+                      : (
+                          t.todoItemCount.split(" | ")[1] ?? t.todoItemCount
+                        ).replace("{count}", String(rootTodos.length))
+                  )}
                 </Caption1>
               </div>
 

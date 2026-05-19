@@ -232,6 +232,9 @@ export function SettingsPage({
   const [editWorkspaceFavicon, setEditWorkspaceFavicon] = useState<boolean>(
     () => userSettings.workspace_favicon ?? false,
   );
+  const [editDetailedStatus, setEditDetailedStatus] = useState<boolean>(
+    () => userSettings.detailed_status ?? false,
+  );
   const hasUserActionPref =
     userSettings.action_bar !== undefined && userSettings.action_bar !== null;
   const hasWsActionPref = loadWorkspaceActionBar(teamId) !== null;
@@ -246,7 +249,7 @@ export function SettingsPage({
     failures?: { scope: string; error?: string }[];
   } | null>(null);
   const [prefsSaveNotice, setPrefsSaveNotice] = useState<{
-    scope: "user" | "workspace" | "transport" | "favicon";
+    scope: "user" | "workspace" | "transport" | "favicon" | "detailed_status";
     ok: boolean;
     message: string;
   } | null>(null);
@@ -317,9 +320,11 @@ export function SettingsPage({
   }, [fetchData]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setEditTransport(userSettings.realtime_transport ?? "auto");
     setEditWorkspaceFavicon(userSettings.workspace_favicon ?? false);
-  }, [userSettings.realtime_transport, userSettings.workspace_favicon]);
+    setEditDetailedStatus(userSettings.detailed_status ?? false);
+  }, [userSettings.realtime_transport, userSettings.workspace_favicon, userSettings.detailed_status]);
 
   if (activeTab === "appconfig" && !canManageAppConfig) {
     setActiveTab("preferences");
@@ -484,6 +489,23 @@ export function SettingsPage({
     } catch (error) {
       setPrefsSaveNotice({
         scope: "favicon",
+        ok: false,
+        message: t.settingsSaveFailed.replace("{error}", getErrorMessage(error)),
+      });
+    }
+  };
+
+  const saveDetailedStatus = async () => {
+    try {
+      await onUpdateUserSettings({ detailed_status: editDetailedStatus });
+      setPrefsSaveNotice({
+        scope: "detailed_status",
+        ok: true,
+        message: t.settingsSaveSuccess,
+      });
+    } catch (error) {
+      setPrefsSaveNotice({
+        scope: "detailed_status",
         ok: false,
         message: t.settingsSaveFailed.replace("{error}", getErrorMessage(error)),
       });
@@ -873,6 +895,44 @@ export function SettingsPage({
               </Button>
             </div>
             {prefsSaveNotice?.scope === "favicon" && (
+              <Body2
+                style={{
+                  marginTop: 8,
+                  color: prefsSaveNotice.ok
+                    ? tokens.colorPaletteGreenForeground2
+                    : tokens.colorPaletteRedForeground2,
+                }}
+              >
+                {prefsSaveNotice.message}
+              </Body2>
+            )}
+
+            <Divider style={{ margin: "16px 0" }} />
+            <Switch
+              checked={editDetailedStatus}
+              onChange={(_, data) => setEditDetailedStatus(data.checked)}
+              label={t.userPrefsDetailedStatus}
+            />
+            <Body1
+              style={{
+                fontSize: 12,
+                color: tokens.colorNeutralForeground4,
+                display: "block",
+                marginTop: 4,
+              }}
+            >
+              {t.userPrefsDetailedStatusHint}
+            </Body1>
+            <div style={{ marginTop: 10 }}>
+              <Button
+                size="small"
+                appearance="primary"
+                onClick={saveDetailedStatus}
+              >
+                {t.save}
+              </Button>
+            </div>
+            {prefsSaveNotice?.scope === "detailed_status" && (
               <Body2
                 style={{
                   marginTop: 8,

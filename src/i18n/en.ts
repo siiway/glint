@@ -96,6 +96,8 @@ export default {
   todoSelectSet: "Select a todo set",
   todoSubTodoPlaceholder: "Sub-todo title...",
   todoItemCount: "{count} item | {count} items",
+  todoItemCountDetailed:
+    "{count} item - {completed} completed - {incomplete} remaining | {count} items - {completed} completed - {incomplete} remaining",
   todoImportMarkdown: "Import from Markdown",
   todoImportMarkdownDesc:
     "Paste a Markdown checklist. Supports nested items via indentation.",
@@ -167,6 +169,9 @@ export default {
   userPrefsWorkspaceFavicon: "Use current workspace icon as favicon",
   userPrefsWorkspaceFaviconHint:
     "When a workspace has no icon, Glint generates a letter favicon from its name.",
+  userPrefsDetailedStatus: "Show detailed task status",
+  userPrefsDetailedStatusHint:
+    "Display the number of completed and uncompleted tasks in the top right corner.",
 
   // Selection bar
   selectionCount: "{count} selected",
