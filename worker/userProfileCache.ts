@@ -5,10 +5,24 @@ type CachedProfile = {
   name: string;
   username?: string | null;
   avatarUrl: string | null;
+  /**
+   * Wall-clock time (ms) when this entry was last written from a Prism
+   * fetch. Used to throttle re-checks for entries whose `avatarUrl` is
+   * null (legacy entries from before the cross-app session profile fix,
+   * or users with genuinely no avatar). Absent on legacy entries → read
+   * as 0 → always considered stale and re-fetched once.
+   */
+  refreshedAt?: number;
 };
 
 const KV_PREFIX = "user_profile:";
 const DEFAULT_TTL = 86400;
+/**
+ * How long a cached `avatarUrl: null` is trusted before we ask Prism again.
+ * Keeps over-fetching bounded for users who genuinely have no avatar while
+ * still letting freshly-set avatars surface within minutes.
+ */
+const NULL_AVATAR_RECHECK_MS = 10 * 60 * 1000;
 
 /**
  * Resolves a set of user IDs to display names and avatar URLs.
@@ -36,14 +50,27 @@ export async function resolveUserProfiles(
 
   const ttl = config.user_profile_cache_ttl ?? DEFAULT_TTL;
 
-  // Always resolve the current user from the session — no KV or Prism call needed.
+  // Session-seed fast path: skip KV/Prism for the current user when the
+  // session already carries a full profile (cookie-auth case).
+  //
+  // Cross-app callers don't populate session.avatarUrl, so taking the
+  // shortcut there leaves avatarMap empty for self-authored comments and
+  // claims. When the session is missing an avatar we still pre-fill
+  // name/username from the session as a fallback, but leave the current
+  // user IN the `remaining` set so KV (and on miss, Prism) can fill in
+  // the avatar.
+  const sessionHasAvatar = !!session.avatarUrl;
   if (userIds.has(session.userId)) {
     nameMap[session.userId] = session.displayName || session.username;
     usernameMap[session.userId] = session.username;
-    if (session.avatarUrl) avatarMap[session.userId] = session.avatarUrl;
+    if (sessionHasAvatar) avatarMap[session.userId] = session.avatarUrl!;
   }
 
-  const remaining = new Set([...userIds].filter((id) => id !== session.userId));
+  const remaining = new Set(
+    [...userIds].filter(
+      (id) => id !== session.userId || !sessionHasAvatar,
+    ),
+  );
   if (remaining.size === 0) return { nameMap, usernameMap, avatarMap };
 
   // Check KV cache for all remaining IDs in parallel.
@@ -54,11 +81,20 @@ export async function resolveUserProfiles(
   );
 
   const missIds = new Set<string>();
+  const now = Date.now();
   for (const { id, v } of cacheResults) {
     if (v) {
       nameMap[id] = v.name;
       if (v.username) usernameMap[id] = v.username;
-      if (v.avatarUrl) avatarMap[id] = v.avatarUrl;
+      if (v.avatarUrl) {
+        avatarMap[id] = v.avatarUrl;
+      } else if (now - (v.refreshedAt ?? 0) > NULL_AVATAR_RECHECK_MS) {
+        // Cached but no avatar; entry is older than the recheck window.
+        // Legacy entries (no `refreshedAt`) always fall here and self-heal
+        // on first lookup. Genuine "no avatar" users get throttled to one
+        // Prism call per NULL_AVATAR_RECHECK_MS.
+        missIds.add(id);
+      }
     } else {
       missIds.add(id);
     }
@@ -87,6 +123,7 @@ export async function resolveUserProfiles(
               name,
               username,
               avatarUrl,
+              refreshedAt: now,
             } satisfies CachedProfile),
             { expirationTtl: ttl },
           ),
