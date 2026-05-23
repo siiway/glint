@@ -161,37 +161,10 @@ export function requireCrossAppAuth(innerScope: string | string[]) {
         });
       }
 
-      // 5. Resolve the calling user's profile (username + displayName + avatarUrl)
-      //    so the synthetic session matches the shape of a cookie-auth session.
-      //    Without this, downstream code (resolveUserProfiles, comment listing,
-      //    /api/me, claim handler) falls back to the userId for both username
-      //    and display name — which is why claimedByName / comment author show
-      //    a 32-char hex string instead of the actual user.
-      //
-      //    Fast path: introspectToken sometimes returns `username` (it's
-      //    optional in the spec). When it doesn't, OIDC userinfo's
-      //    `preferred_username` always does. We pull both in one call and
-      //    let userinfo win when available, matching the cookie-login flow.
-      //    Failures are non-fatal: missing fields just stay undefined.
-      let preferredUsername: string | undefined;
-      let displayName: string | undefined;
-      let avatarUrl: string | undefined;
-      try {
-        const userInfo = await prism.getUserInfo(token);
-        preferredUsername = userInfo.preferred_username;
-        displayName = userInfo.name;
-        avatarUrl = userInfo.picture;
-      } catch {
-        // Token may lack `profile` scope, or Prism may be unreachable —
-        // either way, fall through with undefined fields.
-      }
-
-      // 6. Build a synthetic session so existing auth helpers work unchanged.
+      // 5. Build a synthetic session so existing auth helpers work unchanged.
       const session: SessionData = {
         userId,
-        username: preferredUsername ?? info.username ?? userId,
-        displayName,
-        avatarUrl,
+        username: info.username ?? userId,
         accessToken: token,
         expiresAt: (info.exp ?? 0) * 1000,
         teams,
