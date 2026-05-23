@@ -5,10 +5,23 @@ type CachedProfile = {
   name: string;
   username?: string | null;
   avatarUrl: string | null;
+  /**
+   * When this entry was last written from a Prism fetch. Used to throttle
+   * re-checks for entries whose `avatarUrl` is null (legacy entries from
+   * before the cross-app session profile fix, or users with no avatar).
+   * Missing on legacy entries → treated as 0 → always considered stale.
+   */
+  refreshedAt?: number;
 };
 
 const KV_PREFIX = "user_profile:";
 const DEFAULT_TTL = 86400;
+/**
+ * How long a cached `avatarUrl: null` is trusted before we ask Prism again.
+ * Keeps over-fetching bounded for users who genuinely have no avatar while
+ * still letting freshly-set avatars show up within minutes.
+ */
+const NULL_AVATAR_RECHECK_MS = 10 * 60 * 1000;
 
 /**
  * Resolves a set of user IDs to display names and avatar URLs.
@@ -67,11 +80,20 @@ export async function resolveUserProfiles(
   );
 
   const missIds = new Set<string>();
+  const now = Date.now();
   for (const { id, v } of cacheResults) {
     if (v) {
       nameMap[id] = v.name;
       if (v.username) usernameMap[id] = v.username;
-      if (v.avatarUrl) avatarMap[id] = v.avatarUrl;
+      if (v.avatarUrl) {
+        avatarMap[id] = v.avatarUrl;
+      } else if (now - (v.refreshedAt ?? 0) > NULL_AVATAR_RECHECK_MS) {
+        // Cached but no avatar; entry is older than the recheck window.
+        // Legacy entries (no `refreshedAt`) always fall here and self-heal
+        // on first lookup. Genuine "no avatar" users get throttled to one
+        // Prism call per NULL_AVATAR_RECHECK_MS.
+        missIds.add(id);
+      }
     } else {
       missIds.add(id);
     }
@@ -100,6 +122,7 @@ export async function resolveUserProfiles(
               name,
               username,
               avatarUrl,
+              refreshedAt: now,
             } satisfies CachedProfile),
             { expirationTtl: ttl },
           ),
