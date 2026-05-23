@@ -36,27 +36,14 @@ export async function resolveUserProfiles(
 
   const ttl = config.user_profile_cache_ttl ?? DEFAULT_TTL;
 
-  // Session-seed fast path: skip KV/Prism for the current user when the
-  // session already carries a full profile (cookie-auth case).
-  //
-  // Cross-app callers (e.g. Workbench) hit `requireCrossAppAuth`, which
-  // synthesises a session without `avatarUrl`. Taking the shortcut there
-  // would leave avatarMap empty for self-authored comments. So when the
-  // session is missing an avatar we still pre-fill name/username from the
-  // session as a sensible fallback, but leave the current user IN the
-  // `remaining` set so KV (and on miss, Prism) can fill in the avatar.
-  const sessionHasAvatar = !!session.avatarUrl;
+  // Always resolve the current user from the session — no KV or Prism call needed.
   if (userIds.has(session.userId)) {
     nameMap[session.userId] = session.displayName || session.username;
     usernameMap[session.userId] = session.username;
-    if (sessionHasAvatar) avatarMap[session.userId] = session.avatarUrl!;
+    if (session.avatarUrl) avatarMap[session.userId] = session.avatarUrl;
   }
 
-  const remaining = new Set(
-    [...userIds].filter(
-      (id) => id !== session.userId || !sessionHasAvatar,
-    ),
-  );
+  const remaining = new Set([...userIds].filter((id) => id !== session.userId));
   if (remaining.size === 0) return { nameMap, usernameMap, avatarMap };
 
   // Check KV cache for all remaining IDs in parallel.
