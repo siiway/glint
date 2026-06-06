@@ -284,6 +284,7 @@ export default {
   setSplitCompletedHint:
     "When enabled, completed root todos are shown in their own section.",
   completedSection: "Completed ({count})",
+  incompleteSection: "Incomplete ({count})",
 
   // Global timezone
   settingsDefaultTimezone: "Default Timezone",

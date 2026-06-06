@@ -2107,6 +2107,7 @@ export function TodoPage() {
                       ...incompleteRootTodos,
                       ...completedRootTodos,
                     ];
+                    const incompleteCount = incompleteRootTodos.length;
                     const completedCount = completedRootTodos.length;
                     const collapsed = selectedSetId
                       ? (completedCollapsed[selectedSetId] ?? false)
@@ -2118,12 +2119,40 @@ export function TodoPage() {
                         (t) => t.id === todo.id,
                       );
 
+                      // insert header before first incomplete item
+                      const insertIncompleteHeader =
+                        !todo.completed &&
+                        incompleteCount > 0 &&
+                        completedCount > 0 &&
+                        (i === 0 || displayOrder[i - 1].completed);
+
                       // insert header before first completed item
                       const insertHeader =
                         todo.completed &&
                         (i === 0 || !displayOrder[i - 1].completed);
 
                       const elems: ReactNode[] = [];
+                      if (insertIncompleteHeader) {
+                        elems.push(
+                          <div
+                            key={`incomplete-header-${todo.id}`}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              marginTop: 8,
+                              marginBottom: 8,
+                            }}
+                          >
+                            <Caption1>
+                              {t.incompleteSection.replace(
+                                "{count}",
+                                String(incompleteCount),
+                              )}
+                            </Caption1>
+                          </div>,
+                        );
+                      }
                       if (insertHeader) {
                         elems.push(
                           <div
