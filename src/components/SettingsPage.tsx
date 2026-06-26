@@ -366,12 +366,11 @@ export function SettingsPage({
     userSettings.complete_sound_url,
   ]);
 
-  if (
+  const effectiveTab =
     (activeTab === "appconfig" && !canManageAppConfig) ||
     (isPersonal && (activeTab === "branding" || activeTab === "permissions"))
-  ) {
-    setActiveTab("preferences");
-  }
+      ? "preferences"
+      : activeTab;
 
   // When scope changes, load the right perms
   useEffect(() => {
@@ -742,7 +741,7 @@ export function SettingsPage({
           }}
         >
           <TabList
-            selectedValue={activeTab}
+            selectedValue={effectiveTab}
             onTabSelect={(_, d) => setActiveTab(d.value as string)}
           >
             <Tab value="preferences">{t.settingsTabPreferences}</Tab>
@@ -757,7 +756,7 @@ export function SettingsPage({
           </TabList>
         </div>
 
-        {activeTab === "preferences" && (
+        {effectiveTab === "preferences" && (
           <div className={styles.section}>
             {/* User-level action bar */}
             <Title3 className={styles.sectionTitle}>
@@ -1227,7 +1226,7 @@ export function SettingsPage({
           </div>
         )}
 
-        {activeTab === "branding" && editSettings && (
+        {effectiveTab === "branding" && editSettings && (
           <div className={styles.section}>
             <Title3 className={styles.sectionTitle}>
               {t.brandingSiteTitle}
@@ -1395,7 +1394,7 @@ export function SettingsPage({
           </div>
         )}
 
-        {activeTab === "permissions" && permsData && (
+        {effectiveTab === "permissions" && permsData && (
           <div className={styles.section}>
             <Title3 className={styles.sectionTitle}>
               {t.permissionsTitle}
@@ -1525,7 +1524,7 @@ export function SettingsPage({
           </div>
         )}
 
-        {activeTab === "sharelinks" && (
+        {effectiveTab === "sharelinks" && (
           <div className={styles.section}>
             <Title3 className={styles.sectionTitle}>
               {t.settingsShareLinksTitle}
@@ -1634,322 +1633,343 @@ export function SettingsPage({
           </div>
         )}
 
-        {activeTab === "appconfig" && canManageAppConfig && editAppConfig && (
-          <div className={styles.section}>
-            <Title3 className={styles.sectionTitle}>
-              {t.appConfigPrismOAuth}
-            </Title3>
+        {effectiveTab === "appconfig" &&
+          canManageAppConfig &&
+          editAppConfig && (
+            <div className={styles.section}>
+              <Title3 className={styles.sectionTitle}>
+                {t.appConfigPrismOAuth}
+              </Title3>
 
-            <div className={styles.field}>
-              <Body2 className={styles.fieldLabel}>
-                {t.appConfigPrismBaseUrl}
-              </Body2>
-              <Input
-                value={editAppConfig.prism_base_url}
-                onChange={(_, d) =>
-                  setEditAppConfig(
-                    (c) => c && { ...c, prism_base_url: d.value },
-                  )
-                }
-                placeholder="https://prism.siiway.org"
-              />
-            </div>
-
-            <div className={styles.field}>
-              <Body2 className={styles.fieldLabel}>{t.appConfigClientId}</Body2>
-              <Input
-                value={editAppConfig.prism_client_id}
-                onChange={(_, d) =>
-                  setEditAppConfig(
-                    (c) => c && { ...c, prism_client_id: d.value },
-                  )
-                }
-                placeholder="prism_xxxxx"
-              />
-            </div>
-
-            <div className={styles.field}>
-              <Switch
-                label={t.appConfigUsePkce}
-                checked={editAppConfig.use_pkce}
-                onChange={(_, d) =>
-                  setEditAppConfig((c) => c && { ...c, use_pkce: d.checked })
-                }
-              />
-              <Body1
-                style={{ fontSize: 12, color: tokens.colorNeutralForeground4 }}
-              >
-                {t.appConfigUsePkceHint}
-              </Body1>
-            </div>
-
-            {!editAppConfig.use_pkce && (
               <div className={styles.field}>
                 <Body2 className={styles.fieldLabel}>
-                  {t.appConfigClientSecret}
+                  {t.appConfigPrismBaseUrl}
                 </Body2>
                 <Input
-                  value={editAppConfig.prism_client_secret}
+                  value={editAppConfig.prism_base_url}
                   onChange={(_, d) =>
                     setEditAppConfig(
-                      (c) => c && { ...c, prism_client_secret: d.value },
+                      (c) => c && { ...c, prism_base_url: d.value },
                     )
                   }
-                  placeholder="your-client-secret"
-                  type="password"
+                  placeholder="https://prism.siiway.org"
                 />
               </div>
-            )}
 
-            <div className={styles.field}>
-              <Body2 className={styles.fieldLabel}>
-                {t.appConfigRedirectUri}
-              </Body2>
-              <Input
-                value={editAppConfig.prism_redirect_uri}
-                onChange={(_, d) =>
-                  setEditAppConfig(
-                    (c) => c && { ...c, prism_redirect_uri: d.value },
-                  )
-                }
-                placeholder={`${window.location.origin}/callback`}
-              />
-            </div>
+              <div className={styles.field}>
+                <Body2 className={styles.fieldLabel}>
+                  {t.appConfigClientId}
+                </Body2>
+                <Input
+                  value={editAppConfig.prism_client_id}
+                  onChange={(_, d) =>
+                    setEditAppConfig(
+                      (c) => c && { ...c, prism_client_id: d.value },
+                    )
+                  }
+                  placeholder="prism_xxxxx"
+                />
+              </div>
 
-            <Divider style={{ margin: "16px 0" }} />
+              <div className={styles.field}>
+                <Switch
+                  label={t.appConfigUsePkce}
+                  checked={editAppConfig.use_pkce}
+                  onChange={(_, d) =>
+                    setEditAppConfig((c) => c && { ...c, use_pkce: d.checked })
+                  }
+                />
+                <Body1
+                  style={{
+                    fontSize: 12,
+                    color: tokens.colorNeutralForeground4,
+                  }}
+                >
+                  {t.appConfigUsePkceHint}
+                </Body1>
+              </div>
 
-            <Title3 className={styles.sectionTitle}>
-              {t.appConfigAccessControl}
-            </Title3>
+              {!editAppConfig.use_pkce && (
+                <div className={styles.field}>
+                  <Body2 className={styles.fieldLabel}>
+                    {t.appConfigClientSecret}
+                  </Body2>
+                  <Input
+                    value={editAppConfig.prism_client_secret}
+                    onChange={(_, d) =>
+                      setEditAppConfig(
+                        (c) => c && { ...c, prism_client_secret: d.value },
+                      )
+                    }
+                    placeholder="your-client-secret"
+                    type="password"
+                  />
+                </div>
+              )}
 
-            <div className={styles.field}>
-              <Body2 className={styles.fieldLabel}>
-                {t.appConfigAllowedTeamId}
-              </Body2>
-              <Input
-                value={editAppConfig.allowed_team_id}
-                onChange={(_, d) =>
-                  setEditAppConfig(
-                    (c) => c && { ...c, allowed_team_id: d.value },
-                  )
-                }
-                placeholder={t.initAllowedTeamIdPlaceholder}
-                disabled={editAppConfig.allowed_team_id_from_env}
-              />
-              <Body1
-                style={{ fontSize: 12, color: tokens.colorNeutralForeground4 }}
-              >
-                {editAppConfig.allowed_team_id_from_env
-                  ? t.appConfigAllowedTeamIdEnvHint
-                  : t.appConfigAllowedTeamIdHint}
-              </Body1>
-            </div>
+              <div className={styles.field}>
+                <Body2 className={styles.fieldLabel}>
+                  {t.appConfigRedirectUri}
+                </Body2>
+                <Input
+                  value={editAppConfig.prism_redirect_uri}
+                  onChange={(_, d) =>
+                    setEditAppConfig(
+                      (c) => c && { ...c, prism_redirect_uri: d.value },
+                    )
+                  }
+                  placeholder={`${window.location.origin}/callback`}
+                />
+              </div>
 
-            <Divider style={{ margin: "16px 0" }} />
+              <Divider style={{ margin: "16px 0" }} />
 
-            <Title3 className={styles.sectionTitle}>
-              {t.appConfigSessionTtl}
-            </Title3>
+              <Title3 className={styles.sectionTitle}>
+                {t.appConfigAccessControl}
+              </Title3>
 
-            <div className={styles.field}>
-              <Body2 className={styles.fieldLabel}>
+              <div className={styles.field}>
+                <Body2 className={styles.fieldLabel}>
+                  {t.appConfigAllowedTeamId}
+                </Body2>
+                <Input
+                  value={editAppConfig.allowed_team_id}
+                  onChange={(_, d) =>
+                    setEditAppConfig(
+                      (c) => c && { ...c, allowed_team_id: d.value },
+                    )
+                  }
+                  placeholder={t.initAllowedTeamIdPlaceholder}
+                  disabled={editAppConfig.allowed_team_id_from_env}
+                />
+                <Body1
+                  style={{
+                    fontSize: 12,
+                    color: tokens.colorNeutralForeground4,
+                  }}
+                >
+                  {editAppConfig.allowed_team_id_from_env
+                    ? t.appConfigAllowedTeamIdEnvHint
+                    : t.appConfigAllowedTeamIdHint}
+                </Body1>
+              </div>
+
+              <Divider style={{ margin: "16px 0" }} />
+
+              <Title3 className={styles.sectionTitle}>
                 {t.appConfigSessionTtl}
-              </Body2>
-              <Input
-                type="number"
-                value={String(editAppConfig.session_ttl ?? 0)}
-                onChange={(_, d) =>
-                  setEditAppConfig(
-                    (c) =>
-                      c && {
-                        ...c,
-                        session_ttl: Math.max(0, parseInt(d.value) || 0),
-                      },
-                  )
-                }
-                placeholder="0"
-                min="0"
-              />
+              </Title3>
+
+              <div className={styles.field}>
+                <Body2 className={styles.fieldLabel}>
+                  {t.appConfigSessionTtl}
+                </Body2>
+                <Input
+                  type="number"
+                  value={String(editAppConfig.session_ttl ?? 0)}
+                  onChange={(_, d) =>
+                    setEditAppConfig(
+                      (c) =>
+                        c && {
+                          ...c,
+                          session_ttl: Math.max(0, parseInt(d.value) || 0),
+                        },
+                    )
+                  }
+                  placeholder="0"
+                  min="0"
+                />
+                <Body1
+                  style={{
+                    fontSize: 12,
+                    color: tokens.colorNeutralForeground4,
+                  }}
+                >
+                  {t.appConfigSessionTtlHint}
+                </Body1>
+              </div>
+
+              <div className={styles.field}>
+                <Body2 className={styles.fieldLabel}>
+                  {t.appConfigUserProfileCacheTtl}
+                </Body2>
+                <Input
+                  type="number"
+                  value={String(editAppConfig.user_profile_cache_ttl ?? 86400)}
+                  onChange={(_, d) =>
+                    setEditAppConfig(
+                      (c) =>
+                        c && {
+                          ...c,
+                          user_profile_cache_ttl: Math.max(
+                            0,
+                            parseInt(d.value) || 0,
+                          ),
+                        },
+                    )
+                  }
+                  placeholder="86400"
+                />
+                <Body1
+                  style={{
+                    fontSize: 12,
+                    color: tokens.colorNeutralForeground4,
+                  }}
+                >
+                  {t.appConfigUserProfileCacheTtlHint}
+                </Body1>
+              </div>
+
+              <Divider style={{ margin: "16px 0" }} />
+
+              <Title3 className={styles.sectionTitle}>
+                {t.appConfigActionBarDefaults}
+              </Title3>
+              <br />
               <Body1
                 style={{ fontSize: 12, color: tokens.colorNeutralForeground4 }}
               >
-                {t.appConfigSessionTtlHint}
+                {t.appConfigActionBarDefaultsHint}
               </Body1>
-            </div>
-
-            <div className={styles.field}>
-              <Body2 className={styles.fieldLabel}>
-                {t.appConfigUserProfileCacheTtl}
-              </Body2>
-              <Input
-                type="number"
-                value={String(editAppConfig.user_profile_cache_ttl ?? 86400)}
-                onChange={(_, d) =>
-                  setEditAppConfig(
-                    (c) =>
-                      c && {
-                        ...c,
-                        user_profile_cache_ttl: Math.max(
-                          0,
-                          parseInt(d.value) || 0,
-                        ),
-                      },
-                  )
-                }
-                placeholder="86400"
-              />
-              <Body1
-                style={{ fontSize: 12, color: tokens.colorNeutralForeground4 }}
-              >
-                {t.appConfigUserProfileCacheTtlHint}
-              </Body1>
-            </div>
-
-            <Divider style={{ margin: "16px 0" }} />
-
-            <Title3 className={styles.sectionTitle}>
-              {t.appConfigActionBarDefaults}
-            </Title3>
-            <br />
-            <Body1
-              style={{ fontSize: 12, color: tokens.colorNeutralForeground4 }}
-            >
-              {t.appConfigActionBarDefaultsHint}
-            </Body1>
-            <div
-              style={{
-                marginTop: 10,
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-              }}
-            >
-              {ALL_ACTION_BAR_KEYS.map((key) => {
-                const checked = (
-                  editAppConfig.action_bar_defaults ?? ACTION_BAR_SITE_FALLBACK
-                ).includes(key);
-                const iconMap: Record<ActionBarKey, ReactElement> = {
-                  add_before: <ArrowUp24Regular style={{ fontSize: 16 }} />,
-                  add_after: <ArrowDown24Regular style={{ fontSize: 16 }} />,
-                  add_subtodo: <AddCircle24Regular style={{ fontSize: 16 }} />,
-                  edit: <Edit24Regular style={{ fontSize: 16 }} />,
-                  complete: (
-                    <CheckmarkCircle24Regular style={{ fontSize: 16 }} />
-                  ),
-                  claim: <PersonAvailable24Regular style={{ fontSize: 16 }} />,
-                  comment: <Comment24Regular style={{ fontSize: 16 }} />,
-                  delete: <Delete24Regular style={{ fontSize: 16 }} />,
-                };
-                const labelMap: Record<ActionBarKey, string> = {
-                  add_before: t.actionAddBefore,
-                  add_after: t.actionAddAfter,
-                  add_subtodo: t.actionAddSubTodo,
-                  edit: t.edit,
-                  complete: t.actionMarkComplete,
-                  claim: t.actionClaim,
-                  comment: t.actionComments,
-                  delete: t.delete,
-                };
-                return (
-                  <div
-                    key={key}
-                    style={{ display: "flex", alignItems: "center", gap: 8 }}
-                  >
-                    <span
-                      style={{
-                        color: tokens.colorNeutralForeground3,
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      {iconMap[key]}
-                    </span>
-                    <Checkbox
-                      label={labelMap[key]}
-                      checked={checked}
-                      onChange={() => {
-                        setEditAppConfig((c) => {
-                          if (!c) return c;
-                          const current =
-                            c.action_bar_defaults ?? ACTION_BAR_SITE_FALLBACK;
-                          const next = checked
-                            ? current.filter((k) => k !== key)
-                            : [...current, key];
-                          return { ...c, action_bar_defaults: next };
-                        });
-                      }}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-
-            <Divider style={{ margin: "16px 0" }} />
-
-            <Title3 className={styles.sectionTitle}>
-              {t.appConfigRegisterPermissions}
-            </Title3>
-            <Body1
-              style={{
-                fontSize: 12,
-                color: tokens.colorNeutralForeground4,
-                display: "block",
-                marginBottom: 8,
-              }}
-            >
-              {t.appConfigRegisterPermissionsHint}
-            </Body1>
-            <Button
-              appearance="secondary"
-              onClick={registerPermissions}
-              disabled={registeringPerms}
-            >
-              {registeringPerms
-                ? t.appConfigRegisterPermissionsRunning
-                : t.appConfigRegisterPermissionsButton}
-            </Button>
-            {registerResult && (
               <div
                 style={{
-                  marginTop: 12,
-                  padding: "8px 12px",
-                  borderRadius: tokens.borderRadiusMedium,
-                  backgroundColor: registerResult.ok
-                    ? tokens.colorPaletteGreenBackground2
-                    : tokens.colorPaletteRedBackground2,
-                  color: registerResult.ok
-                    ? tokens.colorPaletteGreenForeground2
-                    : tokens.colorPaletteRedForeground2,
-                  fontSize: 13,
+                  marginTop: 10,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 4,
                 }}
               >
-                <div>{registerResult.message}</div>
-                {registerResult.failures &&
-                  registerResult.failures.length > 0 && (
-                    <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>
-                      {registerResult.failures.map((f) => (
-                        <li key={f.scope}>
-                          <code>{f.scope}</code>
-                          {f.error ? `: ${f.error}` : ""}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                {ALL_ACTION_BAR_KEYS.map((key) => {
+                  const checked = (
+                    editAppConfig.action_bar_defaults ??
+                    ACTION_BAR_SITE_FALLBACK
+                  ).includes(key);
+                  const iconMap: Record<ActionBarKey, ReactElement> = {
+                    add_before: <ArrowUp24Regular style={{ fontSize: 16 }} />,
+                    add_after: <ArrowDown24Regular style={{ fontSize: 16 }} />,
+                    add_subtodo: (
+                      <AddCircle24Regular style={{ fontSize: 16 }} />
+                    ),
+                    edit: <Edit24Regular style={{ fontSize: 16 }} />,
+                    complete: (
+                      <CheckmarkCircle24Regular style={{ fontSize: 16 }} />
+                    ),
+                    claim: (
+                      <PersonAvailable24Regular style={{ fontSize: 16 }} />
+                    ),
+                    comment: <Comment24Regular style={{ fontSize: 16 }} />,
+                    delete: <Delete24Regular style={{ fontSize: 16 }} />,
+                  };
+                  const labelMap: Record<ActionBarKey, string> = {
+                    add_before: t.actionAddBefore,
+                    add_after: t.actionAddAfter,
+                    add_subtodo: t.actionAddSubTodo,
+                    edit: t.edit,
+                    complete: t.actionMarkComplete,
+                    claim: t.actionClaim,
+                    comment: t.actionComments,
+                    delete: t.delete,
+                  };
+                  return (
+                    <div
+                      key={key}
+                      style={{ display: "flex", alignItems: "center", gap: 8 }}
+                    >
+                      <span
+                        style={{
+                          color: tokens.colorNeutralForeground3,
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        {iconMap[key]}
+                      </span>
+                      <Checkbox
+                        label={labelMap[key]}
+                        checked={checked}
+                        onChange={() => {
+                          setEditAppConfig((c) => {
+                            if (!c) return c;
+                            const current =
+                              c.action_bar_defaults ?? ACTION_BAR_SITE_FALLBACK;
+                            const next = checked
+                              ? current.filter((k) => k !== key)
+                              : [...current, key];
+                            return { ...c, action_bar_defaults: next };
+                          });
+                        }}
+                      />
+                    </div>
+                  );
+                })}
               </div>
-            )}
 
-            <div className={styles.saveBar}>
-              <Button
-                appearance="primary"
-                icon={<Save24Regular />}
-                onClick={saveAppConfig}
-                disabled={saving}
+              <Divider style={{ margin: "16px 0" }} />
+
+              <Title3 className={styles.sectionTitle}>
+                {t.appConfigRegisterPermissions}
+              </Title3>
+              <Body1
+                style={{
+                  fontSize: 12,
+                  color: tokens.colorNeutralForeground4,
+                  display: "block",
+                  marginBottom: 8,
+                }}
               >
-                {saving ? t.saving : t.appConfigSave}
+                {t.appConfigRegisterPermissionsHint}
+              </Body1>
+              <Button
+                appearance="secondary"
+                onClick={registerPermissions}
+                disabled={registeringPerms}
+              >
+                {registeringPerms
+                  ? t.appConfigRegisterPermissionsRunning
+                  : t.appConfigRegisterPermissionsButton}
               </Button>
+              {registerResult && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    padding: "8px 12px",
+                    borderRadius: tokens.borderRadiusMedium,
+                    backgroundColor: registerResult.ok
+                      ? tokens.colorPaletteGreenBackground2
+                      : tokens.colorPaletteRedBackground2,
+                    color: registerResult.ok
+                      ? tokens.colorPaletteGreenForeground2
+                      : tokens.colorPaletteRedForeground2,
+                    fontSize: 13,
+                  }}
+                >
+                  <div>{registerResult.message}</div>
+                  {registerResult.failures &&
+                    registerResult.failures.length > 0 && (
+                      <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>
+                        {registerResult.failures.map((f) => (
+                          <li key={f.scope}>
+                            <code>{f.scope}</code>
+                            {f.error ? `: ${f.error}` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                </div>
+              )}
+
+              <div className={styles.saveBar}>
+                <Button
+                  appearance="primary"
+                  icon={<Save24Regular />}
+                  onClick={saveAppConfig}
+                  disabled={saving}
+                >
+                  {saving ? t.saving : t.appConfigSave}
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
       </div>
       <Footer />
       <ConfirmDialog

@@ -186,6 +186,8 @@ export default {
   completeSoundTest: "Test",
   collapseSidebar: "Collapse sidebar",
   expandSidebar: "Expand sidebar",
+  tzSearchPlaceholder: "Search timezone or offset...",
+  tzNoMatch: "No match",
 
   // Selection bar
   selectionCount: "{count} selected",

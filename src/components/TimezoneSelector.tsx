@@ -10,6 +10,7 @@ import {
   tokens,
 } from "@fluentui/react-components";
 import { ChevronDown20Regular } from "@fluentui/react-icons";
+import { useI18n } from "../i18n";
 
 const useStyles = makeStyles({
   trigger: {
@@ -54,14 +55,12 @@ function computeOffset(tz: string): string {
     const tzStr = now.toLocaleString("en-US", { timeZone: tz });
     const utcStr = now.toLocaleString("en-US", { timeZone: "UTC" });
     const diff = new Date(tzStr).getTime() - new Date(utcStr).getTime();
-    if (diff === 0) return "UTC";
+    if (diff === 0) return "+0";
     const sign = diff > 0 ? "+" : "-";
     const abs = Math.abs(diff);
     const h = Math.floor(abs / 3600000);
     const m = Math.floor((abs % 3600000) / 60000);
-    return m > 0
-      ? `UTC${sign}${h}:${String(m).padStart(2, "0")}`
-      : `UTC${sign}${h}`;
+    return m > 0 ? `${sign}${h}:${String(m).padStart(2, "0")}` : `${sign}${h}`;
   } catch {
     return "";
   }
@@ -91,6 +90,7 @@ export function TimezoneSelector({
   disabled,
 }: Props) {
   const styles = useStyles();
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -136,7 +136,7 @@ export function TimezoneSelector({
         <Input
           ref={inputRef}
           size="small"
-          placeholder="Search timezone or offset..."
+          placeholder={t.tzSearchPlaceholder}
           value={filter}
           onChange={(_, d) => setFilter(d.value)}
           onKeyDown={(e) => {
@@ -152,7 +152,7 @@ export function TimezoneSelector({
                 display: "block",
               }}
             >
-              No match
+              {t.tzNoMatch}
             </Caption1>
           )}
           {filtered.map((entry) => (

@@ -172,6 +172,8 @@ const zh: typeof en = {
   completeSoundTest: "试听",
   collapseSidebar: "折叠侧栏",
   expandSidebar: "展开侧栏",
+  tzSearchPlaceholder: "搜索时区或偏移量...",
+  tzNoMatch: "无匹配",
 
   // Selection bar
   selectionCount: "已选择 {count} 项",
