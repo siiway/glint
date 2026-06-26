@@ -67,9 +67,7 @@ export async function resolveUserProfiles(
   }
 
   const remaining = new Set(
-    [...userIds].filter(
-      (id) => id !== session.userId || !sessionHasAvatar,
-    ),
+    [...userIds].filter((id) => id !== session.userId || !sessionHasAvatar),
   );
   if (remaining.size === 0) return { nameMap, usernameMap, avatarMap };
 

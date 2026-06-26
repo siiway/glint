@@ -50,6 +50,11 @@ export function loadWorkspaceActionBar(spaceId: string): ActionKey[] | null {
 export function getEffectiveActions(
   spaceId: string,
   siteDefault: ActionKey[] = BUILTIN_SITE_DEFAULT,
+  userActionBar?: string[] | null,
 ): ActionKey[] {
-  return loadUserActionBar() ?? loadWorkspaceActionBar(spaceId) ?? siteDefault;
+  const userBar =
+    userActionBar !== undefined
+      ? (userActionBar as ActionKey[] | null)
+      : loadUserActionBar();
+  return userBar ?? loadWorkspaceActionBar(spaceId) ?? siteDefault;
 }

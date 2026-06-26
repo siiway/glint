@@ -19,14 +19,31 @@ export async function processAutoRenew(env: Bindings) {
       tz = settings.default_timezone || "UTC";
     }
 
-    const localNow = new Date(
-      now.toLocaleString("en-US", { timeZone: tz || "UTC" }),
+    const tzOrUtc = tz || "UTC";
+    const localDate = now.toLocaleDateString("en-CA", {
+      timeZone: tzOrUtc,
+    });
+
+    const timeFormatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: tzOrUtc,
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    });
+    const timeParts = Object.fromEntries(
+      timeFormatter
+        .formatToParts(now)
+        .filter((p) => p.type !== "literal")
+        .map((p) => [p.type, p.value]),
     );
-    const localTime = `${String(localNow.getHours()).padStart(2, "0")}:${String(localNow.getMinutes()).padStart(2, "0")}`;
-    const localDate = localNow.toISOString().split("T")[0];
+    const localTime = `${String(timeParts.hour).padStart(2, "0")}:${String(timeParts.minute).padStart(2, "0")}`;
 
     const lastRenewed = set.last_renewed_at as string | null;
-    const lastDate = lastRenewed ? lastRenewed.split("T")[0] : null;
+    const lastDate = lastRenewed
+      ? new Date(lastRenewed).toLocaleDateString("en-CA", {
+          timeZone: tzOrUtc,
+        })
+      : null;
 
     if (localTime >= renewTime && lastDate !== localDate) {
       await env.DB.prepare(

@@ -10,13 +10,21 @@ import {
 
 const permissions = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-permissions.get("/api/teams/:teamId/permissions", requireAuth, getPermissionsAll);
+permissions.get(
+  "/api/teams/:teamId/permissions",
+  requireAuth,
+  getPermissionsAll,
+);
 permissions.get(
   "/api/teams/:teamId/permissions/me",
   requireAuth,
   getPermissionsMe,
 );
-permissions.put("/api/teams/:teamId/permissions", requireAuth, upsertPermissions);
+permissions.put(
+  "/api/teams/:teamId/permissions",
+  requireAuth,
+  upsertPermissions,
+);
 permissions.delete(
   "/api/teams/:teamId/permissions",
   requireAuth,

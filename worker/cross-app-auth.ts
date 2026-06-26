@@ -69,7 +69,8 @@ export function hasCrossAppScope(
   const requiresExcluded = innerScopes.every((s) =>
     BUNDLE_EXCLUDED_SCOPES.has(s),
   );
-  if (!requiresExcluded && granted.includes(WORKBENCH_BUNDLE_SCOPE)) return true;
+  if (!requiresExcluded && granted.includes(WORKBENCH_BUNDLE_SCOPE))
+    return true;
   return innerScopes.some((s) => granted.includes(s));
 }
 

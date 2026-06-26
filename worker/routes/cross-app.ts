@@ -167,7 +167,11 @@ route.get("/teams/:teamId/feed", "read_todos", getFeed);
 // can't accidentally mutate the team's permission policy.
 route.get("/teams/:teamId/permissions/me", "read_todos", getPermissionsMe);
 route.get("/teams/:teamId/permissions", "read_todos", getPermissionsAll);
-route.put("/teams/:teamId/permissions", "manage_permissions", upsertPermissions);
+route.put(
+  "/teams/:teamId/permissions",
+  "manage_permissions",
+  upsertPermissions,
+);
 route.delete(
   "/teams/:teamId/permissions",
   "manage_permissions",

@@ -5,6 +5,9 @@ export type UserSettings = {
   realtime_transport?: "ws" | "sse" | "auto";
   workspace_favicon?: boolean;
   detailed_status?: boolean;
+  personal_avatar_icon?: boolean;
+  complete_sound_enabled?: boolean;
+  complete_sound_url?: string;
 };
 
 const LS_KEY = "glint_user_settings_cache";

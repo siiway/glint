@@ -60,12 +60,20 @@ const useStyles = makeStyles({
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   },
+  spaceBadgeRow: {
+    display: "flex",
+    gap: "6px",
+    alignItems: "center",
+    minWidth: 0,
+  },
   spaceId: {
     fontSize: tokens.fontSizeBase100,
     color: tokens.colorNeutralForeground4,
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
+    flex: "1",
+    minWidth: 0,
     fontFamily: "'Cascadia Code', 'Cascadia Mono', Consolas, monospace",
   },
 });
@@ -138,16 +146,11 @@ export function SelectSpacePage({
                   <Text weight="semibold" className={styles.spaceName}>
                     {displayName}
                   </Text>
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "6px",
-                      alignItems: "center",
-                    }}
-                  >
+                  <div className={styles.spaceBadgeRow}>
                     <Badge
                       appearance="filled"
                       size="small"
+                      style={{ flexShrink: 0 }}
                       color={
                         space.kind === "personal"
                           ? "brand"
