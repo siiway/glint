@@ -52,7 +52,6 @@ import {
   PersonDelete24Regular,
   ArrowUp24Regular,
   ArrowDown24Regular,
-  ChevronDoubleLeft20Regular,
   ChevronDoubleRight20Regular,
 } from "@fluentui/react-icons";
 import { useNavigate, useMatch } from "react-router-dom";
@@ -74,7 +73,10 @@ import {
   type ActionKey,
 } from "../utils/actionBar";
 import { useRealtimeSync, type WsEvent } from "../hooks/useRealtimeSync";
-import { useUserSettings } from "../hooks/useUserSettings";
+import {
+  useUserSettings,
+  DEFAULT_COMPLETE_SOUND_URL,
+} from "../hooks/useUserSettings";
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
@@ -1143,13 +1145,11 @@ export function TodoPage() {
   // ─── Completion sound ────────────────────────────────────────────────────
 
   const playCompleteSound = useCallback(() => {
-    if (
-      !userSettings.complete_sound_enabled ||
-      !userSettings.complete_sound_url
-    )
-      return;
+    if (!userSettings.complete_sound_enabled) return;
+    const url =
+      userSettings.complete_sound_url?.trim() || DEFAULT_COMPLETE_SOUND_URL;
     try {
-      const audio = new Audio(userSettings.complete_sound_url);
+      const audio = new Audio(url);
       void audio.play().catch(() => {});
     } catch {
       // ignore audio errors
@@ -2074,6 +2074,7 @@ export function TodoPage() {
             canManageSets={hasPerm("manage_sets")}
             canManageSetLinks={hasPerm("manage_set_links")}
             onOpenSettings={() => navigate(`/${selectedSpaceId}/settings`)}
+            onCollapseSidebar={() => toggleSidebarCollapsed(true)}
             onAddSet={handleAddSet}
             onImportSet={(set) => {
               setSets((prev) =>
@@ -2138,16 +2139,6 @@ export function TodoPage() {
                       icon={<Navigation24Regular />}
                       onClick={() => setDrawerOpen(true)}
                     />
-                  )}
-                  {!isMobile && !sidebarCollapsed && (
-                    <Tooltip content={t.collapseSidebar} relationship="label">
-                      <Button
-                        appearance="transparent"
-                        size="small"
-                        icon={<ChevronDoubleLeft20Regular />}
-                        onClick={() => toggleSidebarCollapsed(true)}
-                      />
-                    </Tooltip>
                   )}
                   <Title2
                     style={

@@ -10,6 +10,10 @@ export type UserSettings = {
   complete_sound_url?: string;
 };
 
+/** Default completion sound used when the user has not set a custom URL. */
+export const DEFAULT_COMPLETE_SOUND_URL =
+  "https://ghsrc.wyf9.top/dl/todo-ding.mp3";
+
 const LS_KEY = "glint_user_settings_cache";
 
 function readCache(): UserSettings {

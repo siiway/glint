@@ -40,7 +40,10 @@ import { useI18n } from "../i18n";
 import type { ShareLink } from "../types";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { TimezoneSelector } from "./TimezoneSelector";
-import type { UserSettings } from "../hooks/useUserSettings";
+import {
+  type UserSettings,
+  DEFAULT_COMPLETE_SOUND_URL,
+} from "../hooks/useUserSettings";
 import {
   ALL_ACTION_KEYS,
   type ActionKey,
@@ -244,7 +247,7 @@ export function SettingsPage({
   const [editCompleteSoundEnabled, setEditCompleteSoundEnabled] =
     useState<boolean>(() => userSettings.complete_sound_enabled ?? false);
   const [editCompleteSoundUrl, setEditCompleteSoundUrl] = useState<string>(
-    () => userSettings.complete_sound_url ?? "",
+    () => userSettings.complete_sound_url ?? DEFAULT_COMPLETE_SOUND_URL,
   );
   const hasUserActionPref =
     userSettings.action_bar !== undefined && userSettings.action_bar !== null;
@@ -356,7 +359,9 @@ export function SettingsPage({
     setEditDetailedStatus(userSettings.detailed_status ?? false);
     setEditPersonalAvatarIcon(userSettings.personal_avatar_icon ?? false);
     setEditCompleteSoundEnabled(userSettings.complete_sound_enabled ?? false);
-    setEditCompleteSoundUrl(userSettings.complete_sound_url ?? "");
+    setEditCompleteSoundUrl(
+      userSettings.complete_sound_url ?? DEFAULT_COMPLETE_SOUND_URL,
+    );
   }, [
     userSettings.realtime_transport,
     userSettings.workspace_favicon,
@@ -997,191 +1002,192 @@ export function SettingsPage({
               {t.globalPrefsTitle}
             </Title3>
 
-            <Switch
-              checked={editWorkspaceFavicon}
-              onChange={(_, data) => setEditWorkspaceFavicon(data.checked)}
-              label={t.userPrefsWorkspaceFavicon}
-            />
-            <Body1
-              style={{
-                fontSize: 12,
-                color: tokens.colorNeutralForeground4,
-                display: "block",
-                marginTop: 4,
-              }}
-            >
-              {t.userPrefsWorkspaceFaviconHint}
-            </Body1>
-            <div style={{ marginTop: 10 }}>
-              <Button
-                size="small"
-                appearance="primary"
-                onClick={saveWorkspaceFavicon}
-              >
-                {t.save}
-              </Button>
-            </div>
-            {prefsSaveNotice?.scope === "favicon" && (
-              <Body2
+            {/* Use workspace icon as favicon */}
+            <div>
+              <Switch
+                checked={editWorkspaceFavicon}
+                onChange={(_, data) => setEditWorkspaceFavicon(data.checked)}
+                label={t.userPrefsWorkspaceFavicon}
+              />
+              <Body1
                 style={{
-                  marginTop: 8,
-                  color: prefsSaveNotice.ok
-                    ? tokens.colorPaletteGreenForeground2
-                    : tokens.colorPaletteRedForeground2,
+                  fontSize: 12,
+                  color: tokens.colorNeutralForeground4,
+                  display: "block",
+                  marginTop: 4,
                 }}
               >
-                {prefsSaveNotice.message}
-              </Body2>
-            )}
+                {t.userPrefsWorkspaceFaviconHint}
+              </Body1>
+              <div style={{ marginTop: 10 }}>
+                <Button
+                  size="small"
+                  appearance="primary"
+                  onClick={saveWorkspaceFavicon}
+                >
+                  {t.save}
+                </Button>
+              </div>
+              {prefsSaveNotice?.scope === "favicon" && (
+                <Body2
+                  style={{
+                    marginTop: 8,
+                    color: prefsSaveNotice.ok
+                      ? tokens.colorPaletteGreenForeground2
+                      : tokens.colorPaletteRedForeground2,
+                  }}
+                >
+                  {prefsSaveNotice.message}
+                </Body2>
+              )}
+            </div>
 
-            <Divider style={{ margin: "16px 0" }} />
-            <Switch
-              checked={editDetailedStatus}
-              onChange={(_, data) => setEditDetailedStatus(data.checked)}
-              label={t.userPrefsDetailedStatus}
-            />
-            <Body1
-              style={{
-                fontSize: 12,
-                color: tokens.colorNeutralForeground4,
-                display: "block",
-                marginTop: 4,
-              }}
-            >
-              {t.userPrefsDetailedStatusHint}
-            </Body1>
-            <div style={{ marginTop: 10 }}>
-              <Button
-                size="small"
-                appearance="primary"
-                onClick={saveDetailedStatus}
-              >
-                {t.save}
-              </Button>
-            </div>
-            {prefsSaveNotice?.scope === "detailed_status" && (
-              <Body2
+            {/* Detailed task status */}
+            <div style={{ marginTop: 20 }}>
+              <Switch
+                checked={editDetailedStatus}
+                onChange={(_, data) => setEditDetailedStatus(data.checked)}
+                label={t.userPrefsDetailedStatus}
+              />
+              <Body1
                 style={{
-                  marginTop: 8,
-                  color: prefsSaveNotice.ok
-                    ? tokens.colorPaletteGreenForeground2
-                    : tokens.colorPaletteRedForeground2,
+                  fontSize: 12,
+                  color: tokens.colorNeutralForeground4,
+                  display: "block",
+                  marginTop: 4,
                 }}
               >
-                {prefsSaveNotice.message}
-              </Body2>
-            )}
+                {t.userPrefsDetailedStatusHint}
+              </Body1>
+              <div style={{ marginTop: 10 }}>
+                <Button
+                  size="small"
+                  appearance="primary"
+                  onClick={saveDetailedStatus}
+                >
+                  {t.save}
+                </Button>
+              </div>
+              {prefsSaveNotice?.scope === "detailed_status" && (
+                <Body2
+                  style={{
+                    marginTop: 8,
+                    color: prefsSaveNotice.ok
+                      ? tokens.colorPaletteGreenForeground2
+                      : tokens.colorPaletteRedForeground2,
+                  }}
+                >
+                  {prefsSaveNotice.message}
+                </Body2>
+              )}
+            </div>
 
-            <Divider style={{ margin: "16px 0" }} />
-            <Switch
-              checked={editPersonalAvatarIcon}
-              onChange={(_, data) => setEditPersonalAvatarIcon(data.checked)}
-              label={t.personalAvatarIcon}
-            />
-            <Body1
-              style={{
-                fontSize: 12,
-                color: tokens.colorNeutralForeground4,
-                display: "block",
-                marginTop: 4,
-              }}
-            >
-              {t.personalAvatarIconHint}
-            </Body1>
-            <div style={{ marginTop: 10 }}>
-              <Button
-                size="small"
-                appearance="primary"
-                onClick={savePersonalAvatarIcon}
-              >
-                {t.save}
-              </Button>
-            </div>
-            {prefsSaveNotice?.scope === "personal_avatar" && (
-              <Body2
+            {/* Use personal avatar as personal workspace icon */}
+            <div style={{ marginTop: 20 }}>
+              <Switch
+                checked={editPersonalAvatarIcon}
+                onChange={(_, data) => setEditPersonalAvatarIcon(data.checked)}
+                label={t.personalAvatarIcon}
+              />
+              <Body1
                 style={{
-                  marginTop: 8,
-                  color: prefsSaveNotice.ok
-                    ? tokens.colorPaletteGreenForeground2
-                    : tokens.colorPaletteRedForeground2,
+                  fontSize: 12,
+                  color: tokens.colorNeutralForeground4,
+                  display: "block",
+                  marginTop: 4,
                 }}
               >
-                {prefsSaveNotice.message}
-              </Body2>
-            )}
+                {t.personalAvatarIconHint}
+              </Body1>
+              <div style={{ marginTop: 10 }}>
+                <Button
+                  size="small"
+                  appearance="primary"
+                  onClick={savePersonalAvatarIcon}
+                >
+                  {t.save}
+                </Button>
+              </div>
+              {prefsSaveNotice?.scope === "personal_avatar" && (
+                <Body2
+                  style={{
+                    marginTop: 8,
+                    color: prefsSaveNotice.ok
+                      ? tokens.colorPaletteGreenForeground2
+                      : tokens.colorPaletteRedForeground2,
+                  }}
+                >
+                  {prefsSaveNotice.message}
+                </Body2>
+              )}
+            </div>
 
             {/* Completion sound */}
-            <Divider style={{ margin: "16px 0" }} />
-            <Title3 className={styles.sectionTitle}>{t.completeSound}</Title3>
-            <Body1
-              style={{
-                fontSize: 12,
-                color: tokens.colorNeutralForeground4,
-                display: "block",
-                marginBottom: 8,
-              }}
-            >
-              {t.completeSoundHint}
-            </Body1>
-            <Switch
-              checked={editCompleteSoundEnabled}
-              onChange={(_, data) => setEditCompleteSoundEnabled(data.checked)}
-              label={t.completeSoundEnabled}
-            />
-            <Body1
-              style={{
-                fontSize: 12,
-                color: tokens.colorNeutralForeground4,
-                display: "block",
-                marginTop: 4,
-              }}
-            >
-              {t.completeSoundEnabledHint}
-            </Body1>
-            {editCompleteSoundEnabled && (
-              <div className={styles.field} style={{ marginTop: 12 }}>
-                <Body2 className={styles.fieldLabel}>
-                  {t.completeSoundUrl}
-                </Body2>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <Input
-                    value={editCompleteSoundUrl}
-                    onChange={(_, d) => setEditCompleteSoundUrl(d.value)}
-                    placeholder={t.completeSoundUrlPlaceholder}
-                    style={{ flex: 1 }}
-                  />
-                  <Button
-                    size="small"
-                    appearance="secondary"
-                    onClick={testCompleteSound}
-                    disabled={!editCompleteSoundUrl.trim()}
-                  >
-                    {t.completeSoundTest}
-                  </Button>
-                </div>
-              </div>
-            )}
-            <div style={{ marginTop: 10 }}>
-              <Button
-                size="small"
-                appearance="primary"
-                onClick={saveCompleteSound}
-              >
-                {t.save}
-              </Button>
-            </div>
-            {prefsSaveNotice?.scope === "complete_sound" && (
-              <Body2
+            <div style={{ marginTop: 20 }}>
+              <Switch
+                checked={editCompleteSoundEnabled}
+                onChange={(_, data) =>
+                  setEditCompleteSoundEnabled(data.checked)
+                }
+                label={t.completeSoundEnabled}
+              />
+              <Body1
                 style={{
-                  marginTop: 8,
-                  color: prefsSaveNotice.ok
-                    ? tokens.colorPaletteGreenForeground2
-                    : tokens.colorPaletteRedForeground2,
+                  fontSize: 12,
+                  color: tokens.colorNeutralForeground4,
+                  display: "block",
+                  marginTop: 4,
                 }}
               >
-                {prefsSaveNotice.message}
-              </Body2>
-            )}
+                {t.completeSoundEnabledHint}
+              </Body1>
+              {editCompleteSoundEnabled && (
+                <div className={styles.field} style={{ marginTop: 12 }}>
+                  <Body2 className={styles.fieldLabel}>
+                    {t.completeSoundUrl}
+                  </Body2>
+                  <div
+                    style={{ display: "flex", gap: 8, alignItems: "center" }}
+                  >
+                    <Input
+                      value={editCompleteSoundUrl}
+                      onChange={(_, d) => setEditCompleteSoundUrl(d.value)}
+                      placeholder={t.completeSoundUrlPlaceholder}
+                      style={{ flex: 1 }}
+                    />
+                    <Button
+                      size="small"
+                      appearance="secondary"
+                      onClick={testCompleteSound}
+                      disabled={!editCompleteSoundUrl.trim()}
+                    >
+                      {t.completeSoundTest}
+                    </Button>
+                  </div>
+                </div>
+              )}
+              <div style={{ marginTop: 10 }}>
+                <Button
+                  size="small"
+                  appearance="primary"
+                  onClick={saveCompleteSound}
+                >
+                  {t.save}
+                </Button>
+              </div>
+              {prefsSaveNotice?.scope === "complete_sound" && (
+                <Body2
+                  style={{
+                    marginTop: 8,
+                    color: prefsSaveNotice.ok
+                      ? tokens.colorPaletteGreenForeground2
+                      : tokens.colorPaletteRedForeground2,
+                  }}
+                >
+                  {prefsSaveNotice.message}
+                </Body2>
+              )}
+            </div>
 
             {/* Site default (read-only) */}
             <Divider style={{ margin: "16px 0" }} />

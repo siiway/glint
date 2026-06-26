@@ -35,6 +35,7 @@ import {
   MoreVertical24Regular,
   Settings24Regular,
   BuildingMultiple24Regular,
+  ChevronDoubleLeft20Regular,
 } from "@fluentui/react-icons";
 import type { TodoSet, TodoSpace } from "../types";
 import { ROLE_COLORS } from "../types";
@@ -164,6 +165,7 @@ type Props = {
   canManageSets: boolean;
   canManageSetLinks: boolean;
   onOpenSettings: () => void;
+  onCollapseSidebar?: () => void;
   onAddSet: (name: string) => Promise<void>;
   onImportSet: (set: TodoSet) => void;
   onDeleteSet: (id: string) => void;
@@ -193,6 +195,7 @@ export function Sidebar({
   canManageSets,
   canManageSetLinks,
   onOpenSettings,
+  onCollapseSidebar,
   onAddSet,
   onImportSet,
   onDeleteSet,
@@ -740,16 +743,28 @@ export function Sidebar({
             ) : (
               <Title3>{siteName}</Title3>
             )}
-            {canManageSettings && (
-              <Tooltip content={t.sidebarSettings} relationship="label">
-                <Button
-                  appearance="transparent"
-                  size="small"
-                  icon={<Settings24Regular />}
-                  onClick={onOpenSettings}
-                />
-              </Tooltip>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              {!isMobile && onCollapseSidebar && (
+                <Tooltip content={t.collapseSidebar} relationship="label">
+                  <Button
+                    appearance="transparent"
+                    size="small"
+                    icon={<ChevronDoubleLeft20Regular />}
+                    onClick={onCollapseSidebar}
+                  />
+                </Tooltip>
+              )}
+              {canManageSettings && (
+                <Tooltip content={t.sidebarSettings} relationship="label">
+                  <Button
+                    appearance="transparent"
+                    size="small"
+                    icon={<Settings24Regular />}
+                    onClick={onOpenSettings}
+                  />
+                </Tooltip>
+              )}
+            </div>
           </div>
           {selectedSpace && (
             <div className={styles.spaceNameRow}>
