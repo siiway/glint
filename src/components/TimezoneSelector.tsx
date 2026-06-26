@@ -46,36 +46,67 @@ const useStyles = makeStyles({
     fontWeight: 600,
   },
 });
-
 type TzEntry = { id: string; offset: string };
 
+const tzOffsetCache = new Map<string, string>();
+
 function computeOffset(tz: string): string {
+  const cached = tzOffsetCache.get(tz);
+  if (cached !== undefined) return cached;
   try {
     const now = new Date();
-    const tzStr = now.toLocaleString("en-US", { timeZone: tz });
-    const utcStr = now.toLocaleString("en-US", { timeZone: "UTC" });
-    const diff = new Date(tzStr).getTime() - new Date(utcStr).getTime();
-    if (diff === 0) return "+0";
-    const sign = diff > 0 ? "+" : "-";
-    const abs = Math.abs(diff);
-    const h = Math.floor(abs / 3600000);
-    const m = Math.floor((abs % 3600000) / 60000);
-    return m > 0 ? `${sign}${h}:${String(m).padStart(2, "0")}` : `${sign}${h}`;
+    const dtf = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    });
+    const partValues: Record<string, string> = {};
+    for (const { type, value } of dtf.formatToParts(now)) {
+      if (type !== "literal") partValues[type] = value;
+    }
+    const tzUtcMs = Date.UTC(
+      Number(partValues.year),
+      Number(partValues.month) - 1,
+      Number(partValues.day),
+      Number(partValues.hour),
+      Number(partValues.minute),
+      Number(partValues.second),
+    );
+    const offsetMinutes = Math.round((tzUtcMs - now.getTime()) / 60000);
+    let result: string;
+    if (offsetMinutes === 0) {
+      result = "+0";
+    } else {
+      const sign = offsetMinutes > 0 ? "+" : "-";
+      const abs = Math.abs(offsetMinutes);
+      const h = Math.floor(abs / 60);
+      const m = abs % 60;
+      result =
+        m > 0 ? `${sign}${h}:${String(m).padStart(2, "0")}` : `${sign}${h}`;
+    }
+    tzOffsetCache.set(tz, result);
+    return result;
   } catch {
     return "";
   }
 }
 
-function buildTzList(): TzEntry[] {
+let tzListCache: TzEntry[] | null = null;
+
+function getTzList(): TzEntry[] {
+  if (tzListCache) return tzListCache;
   const zones: string[] =
     typeof Intl.supportedValuesOf === "function"
       ? Intl.supportedValuesOf("timeZone")
       : [];
-  return zones.map((tz) => ({ id: tz, offset: computeOffset(tz) }));
+  tzListCache = zones.map((tz) => ({ id: tz, offset: computeOffset(tz) }));
+  return tzListCache;
 }
-
-const ALL_TZ: TzEntry[] = buildTzList();
-
 type Props = {
   value: string;
   onChange: (tz: string) => void;
@@ -102,9 +133,10 @@ export function TimezoneSelector({
   }, [open]);
 
   const filtered = useMemo(() => {
+    const allTz = getTzList();
     const q = filter.trim().toLowerCase();
-    if (!q) return ALL_TZ;
-    return ALL_TZ.filter(
+    if (!q) return allTz;
+    return allTz.filter(
       (e) =>
         e.id.toLowerCase().includes(q) || e.offset.toLowerCase().includes(q),
     );
