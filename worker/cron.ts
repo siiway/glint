@@ -26,7 +26,11 @@ export async function processAutoRenew(env: Bindings) {
     const localDate = localNow.toISOString().split("T")[0];
 
     const lastRenewed = set.last_renewed_at as string | null;
-    const lastDate = lastRenewed ? lastRenewed.split("T")[0] : null;
+    const lastDate = lastRenewed
+      ? new Date(lastRenewed).toLocaleDateString("en-CA", {
+          timeZone: tz || "UTC",
+        })
+      : null;
 
     if (localTime >= renewTime && lastDate !== localDate) {
       await env.DB.prepare(

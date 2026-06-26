@@ -449,6 +449,9 @@ export function TodoPage() {
   const [siteDefaultActions, setSiteDefaultActions] =
     useState<ActionKey[]>(BUILTIN_SITE_DEFAULT);
 
+  const { settings: userSettings, update: updateUserSettings } =
+    useUserSettings();
+
   // Import dialog
   const [transferMode, setTransferMode] = useState<"import" | "export">(
     "import",
@@ -467,8 +470,13 @@ export function TodoPage() {
   } | null>(null);
 
   const actionBarActions = useMemo(
-    () => getEffectiveActions(selectedSpaceId, siteDefaultActions),
-    [selectedSpaceId, siteDefaultActions],
+    () =>
+      getEffectiveActions(
+        selectedSpaceId,
+        siteDefaultActions,
+        userSettings.action_bar,
+      ),
+    [selectedSpaceId, siteDefaultActions, userSettings.action_bar],
   );
 
   // ─── Effects ─────────────────────────────────────────────────────────────
@@ -535,7 +543,8 @@ export function TodoPage() {
       });
       return;
     }
-    fetch(`/api/teams/${selectedSpaceId}/settings`)
+    const ctrl = new AbortController();
+    fetch(`/api/teams/${selectedSpaceId}/settings`, { signal: ctrl.signal })
       .then((r) => r.json())
       .then(
         (data: {
@@ -551,6 +560,7 @@ export function TodoPage() {
         },
       )
       .catch(() => {});
+    return () => ctrl.abort();
   }, [selectedSpaceId, selectedSpace?.kind]);
 
   const fetchSets = useCallback(async () => {
@@ -638,9 +648,6 @@ export function TodoPage() {
     });
   }, [fetchTodos]);
 
-  const { settings: userSettings, update: updateUserSettings } =
-    useUserSettings();
-
   useEffect(() => {
     const favicon = ensureFaviconLink();
     if (!defaultFaviconHref.current) {
@@ -694,10 +701,17 @@ export function TodoPage() {
               return prev.map((t) =>
                 t.id === event.todo.id ? { ...t, ...event.todo } : t,
               );
-            case "todo:deleted":
-              return prev.filter(
-                (t) => t.id !== event.id && t.parentId !== event.id,
-              );
+            case "todo:deleted": {
+              const toRemove = new Set<string>();
+              const collect = (pid: string) => {
+                toRemove.add(pid);
+                prev
+                  .filter((t) => t.parentId === pid)
+                  .forEach((t) => collect(t.id));
+              };
+              collect(event.id);
+              return prev.filter((t) => !toRemove.has(t.id));
+            }
             case "todo:reordered": {
               const orderMap = new Map(
                 event.items.map(({ id, sortOrder }) => [id, sortOrder]),
@@ -1058,9 +1072,6 @@ export function TodoPage() {
     const refIdx = siblings.findIndex((t) => t.id === refTodoId);
     const insertIdx = position === "after" ? refIdx + 1 : refIdx;
 
-    setInsertingAt(null);
-    setInsertTitle("");
-
     const res = await fetch(
       `/api/teams/${selectedSpaceId}/sets/${selectedSetId}/todos`,
       {
@@ -1073,6 +1084,8 @@ export function TodoPage() {
       },
     );
     if (!res.ok) return;
+    setInsertingAt(null);
+    setInsertTitle("");
     const data: { todo: Todo } = await res.json();
     const newTodo = data.todo;
 
@@ -1097,6 +1110,11 @@ export function TodoPage() {
 
   // ─── Sidebar resize / collapse ──────────────────────────────────────────
 
+  const resizeCleanupRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    return () => resizeCleanupRef.current?.();
+  }, []);
+
   const onSplitterMouseDown = (e: React.MouseEvent) => {
     if (isMobile) return;
     e.preventDefault();
@@ -1110,7 +1128,9 @@ export function TodoPage() {
       resizingRef.current = false;
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      resizeCleanupRef.current = null;
     };
+    resizeCleanupRef.current = onUp;
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   };
@@ -1702,6 +1722,7 @@ export function TodoPage() {
             checked={todo.completed}
             onChange={() => toggleTodo(todo)}
             onClick={(e) => e.stopPropagation()}
+            disabled={!canToggleTodo(todo)}
             data-interactive
           />
 

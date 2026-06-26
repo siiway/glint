@@ -39,6 +39,7 @@ import { Footer } from "./Footer";
 import { useI18n } from "../i18n";
 import type { ShareLink } from "../types";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { TimezoneSelector } from "./TimezoneSelector";
 import type { UserSettings } from "../hooks/useUserSettings";
 import {
   ALL_ACTION_KEYS,
@@ -1338,12 +1339,10 @@ export function SettingsPage({
               <Body2 className={styles.fieldLabel}>
                 {t.settingsDefaultTimezone}
               </Body2>
-              <Input
+              <TimezoneSelector
                 value={editSettings.default_timezone}
-                onChange={(_, d) =>
-                  setEditSettings(
-                    (s) => s && { ...s, default_timezone: d.value },
-                  )
+                onChange={(tz) =>
+                  setEditSettings((s) => s && { ...s, default_timezone: tz })
                 }
                 disabled={!canManage}
                 placeholder="UTC"
@@ -1471,16 +1470,7 @@ export function SettingsPage({
                         </Tooltip>
                       </td>
                       <td className={styles.permTd}>
-                        <Switch
-                          checked={editPerms["co-owner"]?.[key] ?? false}
-                          onChange={() => togglePerm("co-owner", key)}
-                          disabled={
-                            !canManagePerms ||
-                            (key === "manage_permissions" &&
-                              permsData.role !== "owner" &&
-                              permsData.role !== "co-owner")
-                          }
-                        />
+                        <Switch checked={true} disabled={true} />
                       </td>
                       <td className={styles.permTd}>
                         <Switch

@@ -56,13 +56,14 @@ export const listTodos = async (c: Ctx): Promise<Response> => {
       .filter((id): id is string => !!id),
   );
   let nameMap: Record<string, string> = {};
+  let usernameMap: Record<string, string> = {};
   let avatarMap: Record<string, string> = {};
   if (claimedIds.size > 0) {
     const config = await getAppConfig(c.env.KV);
     const ids = isPersonalSpaceId(teamId, session.userId)
       ? new Set([session.userId])
       : claimedIds;
-    ({ nameMap, avatarMap } = await resolveUserProfiles(
+    ({ nameMap, usernameMap, avatarMap } = await resolveUserProfiles(
       c.env.KV,
       config,
       session,
@@ -84,6 +85,7 @@ export const listTodos = async (c: Ctx): Promise<Response> => {
         commentCount: countMap[row.id as string] ?? 0,
         claimedBy,
         claimedByName: claimedBy ? (nameMap[claimedBy] ?? null) : null,
+        claimedByUsername: claimedBy ? (usernameMap[claimedBy] ?? null) : null,
         claimedByAvatar: claimedBy ? (avatarMap[claimedBy] ?? null) : null,
         createdAt: row.created_at as string,
         updatedAt: row.updated_at as string,
@@ -311,15 +313,23 @@ export const reorderTodos = async (c: Ctx): Promise<Response> => {
   const role = getTeamRole(session, teamId);
   if (!role) return c.json({ error: "Not a member of this team" }, 403);
 
-  if (!(await hasPermission(c.env.DB, teamId, role, "reorder_todos"))) {
-    return c.json({ error: "No permission to reorder" }, 403);
-  }
-
   const { items, setId: reorderSetId } = await c.req.json<{
     items: { id: string; sortOrder: number }[];
     setId?: string;
   }>();
   if (!items?.length) return c.json({ error: "No items" }, 400);
+
+  if (
+    !(await hasPermission(
+      c.env.DB,
+      teamId,
+      role,
+      "reorder_todos",
+      reorderSetId,
+    ))
+  ) {
+    return c.json({ error: "No permission to reorder" }, 403);
+  }
 
   await c.env.DB.batch(
     items.map(({ id, sortOrder }) =>
@@ -422,6 +432,7 @@ export const claimTodo = async (c: Ctx): Promise<Response> => {
   const claimedByName = claimedBy
     ? session.displayName || session.username
     : null;
+  const claimedByUsername = claimedBy ? session.username : null;
   const claimedByAvatar = claimedBy ? session.avatarUrl || null : null;
 
   broadcast(c.env, teamId, {
@@ -430,8 +441,15 @@ export const claimTodo = async (c: Ctx): Promise<Response> => {
     id: todoId,
     claimedBy,
     claimedByName,
+    claimedByUsername,
     claimedByAvatar,
   });
 
-  return c.json({ ok: true, claimedBy, claimedByName, claimedByAvatar });
+  return c.json({
+    ok: true,
+    claimedBy,
+    claimedByName,
+    claimedByUsername,
+    claimedByAvatar,
+  });
 };

@@ -45,6 +45,7 @@ import { ManageLinksDialog } from "./ManageLinksDialog";
 import { ImportSetDialog } from "./ImportSetDialog";
 import { CreateSetDialog } from "./CreateSetDialog";
 import { SetContextMenu } from "./SetContextMenu";
+import { TimezoneSelector } from "./TimezoneSelector";
 
 const useStyles = makeStyles({
   sidebar: {
@@ -521,10 +522,10 @@ export function Sidebar({
                   <Body1 style={{ fontWeight: 600, marginBottom: 4 }}>
                     {t.setTimezone}
                   </Body1>
-                  <Input
+                  <TimezoneSelector
                     value={settingsSet.timezone}
-                    onChange={(_, d) =>
-                      onUpdateSet(settingsSet.id, { timezone: d.value })
+                    onChange={(tz) =>
+                      onUpdateSet(settingsSet.id, { timezone: tz })
                     }
                     placeholder={defaultTimezone || "UTC"}
                   />
