@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Input,
   Button,
@@ -8,11 +8,6 @@ import {
   Spinner,
   Avatar,
   Badge,
-  Menu,
-  MenuTrigger,
-  MenuPopover,
-  MenuList,
-  MenuItem,
   Switch,
   Tooltip,
   OverlayDrawer,
@@ -34,14 +29,11 @@ import {
 import {
   Add24Regular,
   ArrowImport24Regular,
-  Delete24Regular,
   SignOut24Regular,
-  Edit24Regular,
   Dismiss24Regular,
   Folder24Regular,
   MoreVertical24Regular,
   Settings24Regular,
-  Link24Regular,
   BuildingMultiple24Regular,
 } from "@fluentui/react-icons";
 import type { TodoSet, TodoSpace } from "../types";
@@ -52,11 +44,11 @@ import { LocalLanguage24Regular } from "@fluentui/react-icons";
 import { ManageLinksDialog } from "./ManageLinksDialog";
 import { ImportSetDialog } from "./ImportSetDialog";
 import { CreateSetDialog } from "./CreateSetDialog";
+import { SetContextMenu } from "./SetContextMenu";
 
 const useStyles = makeStyles({
   sidebar: {
-    width: "260px",
-    minWidth: "260px",
+    minWidth: "200px",
     borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
     display: "flex",
     flexDirection: "column",
@@ -180,6 +172,7 @@ type Props = {
   defaultTimezone: string;
   user: { displayName?: string; username: string; avatarUrl?: string } | null;
   onLogout: () => void;
+  width?: number;
 };
 
 export function Sidebar({
@@ -208,6 +201,7 @@ export function Sidebar({
   defaultTimezone,
   user,
   onLogout,
+  width,
 }: Props) {
   const styles = useStyles();
   const { t, locale, setLocale } = useI18n();
@@ -226,6 +220,24 @@ export function Sidebar({
 
   // Manage links dialog
   const [linksSetId, setLinksSetId] = useState<string | null>(null);
+
+  // Set context menu (three-dot and right-click share this)
+  const [setMenu, setSetMenu] = useState<{
+    x: number;
+    y: number;
+    setId: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!setMenu) return;
+    const close = () => setSetMenu(null);
+    window.addEventListener("click", close);
+    window.addEventListener("contextmenu", close);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("contextmenu", close);
+    };
+  }, [setMenu]);
 
   // Drag state
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -293,52 +305,25 @@ export function Sidebar({
             onDragOver={canDrag ? handleDragOver : undefined}
             onDrop={canDrag ? handleDrop : undefined}
             onDragEnd={canDrag ? handleDragEnd : undefined}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setSetMenu({ x: e.clientX, y: e.clientY, setId: s.id });
+            }}
           >
             <Folder24Regular />
             <span className={styles.setName}>{s.name}</span>
-            <Menu>
-              <MenuTrigger disableButtonEnhancement>
-                <Button
-                  appearance="transparent"
-                  size="small"
-                  icon={<MoreVertical24Regular />}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </MenuTrigger>
-              <MenuPopover>
-                <MenuList>
-                  <MenuItem
-                    icon={<Edit24Regular />}
-                    onClick={() => {
-                      setRenameSetId(s.id);
-                      setRenameValue(s.name);
-                    }}
-                  >
-                    {t.rename}
-                  </MenuItem>
-                  <MenuItem
-                    icon={<Settings24Regular />}
-                    onClick={() => setSettingsSetId(s.id)}
-                  >
-                    {t.sidebarSetSettings}
-                  </MenuItem>
-                  {selectedSpace?.kind === "team" && (
-                    <MenuItem
-                      icon={<Link24Regular />}
-                      onClick={() => setLinksSetId(s.id)}
-                    >
-                      {t.shareManageLinks}
-                    </MenuItem>
-                  )}
-                  <MenuItem
-                    icon={<Delete24Regular />}
-                    onClick={() => onDeleteSet(s.id)}
-                  >
-                    {t.delete}
-                  </MenuItem>
-                </MenuList>
-              </MenuPopover>
-            </Menu>
+            <Button
+              appearance="transparent"
+              size="small"
+              icon={<MoreVertical24Regular />}
+              data-interactive
+              onClick={(e) => {
+                e.stopPropagation();
+                const rect = e.currentTarget.getBoundingClientRect();
+                setSetMenu({ x: rect.right, y: rect.bottom, setId: s.id });
+              }}
+            />
           </div>
         ))}
 
@@ -607,6 +592,22 @@ export function Sidebar({
     />
   ) : null;
 
+  const setContextMenu = setMenu ? (
+    <SetContextMenu
+      x={setMenu.x}
+      y={setMenu.y}
+      canManageLinks={canManageSetLinks}
+      onClose={() => setSetMenu(null)}
+      onRename={() => {
+        setRenameSetId(setMenu.setId);
+        setRenameValue(sets.find((s) => s.id === setMenu.setId)?.name ?? "");
+      }}
+      onSettings={() => setSettingsSetId(setMenu.setId)}
+      onManageLinks={() => setLinksSetId(setMenu.setId)}
+      onDelete={() => onDeleteSet(setMenu.setId)}
+    />
+  ) : null;
+
   const importSetDialog = (
     <ImportSetDialog
       open={canManageSets && importSetOpen}
@@ -716,13 +717,17 @@ export function Sidebar({
         {linksDialog}
         {createSetDialog}
         {importSetDialog}
+        {setContextMenu}
       </>
     );
   }
 
   return (
     <>
-      <div className={styles.sidebar}>
+      <div
+        className={styles.sidebar}
+        style={width ? { width: `${width}px` } : undefined}
+      >
         <div className={styles.sidebarHeader}>
           <div className={styles.sidebarHeaderMain}>
             {siteLogo ? (
@@ -780,6 +785,7 @@ export function Sidebar({
       {linksDialog}
       {createSetDialog}
       {importSetDialog}
+      {setContextMenu}
     </>
   );
 }

@@ -24,6 +24,10 @@ userSettings.put("/api/user/settings", requireAuth, async (c) => {
     "action_bar",
     "realtime_transport",
     "workspace_favicon",
+    "detailed_status",
+    "personal_avatar_icon",
+    "complete_sound_enabled",
+    "complete_sound_url",
   ];
   const patch: UserSettings = { ...existing };
   for (const key of allowed) {

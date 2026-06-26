@@ -187,11 +187,13 @@ const useStyles = makeStyles({
 
 export function SettingsPage({
   teamId,
+  isPersonal,
   onBack,
   userSettings,
   onUpdateUserSettings,
 }: {
   teamId: string;
+  isPersonal?: boolean;
   onBack: () => void;
   userSettings: UserSettings;
   onUpdateUserSettings: (patch: Partial<UserSettings>) => Promise<void>;
@@ -235,6 +237,14 @@ export function SettingsPage({
   const [editDetailedStatus, setEditDetailedStatus] = useState<boolean>(
     () => userSettings.detailed_status ?? false,
   );
+  const [editPersonalAvatarIcon, setEditPersonalAvatarIcon] = useState<boolean>(
+    () => userSettings.personal_avatar_icon ?? false,
+  );
+  const [editCompleteSoundEnabled, setEditCompleteSoundEnabled] =
+    useState<boolean>(() => userSettings.complete_sound_enabled ?? false);
+  const [editCompleteSoundUrl, setEditCompleteSoundUrl] = useState<string>(
+    () => userSettings.complete_sound_url ?? "",
+  );
   const hasUserActionPref =
     userSettings.action_bar !== undefined && userSettings.action_bar !== null;
   const hasWsActionPref = loadWorkspaceActionBar(teamId) !== null;
@@ -249,48 +259,48 @@ export function SettingsPage({
     failures?: { scope: string; error?: string }[];
   } | null>(null);
   const [prefsSaveNotice, setPrefsSaveNotice] = useState<{
-    scope: "user" | "workspace" | "transport" | "favicon" | "detailed_status";
+    scope:
+      | "user"
+      | "workspace"
+      | "transport"
+      | "favicon"
+      | "detailed_status"
+      | "personal_avatar"
+      | "complete_sound";
     ok: boolean;
     message: string;
   } | null>(null);
 
   const canManage =
-    permsData?.role === "owner" || permsData?.role === "co-owner" || false;
+    isPersonal ||
+    permsData?.role === "owner" ||
+    permsData?.role === "co-owner" ||
+    false;
   const canManageSetLinks =
+    isPersonal ||
     permsData?.role === "owner" ||
     permsData?.role === "co-owner" ||
     (permsData?.global?.[(permsData?.role as string) ?? ""]?.manage_set_links ??
       false);
   const canManagePerms =
-    permsData?.role === "owner" ||
-    permsData?.role === "co-owner" ||
-    (permsData?.global?.[(permsData?.role as string) ?? ""]
-      ?.manage_permissions ??
-      false);
-  const canManageAppConfig = permsData?.role === "owner";
+    !isPersonal &&
+    (permsData?.role === "owner" ||
+      permsData?.role === "co-owner" ||
+      (permsData?.global?.[(permsData?.role as string) ?? ""]
+        ?.manage_permissions ??
+        false));
+  const canManageAppConfig = !isPersonal && permsData?.role === "owner";
 
   // Fetch all data
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [settingsRes, permsRes, setsRes, configRes, linksRes] =
-      await Promise.all([
-        fetch(`/api/teams/${teamId}/settings`),
-        fetch(`/api/teams/${teamId}/permissions`),
-        fetch(`/api/teams/${teamId}/sets`),
-        fetch("/api/init/config"),
-        fetch(`/api/teams/${teamId}/share-links`),
-      ]);
 
-    if (settingsRes.ok) {
-      const data = (await settingsRes.json()) as { settings: TeamSettings };
-      setSettings(data.settings);
-      setEditSettings(data.settings);
-    }
-    if (permsRes.ok) {
-      const data = (await permsRes.json()) as PermissionsData;
-      setPermsData(data);
-      setEditPerms(data.global);
-    }
+    const [setsRes, configRes, linksRes] = await Promise.all([
+      fetch(`/api/teams/${teamId}/sets`),
+      fetch("/api/init/config"),
+      fetch(`/api/teams/${teamId}/share-links`),
+    ]);
+
     if (setsRes.ok) {
       const data = (await setsRes.json()) as {
         sets: Array<{ id: string; name: string }>;
@@ -310,8 +320,27 @@ export function SettingsPage({
       const data = (await linksRes.json()) as { links: ShareLink[] };
       setShareLinks(data.links);
     }
+
+    // Team-only: branding settings and permission matrix
+    if (!isPersonal) {
+      const [settingsRes, permsRes] = await Promise.all([
+        fetch(`/api/teams/${teamId}/settings`),
+        fetch(`/api/teams/${teamId}/permissions`),
+      ]);
+      if (settingsRes.ok) {
+        const data = (await settingsRes.json()) as { settings: TeamSettings };
+        setSettings(data.settings);
+        setEditSettings(data.settings);
+      }
+      if (permsRes.ok) {
+        const data = (await permsRes.json()) as PermissionsData;
+        setPermsData(data);
+        setEditPerms(data.global);
+      }
+    }
+
     setLoading(false);
-  }, [teamId]);
+  }, [teamId, isPersonal]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -324,9 +353,22 @@ export function SettingsPage({
     setEditTransport(userSettings.realtime_transport ?? "auto");
     setEditWorkspaceFavicon(userSettings.workspace_favicon ?? false);
     setEditDetailedStatus(userSettings.detailed_status ?? false);
-  }, [userSettings.realtime_transport, userSettings.workspace_favicon, userSettings.detailed_status]);
+    setEditPersonalAvatarIcon(userSettings.personal_avatar_icon ?? false);
+    setEditCompleteSoundEnabled(userSettings.complete_sound_enabled ?? false);
+    setEditCompleteSoundUrl(userSettings.complete_sound_url ?? "");
+  }, [
+    userSettings.realtime_transport,
+    userSettings.workspace_favicon,
+    userSettings.detailed_status,
+    userSettings.personal_avatar_icon,
+    userSettings.complete_sound_enabled,
+    userSettings.complete_sound_url,
+  ]);
 
-  if (activeTab === "appconfig" && !canManageAppConfig) {
+  if (
+    (activeTab === "appconfig" && !canManageAppConfig) ||
+    (isPersonal && (activeTab === "branding" || activeTab === "permissions"))
+  ) {
     setActiveTab("preferences");
   }
 
@@ -414,7 +456,10 @@ export function SettingsPage({
       setPrefsSaveNotice({
         scope: "user",
         ok: false,
-        message: t.settingsSaveFailed.replace("{error}", getErrorMessage(error)),
+        message: t.settingsSaveFailed.replace(
+          "{error}",
+          getErrorMessage(error),
+        ),
       });
     }
   };
@@ -434,7 +479,10 @@ export function SettingsPage({
       setPrefsSaveNotice({
         scope: "user",
         ok: false,
-        message: t.settingsSaveFailed.replace("{error}", getErrorMessage(error)),
+        message: t.settingsSaveFailed.replace(
+          "{error}",
+          getErrorMessage(error),
+        ),
       });
     }
   };
@@ -473,7 +521,10 @@ export function SettingsPage({
       setPrefsSaveNotice({
         scope: "transport",
         ok: false,
-        message: t.settingsSaveFailed.replace("{error}", getErrorMessage(error)),
+        message: t.settingsSaveFailed.replace(
+          "{error}",
+          getErrorMessage(error),
+        ),
       });
     }
   };
@@ -490,7 +541,10 @@ export function SettingsPage({
       setPrefsSaveNotice({
         scope: "favicon",
         ok: false,
-        message: t.settingsSaveFailed.replace("{error}", getErrorMessage(error)),
+        message: t.settingsSaveFailed.replace(
+          "{error}",
+          getErrorMessage(error),
+        ),
       });
     }
   };
@@ -507,8 +561,67 @@ export function SettingsPage({
       setPrefsSaveNotice({
         scope: "detailed_status",
         ok: false,
-        message: t.settingsSaveFailed.replace("{error}", getErrorMessage(error)),
+        message: t.settingsSaveFailed.replace(
+          "{error}",
+          getErrorMessage(error),
+        ),
       });
+    }
+  };
+
+  const savePersonalAvatarIcon = async () => {
+    try {
+      await onUpdateUserSettings({
+        personal_avatar_icon: editPersonalAvatarIcon,
+      });
+      setPrefsSaveNotice({
+        scope: "personal_avatar",
+        ok: true,
+        message: t.settingsSaveSuccess,
+      });
+    } catch (error) {
+      setPrefsSaveNotice({
+        scope: "personal_avatar",
+        ok: false,
+        message: t.settingsSaveFailed.replace(
+          "{error}",
+          getErrorMessage(error),
+        ),
+      });
+    }
+  };
+
+  const saveCompleteSound = async () => {
+    try {
+      await onUpdateUserSettings({
+        complete_sound_enabled: editCompleteSoundEnabled,
+        complete_sound_url: editCompleteSoundUrl.trim(),
+      });
+      setPrefsSaveNotice({
+        scope: "complete_sound",
+        ok: true,
+        message: t.settingsSaveSuccess,
+      });
+    } catch (error) {
+      setPrefsSaveNotice({
+        scope: "complete_sound",
+        ok: false,
+        message: t.settingsSaveFailed.replace(
+          "{error}",
+          getErrorMessage(error),
+        ),
+      });
+    }
+  };
+
+  const testCompleteSound = () => {
+    const url = editCompleteSoundUrl.trim();
+    if (!url) return;
+    try {
+      const audio = new Audio(url);
+      void audio.play().catch(() => {});
+    } catch {
+      // ignore
     }
   };
 
@@ -619,19 +732,29 @@ export function SettingsPage({
       </div>
 
       <div className={styles.content}>
-        <TabList
-          selectedValue={activeTab}
-          onTabSelect={(_, d) => setActiveTab(d.value as string)}
-          style={{ marginBottom: 24 }}
+        <div
+          style={{
+            overflowX: "auto",
+            overscrollBehaviorX: "contain",
+            touchAction: "pan-x",
+            marginBottom: 24,
+          }}
         >
-          <Tab value="preferences">{t.settingsTabPreferences}</Tab>
-          <Tab value="branding">{t.settingsTabBranding}</Tab>
-          <Tab value="permissions">{t.settingsTabPermissions}</Tab>
-          <Tab value="sharelinks">{t.settingsTabShareLinks}</Tab>
-          {canManageAppConfig && (
-            <Tab value="appconfig">{t.settingsTabAppConfig}</Tab>
-          )}
-        </TabList>
+          <TabList
+            selectedValue={activeTab}
+            onTabSelect={(_, d) => setActiveTab(d.value as string)}
+          >
+            <Tab value="preferences">{t.settingsTabPreferences}</Tab>
+            {!isPersonal && <Tab value="branding">{t.settingsTabBranding}</Tab>}
+            {!isPersonal && (
+              <Tab value="permissions">{t.settingsTabPermissions}</Tab>
+            )}
+            <Tab value="sharelinks">{t.settingsTabShareLinks}</Tab>
+            {canManageAppConfig && (
+              <Tab value="appconfig">{t.settingsTabAppConfig}</Tab>
+            )}
+          </TabList>
+        </div>
 
         {activeTab === "preferences" && (
           <div className={styles.section}>
@@ -725,7 +848,7 @@ export function SettingsPage({
             )}
 
             {/* Workspace-level action bar (owners only) */}
-            {(canManage || permsData?.role === "admin") && (
+            {!isPersonal && (canManage || permsData?.role === "admin") && (
               <>
                 <Divider style={{ margin: "16px 0" }} />
                 <Title3 className={styles.sectionTitle}>
@@ -870,6 +993,10 @@ export function SettingsPage({
             )}
 
             <Divider style={{ margin: "16px 0" }} />
+            <Title3 className={styles.sectionTitle}>
+              {t.globalPrefsTitle}
+            </Title3>
+
             <Switch
               checked={editWorkspaceFavicon}
               onChange={(_, data) => setEditWorkspaceFavicon(data.checked)}
@@ -933,6 +1060,117 @@ export function SettingsPage({
               </Button>
             </div>
             {prefsSaveNotice?.scope === "detailed_status" && (
+              <Body2
+                style={{
+                  marginTop: 8,
+                  color: prefsSaveNotice.ok
+                    ? tokens.colorPaletteGreenForeground2
+                    : tokens.colorPaletteRedForeground2,
+                }}
+              >
+                {prefsSaveNotice.message}
+              </Body2>
+            )}
+
+            <Divider style={{ margin: "16px 0" }} />
+            <Switch
+              checked={editPersonalAvatarIcon}
+              onChange={(_, data) => setEditPersonalAvatarIcon(data.checked)}
+              label={t.personalAvatarIcon}
+            />
+            <Body1
+              style={{
+                fontSize: 12,
+                color: tokens.colorNeutralForeground4,
+                display: "block",
+                marginTop: 4,
+              }}
+            >
+              {t.personalAvatarIconHint}
+            </Body1>
+            <div style={{ marginTop: 10 }}>
+              <Button
+                size="small"
+                appearance="primary"
+                onClick={savePersonalAvatarIcon}
+              >
+                {t.save}
+              </Button>
+            </div>
+            {prefsSaveNotice?.scope === "personal_avatar" && (
+              <Body2
+                style={{
+                  marginTop: 8,
+                  color: prefsSaveNotice.ok
+                    ? tokens.colorPaletteGreenForeground2
+                    : tokens.colorPaletteRedForeground2,
+                }}
+              >
+                {prefsSaveNotice.message}
+              </Body2>
+            )}
+
+            {/* Completion sound */}
+            <Divider style={{ margin: "16px 0" }} />
+            <Title3 className={styles.sectionTitle}>{t.completeSound}</Title3>
+            <Body1
+              style={{
+                fontSize: 12,
+                color: tokens.colorNeutralForeground4,
+                display: "block",
+                marginBottom: 8,
+              }}
+            >
+              {t.completeSoundHint}
+            </Body1>
+            <Switch
+              checked={editCompleteSoundEnabled}
+              onChange={(_, data) => setEditCompleteSoundEnabled(data.checked)}
+              label={t.completeSoundEnabled}
+            />
+            <Body1
+              style={{
+                fontSize: 12,
+                color: tokens.colorNeutralForeground4,
+                display: "block",
+                marginTop: 4,
+              }}
+            >
+              {t.completeSoundEnabledHint}
+            </Body1>
+            {editCompleteSoundEnabled && (
+              <div className={styles.field} style={{ marginTop: 12 }}>
+                <Body2 className={styles.fieldLabel}>
+                  {t.completeSoundUrl}
+                </Body2>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <Input
+                    value={editCompleteSoundUrl}
+                    onChange={(_, d) => setEditCompleteSoundUrl(d.value)}
+                    placeholder={t.completeSoundUrlPlaceholder}
+                    style={{ flex: 1 }}
+                  />
+                  <Button
+                    size="small"
+                    appearance="secondary"
+                    onClick={testCompleteSound}
+                    disabled={!editCompleteSoundUrl.trim()}
+                  >
+                    {t.completeSoundTest}
+                  </Button>
+                </div>
+              </div>
+            )}
+            <div style={{ marginTop: 10 }}>
+              <Button
+                size="small"
+                appearance="primary"
+                onClick={saveCompleteSound}
+              >
+                {t.save}
+              </Button>
+            </div>
+            {prefsSaveNotice?.scope === "complete_sound" && (
               <Body2
                 style={{
                   marginTop: 8,
@@ -1137,9 +1375,9 @@ export function SettingsPage({
                   fontSize: "12px",
                 }}
               >
-                Both Glint and Workbench address this team by its Prism team
-                ID, so no extra configuration is needed in Workbench beyond
-                pointing it at this Glint instance.
+                Both Glint and Workbench address this team by its Prism team ID,
+                so no extra configuration is needed in Workbench beyond pointing
+                it at this Glint instance.
               </Body2>
             </div>
 

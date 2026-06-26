@@ -32,7 +32,9 @@ function findDuplicateTitle(titles: string[]): string | null {
   return null;
 }
 
-function findDuplicateTitleInSiblingLevels(nodes: TransferTodo[]): string | null {
+function findDuplicateTitleInSiblingLevels(
+  nodes: TransferTodo[],
+): string | null {
   const siblingTitles = nodes.map((node) => node.title.trim());
   const duplicated = findDuplicateTitle(siblingTitles);
   if (duplicated) return duplicated;
@@ -202,7 +204,10 @@ export const patchSet = async (c: Ctx): Promise<Response> => {
       .bind(teamId, trimmedName, setId)
       .first<{ id: string }>();
     if (duplicated) {
-      return c.json({ error: "Todo list name already exists in this team" }, 409);
+      return c.json(
+        { error: "Todo list name already exists in this team" },
+        409,
+      );
     }
     updates.push("name = ?");
     values.push(trimmedName);
@@ -393,9 +398,7 @@ export const importIntoSet = async (c: Ctx): Promise<Response> => {
     );
     const conflictedTitle = todosToImport
       .map((todo) => todo.title.trim())
-      .find((title) =>
-      existingTitles.has(title),
-      );
+      .find((title) => existingTitles.has(title));
     if (conflictedTitle) {
       return c.json(
         {

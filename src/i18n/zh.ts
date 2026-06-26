@@ -160,6 +160,18 @@ const zh: typeof en = {
     "当工作区没有图标时，Glint 会根据工作区名称生成字母 favicon。",
   userPrefsDetailedStatus: "显示详细任务状态",
   userPrefsDetailedStatusHint: "在页面右上角显示已完成和未完成任务的具体数量。",
+  globalPrefsTitle: "全局个人偏好",
+  personalAvatarIcon: "将个人头像用作个人工作区图标",
+  personalAvatarIconHint: "将您的个人头像用作个人工作区的图标和 favicon。",
+  completeSound: "完成提示音",
+  completeSoundHint: "在标记待办为完成时播放声音。请提供音频文件的 URL。",
+  completeSoundEnabled: "完成时播放声音",
+  completeSoundEnabledHint: "启用后在完成待办时播放提示音。",
+  completeSoundUrl: "声音文件 URL",
+  completeSoundUrlPlaceholder: "https://example.com/done.mp3",
+  completeSoundTest: "试听",
+  collapseSidebar: "折叠侧栏",
+  expandSidebar: "展开侧栏",
 
   // Selection bar
   selectionCount: "已选择 {count} 项",

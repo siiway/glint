@@ -172,6 +172,20 @@ export default {
   userPrefsDetailedStatus: "Show detailed task status",
   userPrefsDetailedStatusHint:
     "Display the number of completed and uncompleted tasks in the top right corner.",
+  globalPrefsTitle: "Global Personal Preferences",
+  personalAvatarIcon: "Use my avatar as personal workspace icon",
+  personalAvatarIconHint:
+    "Use your personal avatar as the icon and favicon for your personal workspace.",
+  completeSound: "Completion Sound",
+  completeSoundHint:
+    "Play a sound when a todo is marked complete. Provide a URL to an audio file.",
+  completeSoundEnabled: "Play sound on complete",
+  completeSoundEnabledHint: "Enable to play a sound when a todo is completed.",
+  completeSoundUrl: "Sound file URL",
+  completeSoundUrlPlaceholder: "https://example.com/done.mp3",
+  completeSoundTest: "Test",
+  collapseSidebar: "Collapse sidebar",
+  expandSidebar: "Expand sidebar",
 
   // Selection bar
   selectionCount: "{count} selected",

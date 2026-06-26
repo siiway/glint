@@ -200,7 +200,12 @@ export const patchTodo = async (c: Ctx): Promise<Response> => {
     "SELECT id, user_id, set_id, parent_id FROM todos WHERE id = ? AND team_id = ?",
   )
     .bind(todoId, teamId)
-    .first<{ id: string; user_id: string; set_id: string; parent_id: string | null }>();
+    .first<{
+      id: string;
+      user_id: string;
+      set_id: string;
+      parent_id: string | null;
+    }>();
   if (!existing) return c.json({ error: "Not found" }, 404);
 
   const isOwner = existing.user_id === session.userId;

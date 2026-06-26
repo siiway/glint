@@ -69,6 +69,14 @@ export type UserSettings = {
   realtime_transport?: "ws" | "sse" | "auto";
   /** Whether browser favicon follows the currently selected workspace icon. */
   workspace_favicon?: boolean;
+  /** Whether to show completed/remaining counts in the header. */
+  detailed_status?: boolean;
+  /** Whether to use the personal avatar as the personal workspace icon/favicon. */
+  personal_avatar_icon?: boolean;
+  /** Whether to play a sound when a todo is marked complete. */
+  complete_sound_enabled?: boolean;
+  /** URL of the sound file to play on completion when complete_sound_enabled. */
+  complete_sound_url?: string;
 };
 
 export type TeamSettings = {

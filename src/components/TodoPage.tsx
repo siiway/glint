@@ -52,6 +52,8 @@ import {
   PersonDelete24Regular,
   ArrowUp24Regular,
   ArrowDown24Regular,
+  ChevronDoubleLeft20Regular,
+  ChevronDoubleRight20Regular,
 } from "@fluentui/react-icons";
 import { useNavigate, useMatch } from "react-router-dom";
 import { useAuth } from "../auth";
@@ -81,6 +83,32 @@ const useStyles = makeStyles({
     display: "flex",
     height: "100%",
     overflow: "hidden",
+  },
+  splitter: {
+    width: "5px",
+    minWidth: "5px",
+    cursor: "col-resize",
+    backgroundColor: "transparent",
+    flexShrink: 0,
+    height: "100%",
+    transition: "background-color 0.1s",
+    "&:hover": {
+      backgroundColor: tokens.colorNeutralStroke2,
+    },
+    "&:active": {
+      backgroundColor: tokens.colorBrandBackground2,
+    },
+  },
+  collapsedRail: {
+    width: "36px",
+    minWidth: "36px",
+    borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    paddingTop: "12px",
+    height: "100%",
+    flexShrink: 0,
   },
   main: {
     flex: 1,
@@ -156,9 +184,10 @@ const useStyles = makeStyles({
   },
   todoTitle: {
     flex: 1,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
+    minWidth: 0,
+    whiteSpace: "normal",
+    wordBreak: "break-word",
+    overflowWrap: "anywhere",
   },
   completed: {
     textDecoration: "line-through",
@@ -273,9 +302,7 @@ const useStyles = makeStyles({
 });
 
 function ensureFaviconLink() {
-  const existing = document.querySelector<HTMLLinkElement>(
-    "link[rel~='icon']",
-  );
+  const existing = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
   if (existing) return existing;
   const link = document.createElement("link");
   link.rel = "icon";
@@ -353,6 +380,16 @@ export function TodoPage() {
   const fetchTodosAbort = useRef<AbortController | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [switchingSpace, setSwitchingSpace] = useState(false);
+
+  // Resizable / collapsible sidebar (desktop only)
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    const v = Number(localStorage.getItem("glint_sidebar_width"));
+    return v >= 200 && v <= 480 ? v : 260;
+  });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(
+    () => localStorage.getItem("glint_sidebar_collapsed") === "1",
+  );
+  const resizingRef = useRef(false);
   const [siteName, setSiteName] = useState("Glint");
   const [siteLogo, setSiteLogo] = useState("");
   const [perms, setPerms] = useState<Record<string, boolean>>({});
@@ -380,6 +417,13 @@ export function TodoPage() {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragCounter = useRef(0);
   const rootDragActive = useRef(false);
+
+  // Touch swipe (mobile) start point
+  const touchStartRef = useRef<{
+    x: number;
+    y: number;
+    interactive: boolean;
+  } | null>(null);
 
   // Drag state (subtodos)
   const [subDragParentId, setSubDragParentId] = useState<string | null>(null);
@@ -480,12 +524,6 @@ export function TodoPage() {
       navigate(`/${spaces[0].id}`, { replace: true });
     }
   }, [spaces, selectedSpaceId, navigate]);
-
-  useEffect(() => {
-    if (selectedSpace?.kind !== "team" && showSettings) {
-      navigate(`/${selectedSpaceId}`, { replace: true });
-    }
-  }, [selectedSpace?.kind, showSettings, selectedSpaceId, navigate]);
 
   useEffect(() => {
     if (!selectedSpaceId) return;
@@ -608,7 +646,14 @@ export function TodoPage() {
     if (!defaultFaviconHref.current) {
       defaultFaviconHref.current = favicon.href || "/favicon.svg";
     }
-    if (!userSettings.workspace_favicon) {
+
+    const useSpaceIcon = userSettings.workspace_favicon;
+    const usePersonalAvatar =
+      !useSpaceIcon &&
+      selectedSpace?.kind === "personal" &&
+      !!userSettings.personal_avatar_icon;
+
+    if (!useSpaceIcon && !usePersonalAvatar) {
       favicon.href = defaultFaviconHref.current;
       favicon.type = "image/svg+xml";
       return;
@@ -625,7 +670,9 @@ export function TodoPage() {
     favicon.type = "image/svg+xml";
   }, [
     userSettings.workspace_favicon,
+    userSettings.personal_avatar_icon,
     selectedSpace?.id,
+    selectedSpace?.kind,
     selectedSpace?.name,
     selectedSpace?.avatarUrl,
   ]);
@@ -744,6 +791,7 @@ export function TodoPage() {
     setTodos((prev) =>
       prev.map((t) => (t.id === todo.id ? { ...t, completed } : t)),
     );
+    if (completed) playCompleteSound();
     await fetch(`/api/teams/${selectedSpaceId}/todos/${todo.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -849,6 +897,7 @@ export function TodoPage() {
       prev.map((t) => (selected.has(t.id) ? { ...t, completed } : t)),
     );
     setSelected(new Set());
+    if (completed && ids.length > 0) playCompleteSound();
     await Promise.all(
       ids.map((id) =>
         fetch(`/api/teams/${selectedSpaceId}/todos/${id}`, {
@@ -1045,6 +1094,47 @@ export function TodoPage() {
       body: JSON.stringify({ items, setId: selectedSetId }),
     });
   };
+
+  // ─── Sidebar resize / collapse ──────────────────────────────────────────
+
+  const onSplitterMouseDown = (e: React.MouseEvent) => {
+    if (isMobile) return;
+    e.preventDefault();
+    resizingRef.current = true;
+    const onMove = (ev: MouseEvent) => {
+      const w = Math.max(200, Math.min(480, ev.clientX));
+      setSidebarWidth(w);
+      localStorage.setItem("glint_sidebar_width", String(w));
+    };
+    const onUp = () => {
+      resizingRef.current = false;
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  const toggleSidebarCollapsed = (v: boolean) => {
+    setSidebarCollapsed(v);
+    localStorage.setItem("glint_sidebar_collapsed", v ? "1" : "0");
+  };
+
+  // ─── Completion sound ────────────────────────────────────────────────────
+
+  const playCompleteSound = useCallback(() => {
+    if (
+      !userSettings.complete_sound_enabled ||
+      !userSettings.complete_sound_url
+    )
+      return;
+    try {
+      const audio = new Audio(userSettings.complete_sound_url);
+      void audio.play().catch(() => {});
+    } catch {
+      // ignore audio errors
+    }
+  }, [userSettings.complete_sound_enabled, userSettings.complete_sound_url]);
 
   // ─── Sidebar callbacks ───────────────────────────────────────────────────
 
@@ -1518,6 +1608,39 @@ export function TodoPage() {
             e.stopPropagation();
             setContextMenu({ x: e.clientX, y: e.clientY, todoId: todo.id });
           }}
+          onTouchStart={(e) => {
+            if (!isMobile) return;
+            const t0 = e.changedTouches[0];
+            touchStartRef.current = {
+              x: t0.clientX,
+              y: t0.clientY,
+              interactive: isTodoRowInteractiveTarget(e.target),
+            };
+          }}
+          onTouchEnd={(e) => {
+            if (!isMobile) return;
+            const start = touchStartRef.current;
+            if (!start || start.interactive) return;
+            const t0 = e.changedTouches[0];
+            const dx = t0.clientX - start.x;
+            const dy = t0.clientY - start.y;
+            touchStartRef.current = null;
+            if (Math.abs(dx) < 50 || Math.abs(dx) <= Math.abs(dy)) return;
+            if (dx < 0) {
+              if (canToggleTodo(todo)) {
+                e.stopPropagation();
+                toggleTodo(todo);
+              }
+            } else if (hasChildren) {
+              e.stopPropagation();
+              setExpanded((p) => {
+                const n = new Set(p);
+                if (n.has(todo.id)) n.delete(todo.id);
+                else n.add(todo.id);
+                return n;
+              });
+            }
+          }}
           onClick={
             selected.size > 0 && root
               ? (e) => {
@@ -1727,7 +1850,7 @@ export function TodoPage() {
             )}
           </div>
 
-          {!isEditing && (
+          {!isEditing && !isMobile && (
             <div
               className={styles.actionBar}
               style={{
@@ -1831,10 +1954,11 @@ export function TodoPage() {
 
   // ─── Settings page ───────────────────────────────────────────────────────
 
-  if (showSettings && selectedSpace?.kind === "team") {
+  if (showSettings && selectedSpace) {
     return (
       <SettingsPage
         teamId={selectedSpaceId}
+        isPersonal={selectedSpace.kind === "personal"}
         onBack={() => {
           navigate(`/${selectedSpaceId}`);
           refreshBranding();
@@ -1910,52 +2034,72 @@ export function TodoPage() {
   return (
     <>
       <div className={styles.layout}>
-        <Sidebar
-          isMobile={isMobile}
-          drawerOpen={drawerOpen}
-          onDrawerChange={setDrawerOpen}
-          spaces={spaces}
-          selectedSpaceId={selectedSpaceId}
-          onSpaceChange={selectSpace}
-          onSwitchSpace={() => setSwitchingSpace(true)}
-          sets={sets}
-          selectedSetId={selectedSetId}
-          onSetSelect={(id) => navigate(`/${selectedSpaceId}/${id}`)}
-          loadingSets={loadingSets}
-          siteName={siteName}
-          siteLogo={siteLogo}
-          canManageSettings={selectedSpace?.kind === "team"}
-          canManageSets={hasPerm("manage_sets")}
-          canManageSetLinks={hasPerm("manage_set_links")}
-          onOpenSettings={() => navigate(`/${selectedSpaceId}/settings`)}
-          onAddSet={handleAddSet}
-          onImportSet={(set) => {
-            setSets((prev) =>
-              [...prev, set].sort((a, b) => a.sortOrder - b.sortOrder),
-            );
-            navigate(`/${selectedSpaceId}/${set.id}`);
-          }}
-          onDeleteSet={(setId) =>
-            setConfirmAction({
-              message: t.confirmDeleteSet,
-              action: () => handleDeleteSet(setId),
-            })
-          }
-          onRenameSet={handleRenameSet}
-          onUpdateSet={handleUpdateSet}
-          onReorderSets={handleReorderSets}
-          defaultTimezone={defaultTimezone}
-          user={
-            user
-              ? {
-                  displayName: user.displayName,
-                  username: user.username,
-                  avatarUrl: user.avatarUrl,
-                }
-              : null
-          }
-          onLogout={logout}
-        />
+        {(isMobile || !sidebarCollapsed) && (
+          <Sidebar
+            isMobile={isMobile}
+            drawerOpen={drawerOpen}
+            onDrawerChange={setDrawerOpen}
+            spaces={spaces}
+            selectedSpaceId={selectedSpaceId}
+            onSpaceChange={selectSpace}
+            onSwitchSpace={() => setSwitchingSpace(true)}
+            sets={sets}
+            selectedSetId={selectedSetId}
+            onSetSelect={(id) => navigate(`/${selectedSpaceId}/${id}`)}
+            loadingSets={loadingSets}
+            siteName={siteName}
+            siteLogo={siteLogo}
+            canManageSettings={!!selectedSpace}
+            canManageSets={hasPerm("manage_sets")}
+            canManageSetLinks={hasPerm("manage_set_links")}
+            onOpenSettings={() => navigate(`/${selectedSpaceId}/settings`)}
+            onAddSet={handleAddSet}
+            onImportSet={(set) => {
+              setSets((prev) =>
+                [...prev, set].sort((a, b) => a.sortOrder - b.sortOrder),
+              );
+              navigate(`/${selectedSpaceId}/${set.id}`);
+            }}
+            onDeleteSet={(setId) =>
+              setConfirmAction({
+                message: t.confirmDeleteSet,
+                action: () => handleDeleteSet(setId),
+              })
+            }
+            onRenameSet={handleRenameSet}
+            onUpdateSet={handleUpdateSet}
+            onReorderSets={handleReorderSets}
+            defaultTimezone={defaultTimezone}
+            user={
+              user
+                ? {
+                    displayName: user.displayName,
+                    username: user.username,
+                    avatarUrl: user.avatarUrl,
+                  }
+                : null
+            }
+            onLogout={logout}
+            width={isMobile ? undefined : sidebarWidth}
+          />
+        )}
+
+        {!isMobile && !sidebarCollapsed && (
+          <div className={styles.splitter} onMouseDown={onSplitterMouseDown} />
+        )}
+
+        {!isMobile && sidebarCollapsed && (
+          <div className={styles.collapsedRail}>
+            <Tooltip content={t.expandSidebar} relationship="label">
+              <Button
+                appearance="transparent"
+                size="small"
+                icon={<ChevronDoubleRight20Regular />}
+                onClick={() => toggleSidebarCollapsed(false)}
+              />
+            </Tooltip>
+          </div>
+        )}
 
         <div className={styles.main}>
           {selectedSetId ? (
@@ -1974,6 +2118,16 @@ export function TodoPage() {
                       onClick={() => setDrawerOpen(true)}
                     />
                   )}
+                  {!isMobile && !sidebarCollapsed && (
+                    <Tooltip content={t.collapseSidebar} relationship="label">
+                      <Button
+                        appearance="transparent"
+                        size="small"
+                        icon={<ChevronDoubleLeft20Regular />}
+                        onClick={() => toggleSidebarCollapsed(true)}
+                      />
+                    </Tooltip>
+                  )}
                   <Title2
                     style={
                       isMobile
@@ -1990,28 +2144,43 @@ export function TodoPage() {
                   </Title2>
                 </div>
                 <Caption1 style={{ whiteSpace: "nowrap" }}>
-                  {userSettings.detailed_status ? (
-                    rootTodos.length === 1
+                  {userSettings.detailed_status
+                    ? rootTodos.length === 1
                       ? t.todoItemCountDetailed
                           .split(" | ")[0]
                           .replace("{count}", String(rootTodos.length))
-                          .replace("{completed}", String(rootTodos.filter((t) => t.completed).length))
-                          .replace("{incomplete}", String(rootTodos.filter((t) => !t.completed).length))
+                          .replace(
+                            "{completed}",
+                            String(rootTodos.filter((t) => t.completed).length),
+                          )
+                          .replace(
+                            "{incomplete}",
+                            String(
+                              rootTodos.filter((t) => !t.completed).length,
+                            ),
+                          )
                       : (
-                          t.todoItemCountDetailed.split(" | ")[1] ?? t.todoItemCountDetailed
+                          t.todoItemCountDetailed.split(" | ")[1] ??
+                          t.todoItemCountDetailed
                         )
                           .replace("{count}", String(rootTodos.length))
-                          .replace("{completed}", String(rootTodos.filter((t) => t.completed).length))
-                          .replace("{incomplete}", String(rootTodos.filter((t) => !t.completed).length))
-                  ) : (
-                    rootTodos.length === 1
+                          .replace(
+                            "{completed}",
+                            String(rootTodos.filter((t) => t.completed).length),
+                          )
+                          .replace(
+                            "{incomplete}",
+                            String(
+                              rootTodos.filter((t) => !t.completed).length,
+                            ),
+                          )
+                    : rootTodos.length === 1
                       ? t.todoItemCount
                           .split(" | ")[0]
                           .replace("{count}", String(rootTodos.length))
                       : (
                           t.todoItemCount.split(" | ")[1] ?? t.todoItemCount
-                        ).replace("{count}", String(rootTodos.length))
-                  )}
+                        ).replace("{count}", String(rootTodos.length))}
                 </Caption1>
               </div>
 
@@ -2224,6 +2393,17 @@ export function TodoPage() {
                   onClick={() => setDrawerOpen(true)}
                   style={{ position: "absolute", top: 12, left: 12 }}
                 />
+              )}
+              {!isMobile && sidebarCollapsed && (
+                <Tooltip content={t.expandSidebar} relationship="label">
+                  <Button
+                    appearance="transparent"
+                    size="small"
+                    icon={<ChevronDoubleRight20Regular />}
+                    onClick={() => toggleSidebarCollapsed(false)}
+                    style={{ position: "absolute", top: 12, left: 12 }}
+                  />
+                </Tooltip>
               )}
               <div className={styles.empty}>
                 <Folder24Regular
