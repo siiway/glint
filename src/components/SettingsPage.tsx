@@ -1469,7 +1469,10 @@ export function SettingsPage({
                         </Tooltip>
                       </td>
                       <td className={styles.permTd}>
-                        <Switch checked={true} disabled={true} />
+                        <Switch
+                          checked={editPerms["co-owner"]?.[key] ?? true}
+                          disabled={true}
+                        />
                       </td>
                       <td className={styles.permTd}>
                         <Switch
