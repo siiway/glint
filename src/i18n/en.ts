@@ -427,4 +427,18 @@ export default {
   confirmDeleteComment: "Are you sure you want to delete this comment?",
   confirmResetPermissions:
     "Are you sure you want to reset permissions to defaults? All custom permissions for this scope will be lost.",
+
+  // Password input
+  showPassword: "Show password",
+  hidePassword: "Hide password",
+
+  // Theme switcher
+  themeLabel: "Theme",
+  themeSystem: "System",
+  themeLight: "Light",
+  themeDark: "Dark",
+
+  // Settings - Branding (extra)
+  settingsWorkbenchIntegration: "Workbench Integration",
+  settingsTeamId: "Team ID",
 };

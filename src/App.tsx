@@ -26,6 +26,7 @@ import {
 } from "@fluentui/react-components";
 import { AuthProvider, useAuth } from "./auth";
 import { I18nProvider, useI18n } from "./i18n";
+import { useThemeMode } from "./store/theme";
 import { PageLayout } from "./components/PageLayout";
 import { InitPage } from "./components/InitPage";
 import { LoginPage } from "./components/LoginPage";
@@ -37,16 +38,22 @@ import { NotAuthorizedPage } from "./components/NotAuthorizedPage";
 import { buildLoginPath } from "./utils/authRedirect";
 
 function useColorScheme() {
-  const [dark, setDark] = useState(
+  const themeMode = useThemeMode();
+  const [osDark, setOsDark] = useState(
     () => window.matchMedia("(prefers-color-scheme: dark)").matches,
   );
+
   useEffect(() => {
+    if (themeMode !== "system") return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = (e: MediaQueryListEvent) => setDark(e.matches);
+    const handler = (e: MediaQueryListEvent) => setOsDark(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
-  }, []);
-  return dark;
+  }, [themeMode]);
+
+  if (themeMode === "light") return false;
+  if (themeMode === "dark") return true;
+  return osDark;
 }
 
 function useInitStatus() {

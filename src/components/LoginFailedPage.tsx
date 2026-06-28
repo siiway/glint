@@ -4,7 +4,6 @@ import {
   Title1,
   Body1,
   Body2,
-  Card,
   CardHeader,
   makeStyles,
   tokens,
@@ -12,21 +11,9 @@ import {
 import { ErrorCircle24Regular } from "@fluentui/react-icons";
 import { useAuth } from "../auth";
 import { useI18n } from "../i18n";
+import { AuthShell } from "./AuthShell";
 
 const useStyles = makeStyles({
-  container: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: "100%",
-    padding: "24px",
-  },
-  card: {
-    maxWidth: "440px",
-    width: "100%",
-    padding: "32px",
-    textAlign: "center",
-  },
   icon: {
     fontSize: "48px",
     color: tokens.colorPaletteRedForeground1,
@@ -84,21 +71,19 @@ export function LoginFailedPage() {
   })();
 
   return (
-    <div className={styles.container}>
-      <Card className={styles.card}>
-        <CardHeader image={<ErrorCircle24Regular className={styles.icon} />} />
-        <Title1 className={styles.title}>{t.loginFailedTitle}</Title1>
-        <Body1 className={styles.description}>{description}</Body1>
-        {message && <Body2 className={styles.detail}>{message}</Body2>}
-        <div className={styles.actions}>
-          <Button appearance="primary" onClick={() => void login()}>
-            {t.loginFailedTryAgain}
-          </Button>
-          <Button appearance="secondary" onClick={() => navigate("/")}>
-            {t.notAuthorizedGoHome}
-          </Button>
-        </div>
-      </Card>
-    </div>
+    <AuthShell maxWidth={440}>
+      <CardHeader image={<ErrorCircle24Regular className={styles.icon} />} />
+      <Title1 className={styles.title}>{t.loginFailedTitle}</Title1>
+      <Body1 className={styles.description}>{description}</Body1>
+      {message && <Body2 className={styles.detail}>{message}</Body2>}
+      <div className={styles.actions}>
+        <Button appearance="primary" onClick={() => void login()}>
+          {t.loginFailedTryAgain}
+        </Button>
+        <Button appearance="secondary" onClick={() => navigate("/")}>
+          {t.notAuthorizedGoHome}
+        </Button>
+      </div>
+    </AuthShell>
   );
 }

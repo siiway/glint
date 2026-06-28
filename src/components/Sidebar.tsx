@@ -22,6 +22,11 @@ import {
   DialogContent,
   DialogActions,
   Caption1,
+  Menu,
+  MenuTrigger,
+  MenuPopover,
+  MenuList,
+  MenuItemRadio,
   makeStyles,
   tokens,
   mergeClasses,
@@ -36,12 +41,16 @@ import {
   Settings24Regular,
   BuildingMultiple24Regular,
   ChevronDoubleLeft20Regular,
+  DesktopRegular,
+  WeatherSunnyRegular,
+  WeatherMoonRegular,
 } from "@fluentui/react-icons";
 import type { TodoSet, TodoSpace } from "../types";
 import { ROLE_COLORS } from "../types";
 import { Footer } from "./Footer";
 import { useI18n } from "../i18n";
 import { LocalLanguage24Regular } from "@fluentui/react-icons";
+import { useThemeMode, setThemeMode, type ThemeMode } from "../store/theme";
 import { ManageLinksDialog } from "./ManageLinksDialog";
 import { ImportSetDialog } from "./ImportSetDialog";
 import { CreateSetDialog } from "./CreateSetDialog";
@@ -103,6 +112,9 @@ const useStyles = makeStyles({
     borderRadius: tokens.borderRadiusMedium,
     cursor: "pointer",
     userSelect: "none" as const,
+    position: "relative" as const,
+    transitionProperty: "background, color",
+    transitionDuration: "0.1s",
     "&:hover": {
       backgroundColor: tokens.colorNeutralBackground1Hover,
     },
@@ -110,6 +122,16 @@ const useStyles = makeStyles({
   setItemActive: {
     backgroundColor: tokens.colorNeutralBackground1Selected,
     fontWeight: "600",
+    "&::before": {
+      content: '""',
+      position: "absolute" as const,
+      left: 0,
+      top: "8px",
+      bottom: "8px",
+      width: "3px",
+      borderRadius: "2px",
+      backgroundColor: tokens.colorCompoundBrandForeground1,
+    },
   },
   setItemDragging: {
     opacity: "0.5",
@@ -209,6 +231,7 @@ export function Sidebar({
 }: Props) {
   const styles = useStyles();
   const { t, locale, setLocale } = useI18n();
+  const themeMode = useThemeMode();
   const canDrag = !isMobile;
 
   const [renameSetId, setRenameSetId] = useState<string | null>(null);
@@ -400,6 +423,43 @@ export function Sidebar({
               onClick={() => setLocale(locale === "en" ? "zh" : "en")}
             />
           </Tooltip>
+          <Menu>
+            <Tooltip content={t.themeLabel} relationship="label">
+              <MenuTrigger disableButtonEnhancement>
+                <Button
+                  appearance="transparent"
+                  size="small"
+                  icon={
+                    themeMode === "light" ? (
+                      <WeatherSunnyRegular />
+                    ) : themeMode === "dark" ? (
+                      <WeatherMoonRegular />
+                    ) : (
+                      <DesktopRegular />
+                    )
+                  }
+                />
+              </MenuTrigger>
+            </Tooltip>
+            <MenuPopover>
+              <MenuList
+                checkedValues={{ theme: [themeMode] }}
+                onCheckedValueChange={(_, d) =>
+                  setThemeMode(d.name as ThemeMode)
+                }
+              >
+                <MenuItemRadio name="theme" value="system" icon={<DesktopRegular />}>
+                  {t.themeSystem}
+                </MenuItemRadio>
+                <MenuItemRadio name="theme" value="light" icon={<WeatherSunnyRegular />}>
+                  {t.themeLight}
+                </MenuItemRadio>
+                <MenuItemRadio name="theme" value="dark" icon={<WeatherMoonRegular />}>
+                  {t.themeDark}
+                </MenuItemRadio>
+              </MenuList>
+            </MenuPopover>
+          </Menu>
           {spaces.length > 1 && (
             <Tooltip content={t.selectSpaceTitle} relationship="label">
               <Button

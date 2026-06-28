@@ -5,7 +5,6 @@ import {
   Title3,
   Body1,
   Body2,
-  Card,
   Input,
   Switch,
   Spinner,
@@ -17,20 +16,10 @@ import {
 } from "@fluentui/react-components";
 import { Database24Regular } from "@fluentui/react-icons";
 import { useI18n } from "../i18n";
+import { AuthShell } from "./AuthShell";
+import { PasswordInput } from "./PasswordInput";
 
 const useStyles = makeStyles({
-  container: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: "100%",
-    padding: "24px",
-  },
-  card: {
-    maxWidth: "560px",
-    width: "100%",
-    padding: "32px",
-  },
   header: {
     textAlign: "center",
     marginBottom: "24px",
@@ -131,201 +120,198 @@ export function InitPage({ onComplete }: { onComplete: () => void }) {
   };
 
   return (
-    <div className={styles.container}>
-      <Card className={styles.card}>
-        <div className={styles.header}>
-          <Database24Regular className={styles.icon} />
-          <Title1 className={styles.title}>{t.initWelcome}</Title1>
-          <br />
-          <Body1 className={styles.subtitle}>
-            {step === "config" ? t.initConfigSubtitle : t.initConfirmSubtitle}
-          </Body1>
-        </div>
+    <AuthShell maxWidth={560} cardGap={16}>
+      <div className={styles.header}>
+        <Database24Regular className={styles.icon} />
+        <Title1 className={styles.title}>{t.initWelcome}</Title1>
+        <br />
+        <Body1 className={styles.subtitle}>
+          {step === "config" ? t.initConfigSubtitle : t.initConfirmSubtitle}
+        </Body1>
+      </div>
 
-        {error && (
-          <MessageBar intent="error" className={styles.error}>
-            <MessageBarBody>{error}</MessageBarBody>
-          </MessageBar>
-        )}
+      {error && (
+        <MessageBar intent="error" className={styles.error}>
+          <MessageBarBody>{error}</MessageBarBody>
+        </MessageBar>
+      )}
 
-        {step === "config" && (
-          <>
-            <div className={styles.section}>
-              <Title3 className={styles.sectionTitle}>
-                {t.initPrismOAuth}
-              </Title3>
+      {step === "config" && (
+        <>
+          <div className={styles.section}>
+            <Title3 className={styles.sectionTitle}>
+              {t.initPrismOAuth}
+            </Title3>
 
+            <div className={styles.field}>
+              <Body2 className={styles.fieldLabel}>
+                {t.initPrismBaseUrl} *
+              </Body2>
+              <Input
+                value={prismBaseUrl}
+                onChange={(_, d) => setPrismBaseUrl(d.value)}
+                placeholder="https://prism.siiway.org"
+              />
+              <span className={styles.fieldHint}>
+                {t.initPrismBaseUrlHint}
+              </span>
+            </div>
+
+            <div className={styles.field}>
+              <Body2 className={styles.fieldLabel}>{t.initClientId} *</Body2>
+              <Input
+                value={prismClientId}
+                onChange={(_, d) => setPrismClientId(d.value)}
+                placeholder="prism_xxxxx"
+              />
+              <span className={styles.fieldHint}>{t.initClientIdHint}</span>
+            </div>
+
+            <div className={styles.field}>
+              <Switch
+                label={t.initUsePkce}
+                checked={usePkce}
+                onChange={(_, d) => setUsePkce(d.checked)}
+              />
+              <span className={styles.fieldHint}>{t.initUsePkceHint}</span>
+            </div>
+
+            {!usePkce && (
               <div className={styles.field}>
                 <Body2 className={styles.fieldLabel}>
-                  {t.initPrismBaseUrl} *
+                  {t.initClientSecret} *
                 </Body2>
-                <Input
-                  value={prismBaseUrl}
-                  onChange={(_, d) => setPrismBaseUrl(d.value)}
-                  placeholder="https://prism.siiway.org"
+                <PasswordInput
+                  value={prismClientSecret}
+                  onChange={(_, d) => setPrismClientSecret(d.value)}
+                  placeholder="your-client-secret"
                 />
                 <span className={styles.fieldHint}>
-                  {t.initPrismBaseUrlHint}
+                  {t.initClientSecretHint}
                 </span>
               </div>
+            )}
 
-              <div className={styles.field}>
-                <Body2 className={styles.fieldLabel}>{t.initClientId} *</Body2>
-                <Input
-                  value={prismClientId}
-                  onChange={(_, d) => setPrismClientId(d.value)}
-                  placeholder="prism_xxxxx"
-                />
-                <span className={styles.fieldHint}>{t.initClientIdHint}</span>
-              </div>
-
-              <div className={styles.field}>
-                <Switch
-                  label={t.initUsePkce}
-                  checked={usePkce}
-                  onChange={(_, d) => setUsePkce(d.checked)}
-                />
-                <span className={styles.fieldHint}>{t.initUsePkceHint}</span>
-              </div>
-
-              {!usePkce && (
-                <div className={styles.field}>
-                  <Body2 className={styles.fieldLabel}>
-                    {t.initClientSecret} *
-                  </Body2>
-                  <Input
-                    value={prismClientSecret}
-                    onChange={(_, d) => setPrismClientSecret(d.value)}
-                    placeholder="your-client-secret"
-                    type="password"
-                  />
-                  <span className={styles.fieldHint}>
-                    {t.initClientSecretHint}
-                  </span>
-                </div>
-              )}
-
-              <div className={styles.field}>
-                <Body2 className={styles.fieldLabel}>{t.initRedirectUri}</Body2>
-                <Input
-                  value={prismRedirectUri}
-                  onChange={(_, d) => setPrismRedirectUri(d.value)}
-                  placeholder={`${window.location.origin}/callback`}
-                />
-                <span className={styles.fieldHint}>
-                  {t.initRedirectUriHint.replace(
-                    "{origin}",
-                    window.location.origin,
-                  )}
-                </span>
-              </div>
+            <div className={styles.field}>
+              <Body2 className={styles.fieldLabel}>{t.initRedirectUri}</Body2>
+              <Input
+                value={prismRedirectUri}
+                onChange={(_, d) => setPrismRedirectUri(d.value)}
+                placeholder={`${window.location.origin}/callback`}
+              />
+              <span className={styles.fieldHint}>
+                {t.initRedirectUriHint.replace(
+                  "{origin}",
+                  window.location.origin,
+                )}
+              </span>
             </div>
+          </div>
 
-            <Divider />
+          <Divider />
 
-            <div className={styles.section} style={{ marginTop: 20 }}>
-              <Title3 className={styles.sectionTitle}>
-                {t.initAccessControl}
-              </Title3>
+          <div className={styles.section} style={{ marginTop: 20 }}>
+            <Title3 className={styles.sectionTitle}>
+              {t.initAccessControl}
+            </Title3>
 
-              <div className={styles.field}>
-                <Body2 className={styles.fieldLabel}>
-                  {t.initAllowedTeamId}
-                </Body2>
-                <Input
-                  value={allowedTeamId}
-                  onChange={(_, d) => setAllowedTeamId(d.value)}
-                  placeholder={t.initAllowedTeamIdPlaceholder}
-                />
-                <span className={styles.fieldHint}>
-                  {t.initAllowedTeamIdHint}
-                </span>
-              </div>
+            <div className={styles.field}>
+              <Body2 className={styles.fieldLabel}>
+                {t.initAllowedTeamId}
+              </Body2>
+              <Input
+                value={allowedTeamId}
+                onChange={(_, d) => setAllowedTeamId(d.value)}
+                placeholder={t.initAllowedTeamIdPlaceholder}
+              />
+              <span className={styles.fieldHint}>
+                {t.initAllowedTeamIdHint}
+              </span>
             </div>
+          </div>
 
-            <div className={styles.actions}>
-              <Button
-                appearance="primary"
-                size="large"
-                disabled={!isValid}
-                onClick={() => setStep("confirm")}
-              >
-                {t.initContinue}
-              </Button>
-            </div>
-          </>
-        )}
-
-        {step === "confirm" && (
-          <>
-            <div className={styles.section}>
-              <Title3 className={styles.sectionTitle}>{t.initReview}</Title3>
-
-              <div className={styles.field}>
-                <Body2 className={styles.fieldLabel}>
-                  {t.initPrismBaseUrl}
-                </Body2>
-                <Body1>{prismBaseUrl}</Body1>
-              </div>
-
-              <div className={styles.field}>
-                <Body2 className={styles.fieldLabel}>{t.initClientId}</Body2>
-                <Body1>{prismClientId}</Body1>
-              </div>
-
-              <div className={styles.field}>
-                <Body2 className={styles.fieldLabel}>{t.initAuthFlow}</Body2>
-                <Body1>
-                  {usePkce ? t.initPkceFlow : t.initConfidentialFlow}
-                </Body1>
-              </div>
-
-              <div className={styles.field}>
-                <Body2 className={styles.fieldLabel}>{t.initRedirectUri}</Body2>
-                <Body1>{prismRedirectUri || t.initAutoDetect}</Body1>
-              </div>
-
-              <div className={styles.field}>
-                <Body2 className={styles.fieldLabel}>
-                  {t.initAllowedTeamId}
-                </Body2>
-                <Body1>{allowedTeamId || t.initAllTeams}</Body1>
-              </div>
-            </div>
-
-            <Divider />
-
-            <Body1
-              style={{
-                marginTop: 16,
-                color: tokens.colorNeutralForeground3,
-              }}
+          <div className={styles.actions}>
+            <Button
+              appearance="primary"
+              size="large"
+              disabled={!isValid}
+              onClick={() => setStep("confirm")}
             >
-              {t.initConfirmText}
-            </Body1>
+              {t.initContinue}
+            </Button>
+          </div>
+        </>
+      )}
 
-            <div className={styles.actions} style={{ gap: 8 }}>
-              <Button
-                appearance="secondary"
-                size="large"
-                onClick={() => setStep("config")}
-                disabled={running}
-              >
-                {t.back}
-              </Button>
-              <Button
-                appearance="primary"
-                size="large"
-                onClick={runSetup}
-                disabled={running}
-                icon={running ? <Spinner size="tiny" /> : undefined}
-              >
-                {running ? t.initSettingUp : t.initInitialize}
-              </Button>
+      {step === "confirm" && (
+        <>
+          <div className={styles.section}>
+            <Title3 className={styles.sectionTitle}>{t.initReview}</Title3>
+
+            <div className={styles.field}>
+              <Body2 className={styles.fieldLabel}>
+                {t.initPrismBaseUrl}
+              </Body2>
+              <Body1>{prismBaseUrl}</Body1>
             </div>
-          </>
-        )}
-      </Card>
-    </div>
+
+            <div className={styles.field}>
+              <Body2 className={styles.fieldLabel}>{t.initClientId}</Body2>
+              <Body1>{prismClientId}</Body1>
+            </div>
+
+            <div className={styles.field}>
+              <Body2 className={styles.fieldLabel}>{t.initAuthFlow}</Body2>
+              <Body1>
+                {usePkce ? t.initPkceFlow : t.initConfidentialFlow}
+              </Body1>
+            </div>
+
+            <div className={styles.field}>
+              <Body2 className={styles.fieldLabel}>{t.initRedirectUri}</Body2>
+              <Body1>{prismRedirectUri || t.initAutoDetect}</Body1>
+            </div>
+
+            <div className={styles.field}>
+              <Body2 className={styles.fieldLabel}>
+                {t.initAllowedTeamId}
+              </Body2>
+              <Body1>{allowedTeamId || t.initAllTeams}</Body1>
+            </div>
+          </div>
+
+          <Divider />
+
+          <Body1
+            style={{
+              marginTop: 16,
+              color: tokens.colorNeutralForeground3,
+            }}
+          >
+            {t.initConfirmText}
+          </Body1>
+
+          <div className={styles.actions} style={{ gap: 8 }}>
+            <Button
+              appearance="secondary"
+              size="large"
+              onClick={() => setStep("config")}
+              disabled={running}
+            >
+              {t.back}
+            </Button>
+            <Button
+              appearance="primary"
+              size="large"
+              onClick={runSetup}
+              disabled={running}
+              icon={running ? <Spinner size="tiny" /> : undefined}
+            >
+              {running ? t.initSettingUp : t.initInitialize}
+            </Button>
+          </div>
+        </>
+      )}
+    </AuthShell>
   );
 }

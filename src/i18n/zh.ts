@@ -403,6 +403,20 @@ const zh: typeof en = {
   confirmDeleteComment: "确定要删除此评论吗？",
   confirmResetPermissions:
     "确定要重置为默认权限吗？此范围的所有自定义权限将丢失。",
+
+  // Password input
+  showPassword: "显示密码",
+  hidePassword: "隐藏密码",
+
+  // Theme switcher
+  themeLabel: "主题",
+  themeSystem: "跟随系统",
+  themeLight: "浅色",
+  themeDark: "深色",
+
+  // Settings - Branding (extra)
+  settingsWorkbenchIntegration: "Workbench 集成",
+  settingsTeamId: "团队 ID",
 };
 
 export default zh;

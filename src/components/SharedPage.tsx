@@ -43,6 +43,7 @@ import type { Todo, ShareLinkPermissions } from "../types";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { useI18n } from "../i18n";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { EmptyState } from "./EmptyState";
 
 const useStyles = makeStyles({
   layout: {
@@ -618,17 +619,18 @@ export function SharedPage({ token }: Props) {
             height: "100%",
           }}
         >
-          <div className={styles.empty}>
-            <Subtitle2>{t.sharedNotFound}</Subtitle2>
-            <br />
-            <Button
-              appearance="primary"
-              onClick={() => (window.location.href = "/")}
-              style={{ marginTop: 12 }}
-            >
-              {t.sharedGoHome}
-            </Button>
-          </div>
+          <EmptyState
+            icon={<LockClosed24Regular />}
+            title={t.sharedNotFound}
+            action={
+              <Button
+                appearance="primary"
+                onClick={() => (window.location.href = "/")}
+              >
+                {t.sharedGoHome}
+              </Button>
+            }
+          />
         </div>
       </div>
     );
@@ -733,9 +735,10 @@ export function SharedPage({ token }: Props) {
         )}
 
         {rootTodos.length === 0 ? (
-          <div className={styles.empty}>
-            <Body1>{t.todoEmpty}</Body1>
-          </div>
+          <EmptyState
+            icon={<LockClosed24Regular />}
+            title={t.todoEmpty}
+          />
         ) : (
           rootTodos.map((todo, index) => renderTodo(todo, index, true))
         )}

@@ -10,11 +10,9 @@ import {
   Input,
   Button,
   Checkbox,
-  Body1,
   Body2,
   Caption1,
   Title2,
-  Subtitle2,
   Spinner,
   Menu,
   MenuTrigger,
@@ -67,6 +65,7 @@ import { SettingsPage } from "./SettingsPage";
 import { SetTransferDialog } from "./SetTransferDialog";
 import { useI18n } from "../i18n";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { EmptyState } from "./EmptyState";
 import {
   getEffectiveActions,
   BUILTIN_SITE_DEFAULT,
@@ -2003,19 +2002,16 @@ export function TodoPage() {
             alignItems: "center",
           }}
         >
-          <div className={styles.empty}>
-            <Subtitle2>{t.todoNoTeams}</Subtitle2>
-            <br />
-            <Body1>{t.todoNoTeamsDesc}</Body1>
-            <br />
-            <Button
-              appearance="secondary"
-              onClick={logout}
-              style={{ marginTop: 12 }}
-            >
-              {t.signOut}
-            </Button>
-          </div>
+          <EmptyState
+            icon={<DismissCircle24Regular />}
+            title={t.todoNoTeams}
+            description={t.todoNoTeamsDesc}
+            action={
+              <Button appearance="secondary" onClick={logout}>
+                {t.signOut}
+              </Button>
+            }
+          />
         </div>
       </div>
     );
@@ -2272,9 +2268,10 @@ export function TodoPage() {
                     <Spinner size="medium" label={t.todoLoadingTodos} />
                   </div>
                 ) : rootTodos.length === 0 ? (
-                  <div className={styles.empty}>
-                    <Body1>{t.todoEmpty}</Body1>
-                  </div>
+                  <EmptyState
+                    icon={<CheckmarkCircle24Regular />}
+                    title={t.todoEmpty}
+                  />
                 ) : (
                   (() => {
                     if (!splitCompleted) {
@@ -2417,23 +2414,21 @@ export function TodoPage() {
                   />
                 </Tooltip>
               )}
-              <div className={styles.empty}>
-                <Folder24Regular
-                  style={{ fontSize: 48, marginBottom: 8, display: "block" }}
-                />
-                <Subtitle2>
-                  {sets.length === 0 ? t.todoCreateSet : t.todoSelectSet}
-                </Subtitle2>
-                {isMobile && (
-                  <Button
-                    appearance="primary"
-                    style={{ marginTop: 16 }}
-                    onClick={() => setDrawerOpen(true)}
-                  >
-                    {t.todoOpenSets}
-                  </Button>
-                )}
-              </div>
+              <EmptyState
+                icon={<Folder24Regular />}
+                title={sets.length === 0 ? t.todoCreateSet : t.todoSelectSet}
+                action={
+                  isMobile ? (
+                    <Button
+                      appearance="primary"
+                      style={{ marginTop: 16 }}
+                      onClick={() => setDrawerOpen(true)}
+                    >
+                      {t.todoOpenSets}
+                    </Button>
+                  ) : undefined
+                }
+              />
             </div>
           )}
         </div>

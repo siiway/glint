@@ -40,6 +40,7 @@ import { useI18n } from "../i18n";
 import type { ShareLink } from "../types";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { TimezoneSelector } from "./TimezoneSelector";
+import { PasswordInput } from "./PasswordInput";
 import {
   type UserSettings,
   DEFAULT_COMPLETE_SOUND_URL,
@@ -178,6 +179,11 @@ const useStyles = makeStyles({
     padding: "12px 24px",
     borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
     backgroundColor: tokens.colorNeutralBackground2,
+  },
+  tableScroll: {
+    overflowX: "auto",
+    overscrollBehaviorX: "contain" as const,
+    touchAction: "pan-x",
   },
   scopeSelector: {
     display: "flex",
@@ -1357,10 +1363,10 @@ export function SettingsPage({
             <Divider style={{ margin: "16px 0" }} />
 
             <Title3 className={styles.sectionTitle}>
-              Workbench Integration
+              {t.settingsWorkbenchIntegration}
             </Title3>
             <div className={styles.field}>
-              <Body2 className={styles.fieldLabel}>Team ID</Body2>
+              <Body2 className={styles.fieldLabel}>{t.settingsTeamId}</Body2>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <Input value={teamId} readOnly style={{ flex: 1 }} />
                 <Tooltip content="Copy to clipboard" relationship="label">
@@ -1444,6 +1450,7 @@ export function SettingsPage({
               {t.permissionsOwnerNote}
             </Subtitle2>
 
+            <div className={styles.tableScroll}>
             <table className={styles.permTable}>
               <thead>
                 <tr>
@@ -1509,6 +1516,7 @@ export function SettingsPage({
                 })}
               </tbody>
             </table>
+            </div>
 
             {canManagePerms && (
               <div className={styles.saveBar} style={{ marginTop: 16 }}>
@@ -1552,6 +1560,7 @@ export function SettingsPage({
                 {t.linksEmpty}
               </Body1>
             ) : (
+              <div className={styles.tableScroll}>
               <table className={styles.permTable}>
                 <thead>
                   <tr>
@@ -1638,6 +1647,7 @@ export function SettingsPage({
                   })}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         )}
@@ -1703,7 +1713,7 @@ export function SettingsPage({
                   <Body2 className={styles.fieldLabel}>
                     {t.appConfigClientSecret}
                   </Body2>
-                  <Input
+                  <PasswordInput
                     value={editAppConfig.prism_client_secret}
                     onChange={(_, d) =>
                       setEditAppConfig(
@@ -1711,7 +1721,6 @@ export function SettingsPage({
                       )
                     }
                     placeholder="your-client-secret"
-                    type="password"
                   />
                 </div>
               )}

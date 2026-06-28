@@ -3,7 +3,6 @@ import {
   Button,
   Title1,
   Body1,
-  Card,
   CardHeader,
   makeStyles,
   tokens,
@@ -11,21 +10,9 @@ import {
 import { CheckmarkCircle24Regular } from "@fluentui/react-icons";
 import { useAuth } from "../auth";
 import { useI18n } from "../i18n";
+import { AuthShell } from "./AuthShell";
 
 const useStyles = makeStyles({
-  container: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: "100%",
-    padding: "24px",
-  },
-  card: {
-    maxWidth: "400px",
-    width: "100%",
-    padding: "32px",
-    textAlign: "center",
-  },
   icon: {
     fontSize: "48px",
     color: tokens.colorBrandForeground1,
@@ -43,6 +30,10 @@ const useStyles = makeStyles({
   subtitle: {
     marginBottom: "24px",
     color: tokens.colorNeutralForeground3,
+  },
+  actions: {
+    display: "flex",
+    justifyContent: "center",
   },
 });
 
@@ -64,21 +55,19 @@ export function LoginPage() {
   }, []);
 
   return (
-    <div className={styles.container}>
-      <Card className={styles.card}>
-        {siteLogo ? (
-          <img src={siteLogo} alt={siteName} className={styles.logo} />
-        ) : (
-          <CardHeader
-            image={<CheckmarkCircle24Regular className={styles.icon} />}
-          />
-        )}
-        <Title1 className={styles.title}>{siteName}</Title1>
-        <Body1 className={styles.subtitle}>{t.tagline}</Body1>
+    <AuthShell>
+      {siteLogo ? (
+        <img src={siteLogo} alt={siteName} className={styles.logo} />
+      ) : (
+        <CardHeader image={<CheckmarkCircle24Regular className={styles.icon} />} />
+      )}
+      <Title1 className={styles.title}>{siteName}</Title1>
+      <Body1 className={styles.subtitle}>{t.tagline}</Body1>
+      <div className={styles.actions}>
         <Button appearance="primary" size="large" onClick={login}>
           {t.signInWithPrism}
         </Button>
-      </Card>
-    </div>
+      </div>
+    </AuthShell>
   );
 }
