@@ -269,14 +269,7 @@ export function SettingsPage({
     failures?: { scope: string; error?: string }[];
   } | null>(null);
   const [prefsSaveNotice, setPrefsSaveNotice] = useState<{
-    scope:
-      | "user"
-      | "workspace"
-      | "transport"
-      | "favicon"
-      | "detailed_status"
-      | "personal_avatar"
-      | "complete_sound";
+    scope: "user" | "workspace" | "transport" | "global";
     ok: boolean;
     message: string;
   } | null>(null);
@@ -540,82 +533,25 @@ export function SettingsPage({
     }
   };
 
-  const saveWorkspaceFavicon = async () => {
-    try {
-      await onUpdateUserSettings({ workspace_favicon: editWorkspaceFavicon });
-      setPrefsSaveNotice({
-        scope: "favicon",
-        ok: true,
-        message: t.settingsSaveSuccess,
-      });
-    } catch (error) {
-      setPrefsSaveNotice({
-        scope: "favicon",
-        ok: false,
-        message: t.settingsSaveFailed.replace(
-          "{error}",
-          getErrorMessage(error),
-        ),
-      });
-    }
-  };
-
-  const saveDetailedStatus = async () => {
-    try {
-      await onUpdateUserSettings({ detailed_status: editDetailedStatus });
-      setPrefsSaveNotice({
-        scope: "detailed_status",
-        ok: true,
-        message: t.settingsSaveSuccess,
-      });
-    } catch (error) {
-      setPrefsSaveNotice({
-        scope: "detailed_status",
-        ok: false,
-        message: t.settingsSaveFailed.replace(
-          "{error}",
-          getErrorMessage(error),
-        ),
-      });
-    }
-  };
-
-  const savePersonalAvatarIcon = async () => {
+  // Save all global personal preferences (favicon, detailed status, personal
+  // avatar, completion sound) together so the section has a single save button.
+  const saveGlobalPrefs = async () => {
     try {
       await onUpdateUserSettings({
+        workspace_favicon: editWorkspaceFavicon,
+        detailed_status: editDetailedStatus,
         personal_avatar_icon: editPersonalAvatarIcon,
-      });
-      setPrefsSaveNotice({
-        scope: "personal_avatar",
-        ok: true,
-        message: t.settingsSaveSuccess,
-      });
-    } catch (error) {
-      setPrefsSaveNotice({
-        scope: "personal_avatar",
-        ok: false,
-        message: t.settingsSaveFailed.replace(
-          "{error}",
-          getErrorMessage(error),
-        ),
-      });
-    }
-  };
-
-  const saveCompleteSound = async () => {
-    try {
-      await onUpdateUserSettings({
         complete_sound_enabled: editCompleteSoundEnabled,
         complete_sound_url: editCompleteSoundUrl.trim(),
       });
       setPrefsSaveNotice({
-        scope: "complete_sound",
+        scope: "global",
         ok: true,
         message: t.settingsSaveSuccess,
       });
     } catch (error) {
       setPrefsSaveNotice({
-        scope: "complete_sound",
+        scope: "global",
         ok: false,
         message: t.settingsSaveFailed.replace(
           "{error}",
@@ -1025,27 +961,6 @@ export function SettingsPage({
               >
                 {t.userPrefsWorkspaceFaviconHint}
               </Body1>
-              <div style={{ marginTop: 10 }}>
-                <Button
-                  size="small"
-                  appearance="primary"
-                  onClick={saveWorkspaceFavicon}
-                >
-                  {t.save}
-                </Button>
-              </div>
-              {prefsSaveNotice?.scope === "favicon" && (
-                <Body2
-                  style={{
-                    marginTop: 8,
-                    color: prefsSaveNotice.ok
-                      ? tokens.colorPaletteGreenForeground2
-                      : tokens.colorPaletteRedForeground2,
-                  }}
-                >
-                  {prefsSaveNotice.message}
-                </Body2>
-              )}
             </div>
 
             {/* Detailed task status */}
@@ -1065,27 +980,6 @@ export function SettingsPage({
               >
                 {t.userPrefsDetailedStatusHint}
               </Body1>
-              <div style={{ marginTop: 10 }}>
-                <Button
-                  size="small"
-                  appearance="primary"
-                  onClick={saveDetailedStatus}
-                >
-                  {t.save}
-                </Button>
-              </div>
-              {prefsSaveNotice?.scope === "detailed_status" && (
-                <Body2
-                  style={{
-                    marginTop: 8,
-                    color: prefsSaveNotice.ok
-                      ? tokens.colorPaletteGreenForeground2
-                      : tokens.colorPaletteRedForeground2,
-                  }}
-                >
-                  {prefsSaveNotice.message}
-                </Body2>
-              )}
             </div>
 
             {/* Use personal avatar as personal workspace icon */}
@@ -1105,27 +999,6 @@ export function SettingsPage({
               >
                 {t.personalAvatarIconHint}
               </Body1>
-              <div style={{ marginTop: 10 }}>
-                <Button
-                  size="small"
-                  appearance="primary"
-                  onClick={savePersonalAvatarIcon}
-                >
-                  {t.save}
-                </Button>
-              </div>
-              {prefsSaveNotice?.scope === "personal_avatar" && (
-                <Body2
-                  style={{
-                    marginTop: 8,
-                    color: prefsSaveNotice.ok
-                      ? tokens.colorPaletteGreenForeground2
-                      : tokens.colorPaletteRedForeground2,
-                  }}
-                >
-                  {prefsSaveNotice.message}
-                </Body2>
-              )}
             </div>
 
             {/* Completion sound */}
@@ -1172,28 +1045,30 @@ export function SettingsPage({
                   </div>
                 </div>
               )}
-              <div style={{ marginTop: 10 }}>
-                <Button
-                  size="small"
-                  appearance="primary"
-                  onClick={saveCompleteSound}
-                >
-                  {t.save}
-                </Button>
-              </div>
-              {prefsSaveNotice?.scope === "complete_sound" && (
-                <Body2
-                  style={{
-                    marginTop: 8,
-                    color: prefsSaveNotice.ok
-                      ? tokens.colorPaletteGreenForeground2
-                      : tokens.colorPaletteRedForeground2,
-                  }}
-                >
-                  {prefsSaveNotice.message}
-                </Body2>
-              )}
             </div>
+
+            {/* Single save button for the entire global preferences section */}
+            <div style={{ marginTop: 16 }}>
+              <Button
+                size="small"
+                appearance="primary"
+                onClick={saveGlobalPrefs}
+              >
+                {t.save}
+              </Button>
+            </div>
+            {prefsSaveNotice?.scope === "global" && (
+              <Body2
+                style={{
+                  marginTop: 8,
+                  color: prefsSaveNotice.ok
+                    ? tokens.colorPaletteGreenForeground2
+                    : tokens.colorPaletteRedForeground2,
+                }}
+              >
+                {prefsSaveNotice.message}
+              </Body2>
+            )}
 
             {/* Site default (read-only) */}
             <Divider style={{ margin: "16px 0" }} />

@@ -114,7 +114,7 @@ function AppShell() {
 
   if (!configured) {
     return (
-      <PageLayout>
+      <PageLayout footer={false}>
         <InitPage onComplete={markConfigured} />
       </PageLayout>
     );
@@ -184,7 +184,7 @@ export default function App() {
             <Route
               path="/login"
               element={
-                <PageLayout>
+                <PageLayout footer={false}>
                   <LoginPage />
                 </PageLayout>
               }
@@ -192,7 +192,7 @@ export default function App() {
             <Route
               path="/login-failed"
               element={
-                <PageLayout>
+                <PageLayout footer={false}>
                   <LoginFailedPage />
                 </PageLayout>
               }
@@ -200,7 +200,7 @@ export default function App() {
             <Route
               path="/not-authorized"
               element={
-                <PageLayout>
+                <PageLayout footer={false}>
                   <NotAuthorizedPage />
                 </PageLayout>
               }

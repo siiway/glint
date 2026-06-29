@@ -2,22 +2,29 @@
  * Shared shell for all auth-style centered-card pages (login, register, init, error cards).
  * Owns the full-viewport layout, brand-gradient canvas, card styling, and entrance animation.
  * Exposes --auth-card-pad CSS var so full-bleed children can stretch edge-to-edge.
+ * Renders the shared Footer inside the gradient so it stays visually unified with the canvas.
  */
 import type { ReactNode } from "react";
 import { makeStyles, tokens } from "@fluentui/react-components";
+import { Footer } from "./Footer";
 
 const useStyles = makeStyles({
   page: {
     minHeight: "100vh",
     display: "flex",
     flexDirection: "column",
+    backgroundColor: tokens.colorNeutralBackground2,
+    backgroundImage: `radial-gradient(ellipse at 20% 80%, color-mix(in srgb, ${tokens.colorBrandBackground} 8%, transparent) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, color-mix(in srgb, ${tokens.colorBrandBackground} 8%, transparent) 0%, transparent 50%)`,
+    backgroundAttachment: "fixed",
+  },
+  main: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     gap: "20px",
     padding: "32px 16px",
-    backgroundColor: tokens.colorNeutralBackground2,
-    backgroundImage: `radial-gradient(ellipse at 20% 80%, color-mix(in srgb, ${tokens.colorBrandBackground} 8%, transparent) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, color-mix(in srgb, ${tokens.colorBrandBackground} 8%, transparent) 0%, transparent 50%)`,
-    backgroundAttachment: "fixed",
   },
   card: {
     width: "100%",
@@ -64,12 +71,12 @@ export function AuthShell({ children, maxWidth = 400, cardGap = 20 }: Props) {
 
   return (
     <div className={styles.page}>
-      <div
-        className={styles.card}
-        style={{ maxWidth, gap: cardGap, display: "flex", flexDirection: "column" }}
-      >
-        {children}
+      <div className={styles.main}>
+        <div className={styles.card} style={{ maxWidth, gap: cardGap }}>
+          {children}
+        </div>
       </div>
+      <Footer />
     </div>
   );
 }
