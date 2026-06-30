@@ -271,6 +271,25 @@ export function Sidebar({
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragCounter = useRef(0);
 
+  // Footer user-name overflow: when the name can't fully fit, show only the
+  // avatar and reveal the name on hover.
+  const userName = user?.displayName || user?.username || "";
+  const nameWrapRef = useRef<HTMLDivElement>(null);
+  const nameMeasureRef = useRef<HTMLSpanElement>(null);
+  const [nameOverflow, setNameOverflow] = useState(false);
+  useEffect(() => {
+    const wrap = nameWrapRef.current;
+    const measure = nameMeasureRef.current;
+    if (!wrap || !measure) return;
+    const check = () => {
+      setNameOverflow(measure.offsetWidth > wrap.clientWidth + 1);
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(wrap);
+    return () => ro.disconnect();
+  }, [userName]);
+
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     setDragIndex(Number(e.currentTarget.dataset.dragIndex));
   };
@@ -382,21 +401,50 @@ export function Sidebar({
     return (
       <>
         <div className={isMobile ? styles.drawerFooter : styles.sidebarFooter}>
-          <Avatar
-            name={user?.displayName || user?.username}
-            image={user?.avatarUrl ? { src: user.avatarUrl } : undefined}
-            size={24}
-          />
-          <Body2
-            style={{
-              flex: 1,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
+          {nameOverflow ? (
+            <Tooltip content={userName} relationship="label">
+              <Avatar
+                name={user?.displayName || user?.username}
+                image={user?.avatarUrl ? { src: user.avatarUrl } : undefined}
+                size={24}
+              />
+            </Tooltip>
+          ) : (
+            <Avatar
+              name={user?.displayName || user?.username}
+              image={user?.avatarUrl ? { src: user.avatarUrl } : undefined}
+              size={24}
+            />
+          )}
+          <div
+            ref={nameWrapRef}
+            style={{ flex: 1, minWidth: 0, overflow: "hidden" }}
           >
-            {user?.displayName || user?.username}
-          </Body2>
+            {!nameOverflow && (
+              <Body2
+                style={{
+                  display: "block",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {userName}
+              </Body2>
+            )}
+            <span
+              ref={nameMeasureRef}
+              aria-hidden
+              style={{
+                position: "absolute",
+                visibility: "hidden",
+                whiteSpace: "nowrap",
+                pointerEvents: "none",
+              }}
+            >
+              {userName}
+            </span>
+          </div>
           {selectedSpace && (
             <Badge
               appearance="filled"

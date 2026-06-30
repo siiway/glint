@@ -100,17 +100,6 @@ const useStyles = makeStyles({
       backgroundColor: tokens.colorBrandBackground2,
     },
   },
-  collapsedRail: {
-    width: "36px",
-    minWidth: "36px",
-    borderRight: `1px solid ${tokens.colorNeutralStroke2}`,
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    paddingTop: "12px",
-    height: "100%",
-    flexShrink: 0,
-  },
   main: {
     flex: 1,
     display: "flex",
@@ -2106,19 +2095,6 @@ export function TodoPage() {
           <div className={styles.splitter} onMouseDown={onSplitterMouseDown} />
         )}
 
-        {!isMobile && sidebarCollapsed && (
-          <div className={styles.collapsedRail}>
-            <Tooltip content={t.expandSidebar} relationship="label">
-              <Button
-                appearance="transparent"
-                size="small"
-                icon={<ChevronDoubleRight20Regular />}
-                onClick={() => toggleSidebarCollapsed(false)}
-              />
-            </Tooltip>
-          </div>
-        )}
-
         <div className={styles.main}>
           {selectedSetId ? (
             <>
@@ -2135,6 +2111,15 @@ export function TodoPage() {
                       icon={<Navigation24Regular />}
                       onClick={() => setDrawerOpen(true)}
                     />
+                  )}
+                  {!isMobile && sidebarCollapsed && (
+                    <Tooltip content={t.expandSidebar} relationship="label">
+                      <Button
+                        appearance="transparent"
+                        icon={<ChevronDoubleRight20Regular />}
+                        onClick={() => toggleSidebarCollapsed(false)}
+                      />
+                    </Tooltip>
                   )}
                   <Title2
                     style={
