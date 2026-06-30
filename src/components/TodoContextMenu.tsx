@@ -8,6 +8,7 @@ import {
   CheckmarkCircle24Regular,
   Edit24Regular,
   Delete24Regular,
+  ArrowMove24Regular,
   SelectAllOn24Regular,
   DismissCircle24Regular,
   PersonAvailable24Regular,
@@ -75,6 +76,8 @@ type Props = {
   isClaimed: boolean;
   isClaimedByMe: boolean;
   onDelete: () => void;
+  onMove: () => void;
+  canMove: boolean;
   rootCount: number;
 };
 
@@ -101,6 +104,8 @@ export function TodoContextMenu({
   isClaimed,
   isClaimedByMe,
   onDelete,
+  onMove,
+  canMove,
   rootCount,
 }: Props) {
   const styles = useStyles();
@@ -177,6 +182,11 @@ export function TodoContextMenu({
           {todo.completed
             ? ` ${t.actionMarkIncomplete}`
             : ` ${t.actionMarkComplete}`}
+        </button>
+      )}
+      {canMove && (
+        <button className={styles.item} onClick={onMove}>
+          <ArrowMove24Regular /> {t.actionMove}
         </button>
       )}
       {canDelete && (

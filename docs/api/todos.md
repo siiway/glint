@@ -269,6 +269,45 @@ Batch update `sortOrder` values for multiple todos in one request. Typically cal
 
 ---
 
+## `POST /api/teams/:teamId/todos/:id/move`
+
+Move a todo — together with its entire sub-todo subtree — into another set. The moved todo becomes a top-level (root) todo in the target set; its descendants keep their parent/child relationships.
+
+**Auth required:** Yes — `edit_own_todos` (own) or `edit_any_todo` (others') in the source set, **and** `create_todos` in the target set.
+
+**Request body:**
+
+```json
+{
+  "targetSetId": "set-uuid",
+  "insertAt": "bottom"
+}
+```
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `targetSetId` | string (UUID) | The destination set. |
+| `insertAt` | `"top"` \| `"bottom"` (optional) | Where to place the moved todo among the target set's root todos. Defaults to `"bottom"`. |
+
+**Response:**
+
+```json
+{ "ok": true }
+```
+
+**Error responses:**
+
+| Status | `error` | Cause |
+| --- | --- | --- |
+| `400` | `"targetSetId is required"` | `targetSetId` is missing. |
+| `403` | `"No permission to move this todo"` / `"No permission to add todos to the target set"` | Lacks the required permission. |
+| `404` | `"Not found"` / `"Target set not found"` | The todo or target set does not exist in this team. |
+| `409` | `"Todo item title already exists among sibling todos"` | The target set already has a root todo with the same title. |
+
+A `todo:moved` event is broadcast to both the source and target sets on success.
+
+---
+
 ## `POST /api/teams/:teamId/todos/:id/claim`
 
 Toggle a **claim** on a todo. Claiming assigns the todo to yourself; calling it again while you hold the claim releases it. A todo can only be claimed by one person at a time.

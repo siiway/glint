@@ -269,6 +269,45 @@
 
 ---
 
+## `POST /api/teams/:teamId/todos/:id/move`
+
+将一个待办事项（连同它的整个子待办子树）移动到另一个分组。移动后的待办会成为目标分组中的顶级（根）待办；其子孙待办会保持原有的父子关系。
+
+**需要认证：** 是 —— 源分组的 `edit_own_todos`（自己的）或 `edit_any_todo`（他人的），**以及**目标分组的 `create_todos`。
+
+**请求体：**
+
+```json
+{
+  "targetSetId": "set-uuid",
+  "insertAt": "bottom"
+}
+```
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `targetSetId` | string (UUID) | 目标分组。 |
+| `insertAt` | `"top"` \| `"bottom"`（可选） | 在目标分组的根待办中放置的位置。默认为 `"bottom"`。 |
+
+**响应：**
+
+```json
+{ "ok": true }
+```
+
+**错误响应：**
+
+| 状态码 | `error` | 原因 |
+| --- | --- | --- |
+| `400` | `"targetSetId is required"` | 缺少 `targetSetId`。 |
+| `403` | `"No permission to move this todo"` / `"No permission to add todos to the target set"` | 缺少所需权限。 |
+| `404` | `"Not found"` / `"Target set not found"` | 该待办或目标分组在此团队中不存在。 |
+| `409` | `"Todo item title already exists among sibling todos"` | 目标分组中已存在同名的根待办。 |
+
+成功时会向源分组和目标分组广播 `todo:moved` 事件。
+
+---
+
 ## `POST /api/teams/:teamId/todos/:id/claim`
 
 切换待办事项的**认领**状态。认领会将该待办分配给你自己；在你持有认领时再次调用会释放它。同一时间一个待办只能被一个人认领。

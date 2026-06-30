@@ -153,6 +153,13 @@ const zh: typeof en = {
   actionAddAfter: "在下方添加",
   actionDeleteSelected: "删除已选",
   actionClearSelection: "清除选择",
+  actionMove: "移动到列表",
+
+  // 移动待办到其他列表
+  moveTodoTitle: "移动到列表",
+  moveTodoSelectList: "选择列表",
+  moveCurrentList: "当前",
+  moveFailed: "移动待办失败",
 
   // Action bar
   actionBarCustomize: "自定义快捷操作",

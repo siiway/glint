@@ -53,6 +53,7 @@ import { LocalLanguage24Regular } from "@fluentui/react-icons";
 import { useThemeMode, setThemeMode, type ThemeMode } from "../store/theme";
 import { ManageLinksDialog } from "./ManageLinksDialog";
 import { ImportSetDialog } from "./ImportSetDialog";
+import { TODO_DND_MIME } from "./MoveTodoDialog";
 import { CreateSetDialog } from "./CreateSetDialog";
 import { SetContextMenu } from "./SetContextMenu";
 import { TimezoneSelector } from "./TimezoneSelector";
@@ -139,6 +140,33 @@ const useStyles = makeStyles({
   setItemDragOver: {
     borderBottom: `2px solid ${tokens.colorBrandForeground1}`,
   },
+  setDropOverlay: {
+    position: "absolute" as const,
+    inset: 0,
+    display: "flex",
+    borderRadius: tokens.borderRadiusMedium,
+    overflow: "hidden",
+    pointerEvents: "none" as const,
+    zIndex: 1,
+  },
+  setDropHalf: {
+    flex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    textAlign: "center" as const,
+    fontSize: "11px",
+    fontWeight: 600,
+    padding: "0 4px",
+    color: tokens.colorNeutralForeground2,
+    backgroundColor: tokens.colorNeutralBackground1Selected,
+    opacity: 0.9,
+  },
+  setDropHalfActive: {
+    backgroundColor: tokens.colorCompoundBrandBackground,
+    color: tokens.colorNeutralForegroundOnBrand,
+    opacity: 1,
+  },
   setName: {
     flex: 1,
     overflow: "hidden",
@@ -194,6 +222,11 @@ type Props = {
   onRenameSet: (id: string, name: string) => void;
   onUpdateSet: (id: string, patch: Partial<TodoSet>) => void;
   onReorderSets: (items: { id: string; sortOrder: number }[]) => void;
+  onMoveTodoToSet?: (
+    todoId: string,
+    setId: string,
+    insertAt: "top" | "bottom",
+  ) => void;
   defaultTimezone: string;
   user: { displayName?: string; username: string; avatarUrl?: string } | null;
   onLogout: () => void;
@@ -224,6 +257,7 @@ export function Sidebar({
   onRenameSet,
   onUpdateSet,
   onReorderSets,
+  onMoveTodoToSet,
   defaultTimezone,
   user,
   onLogout,
@@ -271,6 +305,70 @@ export function Sidebar({
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const dragCounter = useRef(0);
 
+  // Drop target state for moving a todo (dragged from the main list) onto a set.
+  // `half` maps the hovered side to where the todo lands: left → top, right → bottom.
+  const [todoDropOver, setTodoDropOver] = useState<{
+    setId: string;
+    half: "top" | "bottom";
+  } | null>(null);
+
+  useEffect(() => {
+    const clear = () => setTodoDropOver(null);
+    window.addEventListener("dragend", clear);
+    window.addEventListener("drop", clear);
+    return () => {
+      window.removeEventListener("dragend", clear);
+      window.removeEventListener("drop", clear);
+    };
+  }, []);
+
+  const isTodoDrag = (e: React.DragEvent) =>
+    e.dataTransfer.types.includes(TODO_DND_MIME);
+
+  const halfFromEvent = (
+    e: React.DragEvent<HTMLDivElement>,
+  ): "top" | "bottom" => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return e.clientX - rect.left < rect.width / 2 ? "top" : "bottom";
+  };
+
+  const handleTodoDragOverSet = (
+    e: React.DragEvent<HTMLDivElement>,
+    setId: string,
+  ) => {
+    if (!onMoveTodoToSet) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const half = halfFromEvent(e);
+    setTodoDropOver((prev) =>
+      prev && prev.setId === setId && prev.half === half
+        ? prev
+        : { setId, half },
+    );
+  };
+
+  const handleTodoDragLeaveSet = (
+    e: React.DragEvent<HTMLDivElement>,
+    setId: string,
+  ) => {
+    const next = e.relatedTarget as Node | null;
+    if (next && e.currentTarget.contains(next)) return;
+    setTodoDropOver((prev) => (prev?.setId === setId ? null : prev));
+  };
+
+  const handleTodoDropOnSet = (
+    e: React.DragEvent<HTMLDivElement>,
+    setId: string,
+  ) => {
+    if (!onMoveTodoToSet) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const todoId = e.dataTransfer.getData(TODO_DND_MIME);
+    const half = halfFromEvent(e);
+    setTodoDropOver(null);
+    if (todoId) onMoveTodoToSet(todoId, setId, half);
+  };
+
   // Footer user-name overflow: when the name can't fully fit, show only the
   // avatar and reveal the name on hover.
   const userName = user?.displayName || user?.username || "";
@@ -302,15 +400,30 @@ export function Sidebar({
     setDragIndex(Number(e.currentTarget.dataset.dragIndex));
   };
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    if (isTodoDrag(e)) return; // todo drops are tracked in dragOver
     dragCounter.current++;
     setDragOverIndex(Number(e.currentTarget.dataset.dragIndex));
   };
-  const handleDragLeave = () => {
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    if (isTodoDrag(e)) {
+      handleTodoDragLeaveSet(e, e.currentTarget.dataset.setId ?? "");
+      return;
+    }
     dragCounter.current--;
     if (dragCounter.current === 0) setDragOverIndex(null);
   };
-  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    if (isTodoDrag(e)) {
+      handleTodoDragOverSet(e, e.currentTarget.dataset.setId ?? "");
+      return;
+    }
+    e.preventDefault();
+  };
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    if (isTodoDrag(e)) {
+      handleTodoDropOnSet(e, e.currentTarget.dataset.setId ?? "");
+      return;
+    }
     const dropIndex = Number(e.currentTarget.dataset.dragIndex);
     dragCounter.current = 0;
     setDragOverIndex(null);
@@ -353,6 +466,7 @@ export function Sidebar({
             }}
             draggable={canDrag}
             data-drag-index={i}
+            data-set-id={s.id}
             onDragStart={canDrag ? handleDragStart : undefined}
             onDragEnter={canDrag ? handleDragEnter : undefined}
             onDragLeave={canDrag ? handleDragLeave : undefined}
@@ -378,6 +492,26 @@ export function Sidebar({
                 setSetMenu({ x: rect.right, y: rect.bottom, setId: s.id });
               }}
             />
+            {todoDropOver?.setId === s.id && (
+              <div className={styles.setDropOverlay}>
+                <div
+                  className={mergeClasses(
+                    styles.setDropHalf,
+                    todoDropOver.half === "top" && styles.setDropHalfActive,
+                  )}
+                >
+                  {t.transferInsertTop}
+                </div>
+                <div
+                  className={mergeClasses(
+                    styles.setDropHalf,
+                    todoDropOver.half === "bottom" && styles.setDropHalfActive,
+                  )}
+                >
+                  {t.transferInsertBottom}
+                </div>
+              </div>
+            )}
           </div>
         ))}
 

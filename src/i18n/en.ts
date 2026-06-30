@@ -164,6 +164,13 @@ export default {
   actionAddAfter: "Add after",
   actionDeleteSelected: "Delete selected",
   actionClearSelection: "Clear selection",
+  actionMove: "Move to list",
+
+  // Move todo to another list
+  moveTodoTitle: "Move to list",
+  moveTodoSelectList: "Select a list",
+  moveCurrentList: "current",
+  moveFailed: "Failed to move todo",
 
   // Action bar
   actionBarCustomize: "Customize quick actions",

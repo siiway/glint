@@ -6,6 +6,7 @@ import {
   createTodo,
   deleteTodo,
   listTodos,
+  moveTodo,
   patchTodo,
   reorderTodos,
 } from "../handlers/todos";
@@ -16,6 +17,7 @@ todos.get("/api/teams/:teamId/sets/:setId/todos", requireAuth, listTodos);
 todos.post("/api/teams/:teamId/sets/:setId/todos", requireAuth, createTodo);
 todos.patch("/api/teams/:teamId/todos/:id", requireAuth, patchTodo);
 todos.post("/api/teams/:teamId/todos/reorder", requireAuth, reorderTodos);
+todos.post("/api/teams/:teamId/todos/:id/move", requireAuth, moveTodo);
 todos.delete("/api/teams/:teamId/todos/:id", requireAuth, deleteTodo);
 todos.post("/api/teams/:teamId/todos/:id/claim", requireAuth, claimTodo);
 

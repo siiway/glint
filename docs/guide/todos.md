@@ -78,6 +78,21 @@ Requires: `reorder_todos` permission.
 
 ---
 
+## Moving Between Lists
+
+A todo (together with all of its sub-todos) can be moved from one set to another. The moved todo becomes a top-level todo in the destination set.
+
+There are two ways to move a todo:
+
+- **Context menu** — right-click a todo (or open its `...` menu) and choose **Move to list**. A dialog opens where you pick the destination list, then click **Insert at top** or **Insert at bottom** (or **Cancel**).
+- **Drag-and-drop (desktop only)** — drag a todo onto a set in the sidebar. While hovering over a set, two overlays appear: drop on the **left half** to add it to the top of that list, or the **right half** to add it to the bottom.
+
+A todo cannot be moved into a list that already has a top-level todo with the same title.
+
+Requires: permission to edit the todo in its current set (`edit_own_todos` / `edit_any_todo`) **and** `create_todos` in the destination set.
+
+---
+
 ## Comments
 
 Each todo has a threaded comment section:
@@ -127,6 +142,7 @@ Right-click any todo to open a context menu with all available actions:
 - Select All
 - Edit
 - Mark complete / Mark incomplete
+- Move to list
 - Delete
 
 Available actions are filtered based on your current permissions. Actions you lack permission for are hidden or disabled.

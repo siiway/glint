@@ -350,6 +350,149 @@ export const reorderTodos = async (c: Ctx): Promise<Response> => {
   return c.json({ ok: true });
 };
 
+export const moveTodo = async (c: Ctx): Promise<Response> => {
+  const teamId = c.req.param("teamId")!;
+  const todoId = (c.req.param("id") ?? c.req.param("todoId"))!;
+  const session = c.get("session");
+  const role = getTeamRole(session, teamId);
+  if (!role) return c.json({ error: "Not a member of this team" }, 403);
+
+  const body = await c.req.json<{
+    targetSetId: string;
+    insertAt?: "top" | "bottom";
+  }>();
+  const targetSetId = body.targetSetId;
+  const insertAt = body.insertAt === "top" ? "top" : "bottom";
+  if (!targetSetId) return c.json({ error: "targetSetId is required" }, 400);
+
+  const existing = await c.env.DB.prepare(
+    "SELECT id, user_id, set_id, parent_id, title FROM todos WHERE id = ? AND team_id = ?",
+  )
+    .bind(todoId, teamId)
+    .first<{
+      id: string;
+      user_id: string;
+      set_id: string;
+      parent_id: string | null;
+      title: string;
+    }>();
+  if (!existing) return c.json({ error: "Not found" }, 404);
+
+  // Moving a todo to another set is a remove-from-source + add-to-target, so the
+  // user must be able to edit the todo in its current set and create todos in
+  // the target set.
+  const isOwner = existing.user_id === session.userId;
+  const editPerm: PermissionKey = isOwner ? "edit_own_todos" : "edit_any_todo";
+  if (
+    !(await hasPermission(c.env.DB, teamId, role, editPerm, existing.set_id))
+  ) {
+    return c.json({ error: "No permission to move this todo" }, 403);
+  }
+  if (
+    !(await hasPermission(c.env.DB, teamId, role, "create_todos", targetSetId))
+  ) {
+    return c.json(
+      { error: "No permission to add todos to the target set" },
+      403,
+    );
+  }
+
+  const targetSet = await c.env.DB.prepare(
+    "SELECT id FROM todo_sets WHERE id = ? AND team_id = ?",
+  )
+    .bind(targetSetId, teamId)
+    .first();
+  if (!targetSet) return c.json({ error: "Target set not found" }, 404);
+
+  // The moved todo becomes a root in the target set, so its title must be
+  // unique among the target set's root todos.
+  const duplicated = await c.env.DB.prepare(
+    "SELECT id FROM todos WHERE set_id = ? AND team_id = ? AND parent_id IS NULL AND title = ? AND id != ?",
+  )
+    .bind(targetSetId, teamId, existing.title, todoId)
+    .first<{ id: string }>();
+  if (duplicated) {
+    return c.json(
+      { error: "Todo item title already exists among sibling todos" },
+      409,
+    );
+  }
+
+  // Collect the moved todo and all of its descendants so the whole subtree moves
+  // together while keeping its internal parent/child relationships.
+  const sourceRows = await c.env.DB.prepare(
+    "SELECT id, parent_id FROM todos WHERE set_id = ? AND team_id = ?",
+  )
+    .bind(existing.set_id, teamId)
+    .all();
+  const childrenByParent = new Map<string, string[]>();
+  for (const r of sourceRows.results) {
+    const pid = (r.parent_id as string) || "";
+    if (!childrenByParent.has(pid)) childrenByParent.set(pid, []);
+    childrenByParent.get(pid)!.push(r.id as string);
+  }
+  const subtreeIds: string[] = [];
+  const stack = [todoId];
+  while (stack.length > 0) {
+    const current = stack.pop()!;
+    subtreeIds.push(current);
+    for (const childId of childrenByParent.get(current) ?? []) {
+      stack.push(childId);
+    }
+  }
+
+  let newSortOrder: number;
+  if (insertAt === "top") {
+    await c.env.DB.prepare(
+      "UPDATE todos SET sort_order = sort_order + 1 WHERE set_id = ? AND team_id = ? AND parent_id IS NULL",
+    )
+      .bind(targetSetId, teamId)
+      .run();
+    newSortOrder = 1;
+  } else {
+    const maxRow = await c.env.DB.prepare(
+      "SELECT COALESCE(MAX(sort_order), 0) as m FROM todos WHERE set_id = ? AND team_id = ? AND parent_id IS NULL",
+    )
+      .bind(targetSetId, teamId)
+      .first<{ m: number }>();
+    newSortOrder = (maxRow?.m ?? 0) + 1;
+  }
+
+  const statements = subtreeIds.map((id) =>
+    c.env.DB.prepare(
+      "UPDATE todos SET set_id = ?, updated_at = datetime('now') WHERE id = ? AND team_id = ?",
+    ).bind(targetSetId, id, teamId),
+  );
+  statements.push(
+    c.env.DB.prepare(
+      "UPDATE todos SET parent_id = NULL, sort_order = ?, updated_at = datetime('now') WHERE id = ? AND team_id = ?",
+    ).bind(newSortOrder, todoId, teamId),
+  );
+  await c.env.DB.batch(statements);
+
+  // Notify viewers of the source set (subtree removed) and the target set (new
+  // content). The Durable Object delivers each broadcast only to clients
+  // subscribed to that broadcast's setId, so we emit one per affected set.
+  broadcast(c.env, teamId, {
+    type: "todo:moved",
+    setId: existing.set_id,
+    id: todoId,
+    fromSetId: existing.set_id,
+    toSetId: targetSetId,
+  });
+  if (existing.set_id !== targetSetId) {
+    broadcast(c.env, teamId, {
+      type: "todo:moved",
+      setId: targetSetId,
+      id: todoId,
+      fromSetId: existing.set_id,
+      toSetId: targetSetId,
+    });
+  }
+
+  return c.json({ ok: true });
+};
+
 export const deleteTodo = async (c: Ctx): Promise<Response> => {
   const teamId = c.req.param("teamId")!;
   const todoId = (c.req.param("id") ?? c.req.param("todoId"))!;

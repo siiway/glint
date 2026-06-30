@@ -21,6 +21,13 @@ export type WsEvent =
       claimedByName: string | null;
       claimedByUsername?: string | null;
       claimedByAvatar: string | null;
+    }
+  | {
+      type: "todo:moved";
+      setId: string;
+      id: string;
+      fromSetId: string;
+      toSetId: string;
     };
 
 export type TodoPayload = {

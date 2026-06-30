@@ -63,6 +63,7 @@ import { SelectionBar } from "./SelectionBar";
 import { TodoContextMenu } from "./TodoContextMenu";
 import { SettingsPage } from "./SettingsPage";
 import { SetTransferDialog } from "./SetTransferDialog";
+import { MoveTodoDialog, TODO_DND_MIME } from "./MoveTodoDialog";
 import { useI18n } from "../i18n";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { EmptyState } from "./EmptyState";
@@ -448,6 +449,10 @@ export function TodoPage() {
     todoId: string;
   } | null>(null);
 
+  // Move-to-list dialog + transient error banner
+  const [moveTodoId, setMoveTodoId] = useState<string | null>(null);
+  const [moveError, setMoveError] = useState<string | null>(null);
+
   const actionBarActions = useMemo(
     () =>
       getEffectiveActions(
@@ -504,6 +509,12 @@ export function TodoPage() {
       window.removeEventListener("contextmenu", handler);
     };
   }, [contextMenu]);
+
+  useEffect(() => {
+    if (!moveError) return;
+    const id = setTimeout(() => setMoveError(null), 4000);
+    return () => clearTimeout(id);
+  }, [moveError]);
 
   useEffect(() => {
     if (spaces.length === 0) return;
@@ -676,6 +687,26 @@ export function TodoPage() {
     transport: userSettings.realtime_transport ?? "auto",
     onEvent: useCallback(
       (event: WsEvent) => {
+        if (event.type === "todo:moved") {
+          if (event.toSetId === selectedSetId) {
+            // The destination set gained the moved subtree; reload to pick it up.
+            void fetchTodos();
+          } else if (event.fromSetId === selectedSetId) {
+            // The source set lost the subtree; drop it from the current view.
+            setTodos((prev) => {
+              const toRemove = new Set<string>();
+              const collect = (pid: string) => {
+                toRemove.add(pid);
+                prev
+                  .filter((tt) => tt.parentId === pid)
+                  .forEach((tt) => collect(tt.id));
+              };
+              collect(event.id);
+              return prev.filter((tt) => !toRemove.has(tt.id));
+            });
+          }
+          return;
+        }
         if (event.setId !== selectedSetId) return;
         setTodos((prev) => {
           switch (event.type) {
@@ -724,7 +755,7 @@ export function TodoPage() {
           }
         });
       },
-      [selectedSetId],
+      [selectedSetId, fetchTodos],
     ),
   });
 
@@ -1038,6 +1069,65 @@ export function TodoPage() {
     setSubDragParentId(null);
     setSubDragOverIndex(null);
     subDragCounter.current = 0;
+  };
+
+  // ─── Move to another list ────────────────────────────────────────────────
+
+  const moveTodoToSet = async (
+    todoId: string,
+    targetSetId: string,
+    insertAt: "top" | "bottom",
+  ): Promise<{ ok: boolean; error?: string }> => {
+    if (!selectedSpaceId) return { ok: false };
+    const movingWithinView = targetSetId === selectedSetId;
+
+    // Optimistically remove the moved subtree from the current view when it is
+    // leaving this set. Keep a snapshot so we can roll back on failure.
+    let snapshot: Todo[] | null = null;
+    if (!movingWithinView) {
+      const subtree = new Set<string>();
+      const collect = (id: string) => {
+        subtree.add(id);
+        todos
+          .filter((tt) => tt.parentId === id)
+          .forEach((tt) => collect(tt.id));
+      };
+      collect(todoId);
+      snapshot = todos;
+      setTodos((prev) => prev.filter((tt) => !subtree.has(tt.id)));
+    }
+
+    try {
+      const res = await fetch(
+        `/api/teams/${selectedSpaceId}/todos/${todoId}/move`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetSetId, insertAt }),
+        },
+      );
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        if (snapshot) setTodos(snapshot);
+        return { ok: false, error: data.error || t.moveFailed };
+      }
+      if (movingWithinView) void fetchTodos();
+      return { ok: true };
+    } catch {
+      if (snapshot) setTodos(snapshot);
+      return { ok: false, error: t.moveFailed };
+    }
+  };
+
+  // Used by the sidebar drag-and-drop target, where errors are surfaced via the
+  // transient banner instead of a dialog.
+  const handleMoveTodoToSet = async (
+    todoId: string,
+    targetSetId: string,
+    insertAt: "top" | "bottom",
+  ) => {
+    const result = await moveTodoToSet(todoId, targetSetId, insertAt);
+    if (!result.ok && result.error) setMoveError(result.error);
   };
 
   // ─── Insert before / after ───────────────────────────────────────────────
@@ -1577,10 +1667,14 @@ export function TodoPage() {
           draggable={canDrag}
           onDragStart={
             canDrag
-              ? () =>
-                  root
-                    ? handleDragStart(index)
-                    : handleSubDragStart(todo.parentId!, index)
+              ? (e) => {
+                  // Expose the todo id so it can also be dropped onto a set in
+                  // the sidebar to move it between lists.
+                  e.dataTransfer.setData(TODO_DND_MIME, todo.id);
+                  e.dataTransfer.effectAllowed = "move";
+                  if (root) handleDragStart(index);
+                  else handleSubDragStart(todo.parentId!, index);
+                }
               : undefined
           }
           onDragEnter={
@@ -2071,6 +2165,7 @@ export function TodoPage() {
             onRenameSet={handleRenameSet}
             onUpdateSet={handleUpdateSet}
             onReorderSets={handleReorderSets}
+            onMoveTodoToSet={handleMoveTodoToSet}
             defaultTimezone={defaultTimezone}
             user={
               user
@@ -2480,8 +2575,44 @@ export function TodoPage() {
               action: () => deleteTodo(contextTodo.id),
             })
           }
+          onMove={() => setMoveTodoId(contextTodo.id)}
+          canMove={
+            sets.length > 1 && canModify(contextTodo) && hasPerm("create_todos")
+          }
           rootCount={rootTodos.length}
         />
+      )}
+
+      <MoveTodoDialog
+        open={moveTodoId !== null}
+        onClose={() => setMoveTodoId(null)}
+        sets={sets}
+        currentSetId={selectedSetId}
+        todoTitle={todos.find((t) => t.id === moveTodoId)?.title}
+        onMove={async (targetSetId, insertAt) => {
+          if (!moveTodoId) return { ok: false };
+          return moveTodoToSet(moveTodoId, targetSetId, insertAt);
+        }}
+      />
+      {moveError && (
+        <div
+          style={{
+            position: "fixed",
+            top: 16,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 2000,
+            backgroundColor: tokens.colorPaletteRedBackground2,
+            color: tokens.colorPaletteRedForeground1,
+            border: `1px solid ${tokens.colorPaletteRedBorder1}`,
+            borderRadius: tokens.borderRadiusMedium,
+            padding: "8px 14px",
+            boxShadow: tokens.shadow16,
+            maxWidth: "90vw",
+          }}
+        >
+          {moveError}
+        </div>
       )}
       <ConfirmDialog
         open={confirmAction !== null}
