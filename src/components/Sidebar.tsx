@@ -276,17 +276,25 @@ export function Sidebar({
   const userName = user?.displayName || user?.username || "";
   const nameWrapRef = useRef<HTMLDivElement>(null);
   const nameMeasureRef = useRef<HTMLSpanElement>(null);
+  const nameSpacerRef = useRef<HTMLDivElement>(null);
   const [nameOverflow, setNameOverflow] = useState(false);
   useEffect(() => {
     const wrap = nameWrapRef.current;
     const measure = nameMeasureRef.current;
-    if (!wrap || !measure) return;
+    const spacer = nameSpacerRef.current;
+    if (!wrap || !measure || !spacer) return;
     const check = () => {
-      setNameOverflow(measure.offsetWidth > wrap.clientWidth + 1);
+      // The name wrap collapses to 0 width once the name is hidden, so the
+      // total room available to the name is the wrap plus the flexible spacer
+      // next to it. Hiding the name hands its width to the spacer, keeping this
+      // sum stable in both directions so the name reappears when widened again.
+      const available = wrap.clientWidth + spacer.clientWidth;
+      setNameOverflow(measure.offsetWidth > available + 1);
     };
     check();
     const ro = new ResizeObserver(check);
     ro.observe(wrap);
+    ro.observe(spacer);
     return () => ro.disconnect();
   }, [userName]);
 
@@ -460,7 +468,7 @@ export function Sidebar({
                 : selectedSpace.role}
             </Badge>
           )}
-          <div style={{ flex: 1 }} />
+          <div ref={nameSpacerRef} style={{ flex: 1 }} />
           <Tooltip
             content={locale === "en" ? "中文" : "English"}
             relationship="label"
@@ -738,6 +746,7 @@ export function Sidebar({
       open={canManageSets && importSetOpen}
       onClose={() => setImportSetOpen(false)}
       teamId={selectedSpaceId}
+      sets={sets}
       onImported={(set) => {
         onImportSet(set);
         setImportSetOpen(false);

@@ -26,6 +26,7 @@ import {
   parseMarkdownChecklist,
   type MarkdownChecklistTodo,
 } from "../../shared/markdownChecklist";
+import { ImportMsTodoDialog } from "./ImportMsTodoDialog";
 
 const useStyles = makeStyles({
   textarea: {
@@ -124,13 +125,21 @@ type Props = {
   open: boolean;
   onClose: () => void;
   teamId: string;
+  sets: TodoSet[];
   onImported: (set: TodoSet) => void;
 };
 
-export function ImportSetDialog({ open, onClose, teamId, onImported }: Props) {
+export function ImportSetDialog({
+  open,
+  onClose,
+  teamId,
+  sets,
+  onImported,
+}: Props) {
   const styles = useStyles();
   const { t } = useI18n();
 
+  const [msTodoOpen, setMsTodoOpen] = useState(false);
   const [format, setFormat] = useState<TransferFormat>("json");
   const [includeComments, setIncludeComments] = useState(false);
   const [content, setContent] = useState("");
@@ -390,6 +399,13 @@ export function ImportSetDialog({ open, onClose, teamId, onImported }: Props) {
             </div>
           </DialogContent>
           <DialogActions>
+            <Button
+              appearance="secondary"
+              onClick={() => setMsTodoOpen(true)}
+              style={{ marginRight: "auto" }}
+            >
+              {t.msTodoImport}
+            </Button>
             <Button appearance="secondary" onClick={onClose}>
               {t.close}
             </Button>
@@ -410,6 +426,14 @@ export function ImportSetDialog({ open, onClose, teamId, onImported }: Props) {
           </DialogActions>
         </DialogBody>
       </DialogSurface>
+
+      <ImportMsTodoDialog
+        open={msTodoOpen}
+        onClose={() => setMsTodoOpen(false)}
+        teamId={teamId}
+        sets={sets}
+        onImported={onImported}
+      />
     </Dialog>
   );
 }

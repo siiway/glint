@@ -120,6 +120,23 @@ const zh: typeof en = {
   transferSetName: "分组名称",
   transferSetNameRequired: "分组名称不能为空",
 
+  // 从 Microsoft To Do 导入
+  msTodoImport: "从 MS Todo 导入",
+  msTodoTitle: "从 Microsoft To Do 导入",
+  msTodoStep1: "首先，打开导出工具，将你的数据导出为 JSON：",
+  msTodoStep2: "然后在下方上传导出的 JSON 文件。",
+  msTodoSelectFile: "上传 JSON",
+  msTodoParseError: "解析文件失败，请上传有效的 Microsoft To Do 备份 JSON。",
+  msTodoNoLists: "文件中没有找到任何待办列表。",
+  msTodoListsFound: "找到 {count} 个列表",
+  msTodoItemsCount: "{count} 项",
+  msTodoAppend: "追加到现有列表",
+  msTodoTargetName: "导入后的列表名",
+  msTodoUnsupportedWarning:
+    "有 {count} 个任务包含 Glint 不支持的附件或图片，导入时将被忽略。",
+  msTodoImporting: "正在导入 {current}/{total}：{name}",
+  msTodoSourceNote: "导出工具开源地址：",
+
   // Context menu / actions
   actionAddSubTodo: "添加子任务",
   actionComments: "评论",

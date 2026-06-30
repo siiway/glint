@@ -107,6 +107,24 @@ Markdown uses the familiar `- [ ]` / `- [x]` checkbox syntax with indentation fo
 
 Requires: `create_todos` to import into a set; `manage_sets` to replace contents or import as a new set.
 
+### Import from Microsoft To Do
+
+The Import dialog has an **Import from MS Todo** button in its bottom-left corner that opens a dedicated popup for migrating from [Microsoft To Do](https://to-do.office.com/).
+
+1. Open the export tool at [ms-todo-export.azurewebsites.net](https://ms-todo-export.azurewebsites.net/) (open source: [alan-null/ms-todo-export](https://github.com/alan-null/ms-todo-export)) and download your data as a JSON backup.
+2. Click **Import from MS Todo**, then upload the downloaded JSON file. Parsing happens entirely in your browser — nothing is uploaded until you start the import.
+3. Every To Do list found in the file is listed. For each list you can:
+   - Toggle whether to **import** it.
+   - Choose to **append to an existing list** (and whether to add to the top or bottom), or — by default — create a new list whose name you can edit.
+4. Each task's checklist items become sub-todos, and the task notes (body) are imported as a comment.
+5. Click **Import** to upload the lists one by one with a progress indicator.
+
+::: warning
+Attachments and images from Microsoft To Do are **not supported**. If the file contains any, a warning shows how many tasks will have their attachments skipped before you import.
+:::
+
+Requires: `create_todos` to append into a list; `manage_sets` to create new lists.
+
 ---
 
 ## Per-Set Permissions

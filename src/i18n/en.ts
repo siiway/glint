@@ -130,6 +130,24 @@ export default {
   transferSetName: "Set name",
   transferSetNameRequired: "Set name is required",
 
+  // Import from Microsoft To Do
+  msTodoImport: "Import from MS Todo",
+  msTodoTitle: "Import from Microsoft To Do",
+  msTodoStep1: "First, open the export tool to download your data as JSON:",
+  msTodoStep2: "Then upload the exported JSON file below.",
+  msTodoSelectFile: "Upload JSON",
+  msTodoParseError:
+    "Failed to parse the file. Please upload a valid Microsoft To Do backup JSON.",
+  msTodoNoLists: "No todo lists were found in this file.",
+  msTodoListsFound: "{count} list(s) found",
+  msTodoItemsCount: "{count} items",
+  msTodoAppend: "Append to existing list",
+  msTodoTargetName: "Imported list name",
+  msTodoUnsupportedWarning:
+    "{count} task(s) contain attachments or images that Glint does not support. They will be skipped on import.",
+  msTodoImporting: "Importing {current}/{total}: {name}",
+  msTodoSourceNote: "Export tool is open source:",
+
   // Context menu / actions
   actionAddSubTodo: "Add sub-todo",
   actionComments: "Comments",
