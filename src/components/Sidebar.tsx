@@ -418,7 +418,7 @@ export function Sidebar({
           )}
           <div
             ref={nameWrapRef}
-            style={{ flex: 1, minWidth: 0, overflow: "hidden" }}
+            style={{ minWidth: 0, flexShrink: 1, overflow: "hidden" }}
           >
             {!nameOverflow && (
               <Body2
@@ -460,6 +460,7 @@ export function Sidebar({
                 : selectedSpace.role}
             </Badge>
           )}
+          <div style={{ flex: 1 }} />
           <Tooltip
             content={locale === "en" ? "中文" : "English"}
             relationship="label"
@@ -493,16 +494,28 @@ export function Sidebar({
               <MenuList
                 checkedValues={{ theme: [themeMode] }}
                 onCheckedValueChange={(_, d) =>
-                  setThemeMode(d.name as ThemeMode)
+                  setThemeMode((d.checkedItems[0] ?? "system") as ThemeMode)
                 }
               >
-                <MenuItemRadio name="theme" value="system" icon={<DesktopRegular />}>
+                <MenuItemRadio
+                  name="theme"
+                  value="system"
+                  icon={<DesktopRegular />}
+                >
                   {t.themeSystem}
                 </MenuItemRadio>
-                <MenuItemRadio name="theme" value="light" icon={<WeatherSunnyRegular />}>
+                <MenuItemRadio
+                  name="theme"
+                  value="light"
+                  icon={<WeatherSunnyRegular />}
+                >
                   {t.themeLight}
                 </MenuItemRadio>
-                <MenuItemRadio name="theme" value="dark" icon={<WeatherMoonRegular />}>
+                <MenuItemRadio
+                  name="theme"
+                  value="dark"
+                  icon={<WeatherMoonRegular />}
+                >
                   {t.themeDark}
                 </MenuItemRadio>
               </MenuList>

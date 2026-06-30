@@ -309,7 +309,7 @@ export default {
   settingsTitle: "Settings",
   settingsTabBranding: "Branding",
   settingsTabPermissions: "Permissions",
-  settingsTabPreferences: "My Preferences",
+  settingsTabPreferences: "Preferences",
   settingsTabAppConfig: "App Config",
   settingsLoadingSettings: "Loading settings...",
   settingsSaveSuccess: "Saved.",

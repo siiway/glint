@@ -291,7 +291,7 @@ const zh: typeof en = {
   settingsTitle: "设置",
   settingsTabBranding: "品牌",
   settingsTabPermissions: "权限",
-  settingsTabPreferences: "我的偏好",
+  settingsTabPreferences: "偏好",
   settingsTabAppConfig: "应用配置",
   settingsLoadingSettings: "加载设置...",
   settingsSaveSuccess: "保存成功。",

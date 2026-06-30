@@ -16,24 +16,19 @@ const useStyles = makeStyles({
   icon: {
     fontSize: "48px",
     color: tokens.colorBrandForeground1,
-    marginBottom: "16px",
   },
   logo: {
     maxWidth: "160px",
     maxHeight: "48px",
     objectFit: "contain" as const,
-    marginBottom: "8px",
-  },
-  title: {
-    marginBottom: "8px",
   },
   subtitle: {
-    marginBottom: "24px",
     color: tokens.colorNeutralForeground3,
   },
   actions: {
     display: "flex",
     justifyContent: "center",
+    marginTop: "8px",
   },
 });
 
@@ -55,13 +50,15 @@ export function LoginPage() {
   }, []);
 
   return (
-    <AuthShell>
+    <AuthShell cardGap={12}>
       {siteLogo ? (
         <img src={siteLogo} alt={siteName} className={styles.logo} />
       ) : (
-        <CardHeader image={<CheckmarkCircle24Regular className={styles.icon} />} />
+        <CardHeader
+          image={<CheckmarkCircle24Regular className={styles.icon} />}
+        />
       )}
-      <Title1 className={styles.title}>{siteName}</Title1>
+      <Title1>{siteName}</Title1>
       <Body1 className={styles.subtitle}>{t.tagline}</Body1>
       <div className={styles.actions}>
         <Button appearance="primary" size="large" onClick={login}>

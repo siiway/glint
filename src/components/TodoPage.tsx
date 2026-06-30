@@ -300,17 +300,6 @@ function ensureFaviconLink() {
   return link;
 }
 
-function makeLetterFavicon(name: string) {
-  const first = Array.from(name.trim())[0] ?? "G";
-  const letter = first.toLocaleUpperCase();
-  const escaped = letter
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#0f6cbd"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="34" font-weight="700">${escaped}</text></svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
-
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function TodoPage() {
@@ -644,15 +633,21 @@ export function TodoPage() {
       defaultFaviconHref.current = favicon.href || "/favicon.svg";
     }
 
-    const useSpaceIcon = userSettings.workspace_favicon;
-    const usePersonalAvatar =
-      !useSpaceIcon &&
-      selectedSpace?.kind === "personal" &&
-      !!userSettings.personal_avatar_icon;
-
-    if (!useSpaceIcon && !usePersonalAvatar) {
-      favicon.href = defaultFaviconHref.current;
+    const resetToDefault = () => {
+      favicon.href = defaultFaviconHref.current || "/favicon.svg";
       favicon.type = "image/svg+xml";
+    };
+
+    // The favicon follows the current workspace icon when either:
+    //  - the user opted to use the workspace icon as favicon (any workspace), or
+    //  - the user opted to use their avatar for the personal workspace.
+    const followWorkspaceIcon =
+      !!userSettings.workspace_favicon ||
+      (selectedSpace?.kind === "personal" &&
+        !!userSettings.personal_avatar_icon);
+
+    if (!followWorkspaceIcon) {
+      resetToDefault();
       return;
     }
 
@@ -663,14 +658,14 @@ export function TodoPage() {
       return;
     }
 
-    favicon.href = makeLetterFavicon(selectedSpace?.name ?? "Glint");
-    favicon.type = "image/svg+xml";
+    // No custom workspace icon available: fall back to the site default
+    // favicon instead of a generated letter so workspaces display normally.
+    resetToDefault();
   }, [
     userSettings.workspace_favicon,
     userSettings.personal_avatar_icon,
     selectedSpace?.id,
     selectedSpace?.kind,
-    selectedSpace?.name,
     selectedSpace?.avatarUrl,
   ]);
 

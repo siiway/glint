@@ -705,7 +705,139 @@ export function SettingsPage({
 
         {effectiveTab === "preferences" && (
           <div className={styles.section}>
+            {/* Global personal preferences */}
+            <Title3 className={styles.sectionTitle}>
+              {t.globalPrefsTitle}
+            </Title3>
+
+            {/* Use workspace icon as favicon */}
+            <div>
+              <Switch
+                checked={editWorkspaceFavicon}
+                onChange={(_, data) => setEditWorkspaceFavicon(data.checked)}
+                label={t.userPrefsWorkspaceFavicon}
+              />
+              <Body1
+                style={{
+                  fontSize: 12,
+                  color: tokens.colorNeutralForeground4,
+                  display: "block",
+                  marginTop: 4,
+                }}
+              >
+                {t.userPrefsWorkspaceFaviconHint}
+              </Body1>
+            </div>
+
+            {/* Detailed task status */}
+            <div style={{ marginTop: 12 }}>
+              <Switch
+                checked={editDetailedStatus}
+                onChange={(_, data) => setEditDetailedStatus(data.checked)}
+                label={t.userPrefsDetailedStatus}
+              />
+              <Body1
+                style={{
+                  fontSize: 12,
+                  color: tokens.colorNeutralForeground4,
+                  display: "block",
+                  marginTop: 4,
+                }}
+              >
+                {t.userPrefsDetailedStatusHint}
+              </Body1>
+            </div>
+
+            {/* Use personal avatar as personal workspace icon */}
+            <div style={{ marginTop: 12 }}>
+              <Switch
+                checked={editPersonalAvatarIcon}
+                onChange={(_, data) => setEditPersonalAvatarIcon(data.checked)}
+                label={t.personalAvatarIcon}
+              />
+              <Body1
+                style={{
+                  fontSize: 12,
+                  color: tokens.colorNeutralForeground4,
+                  display: "block",
+                  marginTop: 4,
+                }}
+              >
+                {t.personalAvatarIconHint}
+              </Body1>
+            </div>
+
+            {/* Completion sound */}
+            <div style={{ marginTop: 12 }}>
+              <Switch
+                checked={editCompleteSoundEnabled}
+                onChange={(_, data) =>
+                  setEditCompleteSoundEnabled(data.checked)
+                }
+                label={t.completeSoundEnabled}
+              />
+              <Body1
+                style={{
+                  fontSize: 12,
+                  color: tokens.colorNeutralForeground4,
+                  display: "block",
+                  marginTop: 4,
+                }}
+              >
+                {t.completeSoundEnabledHint}
+              </Body1>
+              {editCompleteSoundEnabled && (
+                <div className={styles.field} style={{ marginTop: 12 }}>
+                  <Body2 className={styles.fieldLabel}>
+                    {t.completeSoundUrl}
+                  </Body2>
+                  <div
+                    style={{ display: "flex", gap: 8, alignItems: "center" }}
+                  >
+                    <Input
+                      value={editCompleteSoundUrl}
+                      onChange={(_, d) => setEditCompleteSoundUrl(d.value)}
+                      placeholder={t.completeSoundUrlPlaceholder}
+                      style={{ flex: 1 }}
+                    />
+                    <Button
+                      size="small"
+                      appearance="secondary"
+                      onClick={testCompleteSound}
+                      disabled={!editCompleteSoundUrl.trim()}
+                    >
+                      {t.completeSoundTest}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Single save button for the entire global preferences section */}
+            <div style={{ marginTop: 16 }}>
+              <Button
+                size="small"
+                appearance="primary"
+                onClick={saveGlobalPrefs}
+              >
+                {t.save}
+              </Button>
+            </div>
+            {prefsSaveNotice?.scope === "global" && (
+              <Body2
+                style={{
+                  marginTop: 8,
+                  color: prefsSaveNotice.ok
+                    ? tokens.colorPaletteGreenForeground2
+                    : tokens.colorPaletteRedForeground2,
+                }}
+              >
+                {prefsSaveNotice.message}
+              </Body2>
+            )}
+
             {/* User-level action bar */}
+            <Divider style={{ margin: "16px 0" }} />
             <Title3 className={styles.sectionTitle}>
               {t.actionBarUserLevel}
             </Title3>
@@ -894,6 +1026,47 @@ export function SettingsPage({
               </>
             )}
 
+            {/* Site default (read-only) */}
+            <Divider style={{ margin: "16px 0" }} />
+            <Title3 className={styles.sectionTitle}>
+              {t.actionBarSiteLevel}
+            </Title3>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 6,
+                marginTop: 6,
+              }}
+            >
+              {siteDefault.map((key) => {
+                const labelMap: Record<string, string> = {
+                  add_before: t.actionAddBefore,
+                  add_after: t.actionAddAfter,
+                  add_subtodo: t.actionAddSubTodo,
+                  edit: t.edit,
+                  complete: t.actionMarkComplete,
+                  claim: t.actionClaim,
+                  comment: t.actionComments,
+                  delete: t.delete,
+                };
+                return (
+                  <span
+                    key={key}
+                    style={{
+                      padding: "2px 8px",
+                      borderRadius: tokens.borderRadiusMedium,
+                      backgroundColor: tokens.colorNeutralBackground3,
+                      fontSize: 12,
+                      color: tokens.colorNeutralForeground2,
+                    }}
+                  >
+                    {labelMap[key] ?? key}
+                  </span>
+                );
+              })}
+            </div>
+
             {/* Realtime transport */}
             <Divider style={{ margin: "16px 0" }} />
             <Title3 className={styles.sectionTitle}>
@@ -938,178 +1111,6 @@ export function SettingsPage({
                 {prefsSaveNotice.message}
               </Body2>
             )}
-
-            <Divider style={{ margin: "16px 0" }} />
-            <Title3 className={styles.sectionTitle}>
-              {t.globalPrefsTitle}
-            </Title3>
-
-            {/* Use workspace icon as favicon */}
-            <div>
-              <Switch
-                checked={editWorkspaceFavicon}
-                onChange={(_, data) => setEditWorkspaceFavicon(data.checked)}
-                label={t.userPrefsWorkspaceFavicon}
-              />
-              <Body1
-                style={{
-                  fontSize: 12,
-                  color: tokens.colorNeutralForeground4,
-                  display: "block",
-                  marginTop: 4,
-                }}
-              >
-                {t.userPrefsWorkspaceFaviconHint}
-              </Body1>
-            </div>
-
-            {/* Detailed task status */}
-            <div style={{ marginTop: 20 }}>
-              <Switch
-                checked={editDetailedStatus}
-                onChange={(_, data) => setEditDetailedStatus(data.checked)}
-                label={t.userPrefsDetailedStatus}
-              />
-              <Body1
-                style={{
-                  fontSize: 12,
-                  color: tokens.colorNeutralForeground4,
-                  display: "block",
-                  marginTop: 4,
-                }}
-              >
-                {t.userPrefsDetailedStatusHint}
-              </Body1>
-            </div>
-
-            {/* Use personal avatar as personal workspace icon */}
-            <div style={{ marginTop: 20 }}>
-              <Switch
-                checked={editPersonalAvatarIcon}
-                onChange={(_, data) => setEditPersonalAvatarIcon(data.checked)}
-                label={t.personalAvatarIcon}
-              />
-              <Body1
-                style={{
-                  fontSize: 12,
-                  color: tokens.colorNeutralForeground4,
-                  display: "block",
-                  marginTop: 4,
-                }}
-              >
-                {t.personalAvatarIconHint}
-              </Body1>
-            </div>
-
-            {/* Completion sound */}
-            <div style={{ marginTop: 20 }}>
-              <Switch
-                checked={editCompleteSoundEnabled}
-                onChange={(_, data) =>
-                  setEditCompleteSoundEnabled(data.checked)
-                }
-                label={t.completeSoundEnabled}
-              />
-              <Body1
-                style={{
-                  fontSize: 12,
-                  color: tokens.colorNeutralForeground4,
-                  display: "block",
-                  marginTop: 4,
-                }}
-              >
-                {t.completeSoundEnabledHint}
-              </Body1>
-              {editCompleteSoundEnabled && (
-                <div className={styles.field} style={{ marginTop: 12 }}>
-                  <Body2 className={styles.fieldLabel}>
-                    {t.completeSoundUrl}
-                  </Body2>
-                  <div
-                    style={{ display: "flex", gap: 8, alignItems: "center" }}
-                  >
-                    <Input
-                      value={editCompleteSoundUrl}
-                      onChange={(_, d) => setEditCompleteSoundUrl(d.value)}
-                      placeholder={t.completeSoundUrlPlaceholder}
-                      style={{ flex: 1 }}
-                    />
-                    <Button
-                      size="small"
-                      appearance="secondary"
-                      onClick={testCompleteSound}
-                      disabled={!editCompleteSoundUrl.trim()}
-                    >
-                      {t.completeSoundTest}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Single save button for the entire global preferences section */}
-            <div style={{ marginTop: 16 }}>
-              <Button
-                size="small"
-                appearance="primary"
-                onClick={saveGlobalPrefs}
-              >
-                {t.save}
-              </Button>
-            </div>
-            {prefsSaveNotice?.scope === "global" && (
-              <Body2
-                style={{
-                  marginTop: 8,
-                  color: prefsSaveNotice.ok
-                    ? tokens.colorPaletteGreenForeground2
-                    : tokens.colorPaletteRedForeground2,
-                }}
-              >
-                {prefsSaveNotice.message}
-              </Body2>
-            )}
-
-            {/* Site default (read-only) */}
-            <Divider style={{ margin: "16px 0" }} />
-            <Title3 className={styles.sectionTitle}>
-              {t.actionBarSiteLevel}
-            </Title3>
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 6,
-                marginTop: 6,
-              }}
-            >
-              {siteDefault.map((key) => {
-                const labelMap: Record<string, string> = {
-                  add_before: t.actionAddBefore,
-                  add_after: t.actionAddAfter,
-                  add_subtodo: t.actionAddSubTodo,
-                  edit: t.edit,
-                  complete: t.actionMarkComplete,
-                  claim: t.actionClaim,
-                  comment: t.actionComments,
-                  delete: t.delete,
-                };
-                return (
-                  <span
-                    key={key}
-                    style={{
-                      padding: "2px 8px",
-                      borderRadius: tokens.borderRadiusMedium,
-                      backgroundColor: tokens.colorNeutralBackground3,
-                      fontSize: 12,
-                      color: tokens.colorNeutralForeground2,
-                    }}
-                  >
-                    {labelMap[key] ?? key}
-                  </span>
-                );
-              })}
-            </div>
           </div>
         )}
 
@@ -1326,71 +1327,78 @@ export function SettingsPage({
             </Subtitle2>
 
             <div className={styles.tableScroll}>
-            <table className={styles.permTable}>
-              <thead>
-                <tr>
-                  <th className={styles.permTh}>
-                    {t.permissionsHeaderPermission}
-                  </th>
-                  <th className={styles.permTh}>
-                    {t.permissionsHeaderCoOwner}
-                  </th>
-                  <th className={styles.permTh}>{t.permissionsHeaderAdmin}</th>
-                  <th className={styles.permTh}>{t.permissionsHeaderMember}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(permsData.keys as string[]).map((key) => {
-                  const permLabel =
-                    (t as Record<string, string>)[`permLabel_${key}`] ?? key;
-                  const permDesc =
-                    (t as Record<string, string>)[`permDesc_${key}`] ?? "";
-                  return (
-                    <tr key={key}>
-                      <td className={styles.permTd}>
-                        <Tooltip content={permDesc} relationship="description">
-                          <span>
-                            <Body2>{permLabel}</Body2>
-                            <br />
-                            <span className={styles.permKey}>{key}</span>
-                          </span>
-                        </Tooltip>
-                      </td>
-                      <td className={styles.permTd}>
-                        <Switch
-                          checked={editPerms["co-owner"]?.[key] ?? true}
-                          disabled={true}
-                        />
-                      </td>
-                      <td className={styles.permTd}>
-                        <Switch
-                          checked={editPerms.admin?.[key] ?? false}
-                          onChange={() => togglePerm("admin", key)}
-                          disabled={
-                            !canManagePerms ||
-                            (key === "manage_permissions" &&
-                              permsData.role !== "owner" &&
-                              permsData.role !== "co-owner")
-                          }
-                        />
-                      </td>
-                      <td className={styles.permTd}>
-                        <Switch
-                          checked={editPerms.member?.[key] ?? false}
-                          onChange={() => togglePerm("member", key)}
-                          disabled={
-                            !canManagePerms ||
-                            (key === "manage_permissions" &&
-                              permsData.role !== "owner" &&
-                              permsData.role !== "co-owner")
-                          }
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+              <table className={styles.permTable}>
+                <thead>
+                  <tr>
+                    <th className={styles.permTh}>
+                      {t.permissionsHeaderPermission}
+                    </th>
+                    <th className={styles.permTh}>
+                      {t.permissionsHeaderCoOwner}
+                    </th>
+                    <th className={styles.permTh}>
+                      {t.permissionsHeaderAdmin}
+                    </th>
+                    <th className={styles.permTh}>
+                      {t.permissionsHeaderMember}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(permsData.keys as string[]).map((key) => {
+                    const permLabel =
+                      (t as Record<string, string>)[`permLabel_${key}`] ?? key;
+                    const permDesc =
+                      (t as Record<string, string>)[`permDesc_${key}`] ?? "";
+                    return (
+                      <tr key={key}>
+                        <td className={styles.permTd}>
+                          <Tooltip
+                            content={permDesc}
+                            relationship="description"
+                          >
+                            <span>
+                              <Body2>{permLabel}</Body2>
+                              <br />
+                              <span className={styles.permKey}>{key}</span>
+                            </span>
+                          </Tooltip>
+                        </td>
+                        <td className={styles.permTd}>
+                          <Switch
+                            checked={editPerms["co-owner"]?.[key] ?? true}
+                            disabled={true}
+                          />
+                        </td>
+                        <td className={styles.permTd}>
+                          <Switch
+                            checked={editPerms.admin?.[key] ?? false}
+                            onChange={() => togglePerm("admin", key)}
+                            disabled={
+                              !canManagePerms ||
+                              (key === "manage_permissions" &&
+                                permsData.role !== "owner" &&
+                                permsData.role !== "co-owner")
+                            }
+                          />
+                        </td>
+                        <td className={styles.permTd}>
+                          <Switch
+                            checked={editPerms.member?.[key] ?? false}
+                            onChange={() => togglePerm("member", key)}
+                            disabled={
+                              !canManagePerms ||
+                              (key === "manage_permissions" &&
+                                permsData.role !== "owner" &&
+                                permsData.role !== "co-owner")
+                            }
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
 
             {canManagePerms && (
@@ -1436,92 +1444,97 @@ export function SettingsPage({
               </Body1>
             ) : (
               <div className={styles.tableScroll}>
-              <table className={styles.permTable}>
-                <thead>
-                  <tr>
-                    <th className={styles.permTh}>{t.settingsShareLinksSet}</th>
-                    <th className={styles.permTh}>
-                      {t.settingsShareLinksName}
-                    </th>
-                    <th className={styles.permTh}>
-                      {t.settingsShareLinksPermissions}
-                    </th>
-                    <th className={styles.permTh} style={{ width: 80 }}>
-                      {t.linksAllowedEmails}
-                    </th>
-                    <th className={styles.permTh} style={{ width: 100 }} />
-                  </tr>
-                </thead>
-                <tbody>
-                  {shareLinks.map((link) => {
-                    const permList = [
-                      link.canView && t.linksPermView,
-                      link.canCreate && t.linksPermCreate,
-                      link.canEdit && t.linksPermEdit,
-                      link.canComplete && t.linksPermComplete,
-                      link.canDelete && t.linksPermDelete,
-                      link.canComment && t.linksPermComment,
-                      link.canReorder && t.linksPermReorder,
-                    ].filter(Boolean);
+                <table className={styles.permTable}>
+                  <thead>
+                    <tr>
+                      <th className={styles.permTh}>
+                        {t.settingsShareLinksSet}
+                      </th>
+                      <th className={styles.permTh}>
+                        {t.settingsShareLinksName}
+                      </th>
+                      <th className={styles.permTh}>
+                        {t.settingsShareLinksPermissions}
+                      </th>
+                      <th className={styles.permTh} style={{ width: 80 }}>
+                        {t.linksAllowedEmails}
+                      </th>
+                      <th className={styles.permTh} style={{ width: 100 }} />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {shareLinks.map((link) => {
+                      const permList = [
+                        link.canView && t.linksPermView,
+                        link.canCreate && t.linksPermCreate,
+                        link.canEdit && t.linksPermEdit,
+                        link.canComplete && t.linksPermComplete,
+                        link.canDelete && t.linksPermDelete,
+                        link.canComment && t.linksPermComment,
+                        link.canReorder && t.linksPermReorder,
+                      ].filter(Boolean);
 
-                    return (
-                      <tr key={link.id}>
-                        <td className={styles.permTd}>
-                          <Body2>{link.setName ?? "—"}</Body2>
-                        </td>
-                        <td className={styles.permTd}>
-                          <Body2>{link.name || "—"}</Body2>
-                        </td>
-                        <td className={styles.permTd}>
-                          <span className={styles.permKey}>
-                            {permList.join(", ") || "—"}
-                          </span>
-                        </td>
-                        <td className={styles.permTd}>
-                          <Body2>
-                            {link.allowedEmails
-                              ? t.settingsShareLinksRestricted
-                              : t.settingsShareLinksPublic}
-                          </Body2>
-                        </td>
-                        <td className={styles.permTd}>
-                          <div style={{ display: "flex", gap: 4 }}>
-                            <Tooltip
-                              content={t.shareCopyLink}
-                              relationship="label"
-                            >
-                              <Button
-                                appearance="transparent"
-                                size="small"
-                                icon={<Copy24Regular />}
-                                onClick={() => {
-                                  navigator.clipboard.writeText(
-                                    `${window.location.origin}/shared/${link.token}`,
-                                  );
-                                  setCopiedToken(link.token);
-                                  setTimeout(() => setCopiedToken(null), 2000);
-                                }}
+                      return (
+                        <tr key={link.id}>
+                          <td className={styles.permTd}>
+                            <Body2>{link.setName ?? "—"}</Body2>
+                          </td>
+                          <td className={styles.permTd}>
+                            <Body2>{link.name || "—"}</Body2>
+                          </td>
+                          <td className={styles.permTd}>
+                            <span className={styles.permKey}>
+                              {permList.join(", ") || "—"}
+                            </span>
+                          </td>
+                          <td className={styles.permTd}>
+                            <Body2>
+                              {link.allowedEmails
+                                ? t.settingsShareLinksRestricted
+                                : t.settingsShareLinksPublic}
+                            </Body2>
+                          </td>
+                          <td className={styles.permTd}>
+                            <div style={{ display: "flex", gap: 4 }}>
+                              <Tooltip
+                                content={t.shareCopyLink}
+                                relationship="label"
                               >
-                                {copiedToken === link.token
-                                  ? t.shareCopied
-                                  : undefined}
-                              </Button>
-                            </Tooltip>
-                            {canManageSetLinks && (
-                              <Button
-                                appearance="transparent"
-                                size="small"
-                                icon={<Delete24Regular />}
-                                onClick={() => setDeletingLinkId(link.id)}
-                              />
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                                <Button
+                                  appearance="transparent"
+                                  size="small"
+                                  icon={<Copy24Regular />}
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(
+                                      `${window.location.origin}/shared/${link.token}`,
+                                    );
+                                    setCopiedToken(link.token);
+                                    setTimeout(
+                                      () => setCopiedToken(null),
+                                      2000,
+                                    );
+                                  }}
+                                >
+                                  {copiedToken === link.token
+                                    ? t.shareCopied
+                                    : undefined}
+                                </Button>
+                              </Tooltip>
+                              {canManageSetLinks && (
+                                <Button
+                                  appearance="transparent"
+                                  size="small"
+                                  icon={<Delete24Regular />}
+                                  onClick={() => setDeletingLinkId(link.id)}
+                                />
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

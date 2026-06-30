@@ -51,9 +51,20 @@ function useColorScheme() {
     return () => mq.removeEventListener("change", handler);
   }, [themeMode]);
 
-  if (themeMode === "light") return false;
-  if (themeMode === "dark") return true;
-  return osDark;
+  const dark =
+    themeMode === "light" ? false : themeMode === "dark" ? true : osDark;
+
+  // Keep the <html> data-theme attribute in sync so the out-of-tree canvas
+  // background (overscroll, load flash, scrollbars) follows the active theme.
+  useEffect(() => {
+    if (dark) {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+  }, [dark]);
+
+  return dark;
 }
 
 function useInitStatus() {
