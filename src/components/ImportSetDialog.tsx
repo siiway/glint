@@ -299,133 +299,135 @@ export function ImportSetDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(_, d) => !d.open && onClose()}>
-      <DialogSurface style={{ maxWidth: 700 }}>
-        <DialogBody>
-          <DialogTitle
-            action={
-              <Button
-                appearance="subtle"
-                icon={<Dismiss24Regular />}
-                onClick={onClose}
-              />
-            }
-          >
-            {t.sidebarImportSet}
-          </DialogTitle>
-          <DialogContent>
-            <div className={styles.row}>
-              <Dropdown
-                selectedOptions={[format]}
-                onOptionSelect={(_, d) =>
-                  setFormat(d.optionValue as TransferFormat)
-                }
-              >
-                <Option value="json">JSON</Option>
-                <Option value="yaml">YAML</Option>
-                <Option value="md">Markdown</Option>
-              </Dropdown>
-              <Switch
-                label={t.transferIncludeComments}
-                checked={includeComments}
-                onChange={(_, d) => setIncludeComments(d.checked)}
-              />
-            </div>
-
-            {error && (
-              <div
-                style={{
-                  color: tokens.colorPaletteRedForeground1,
-                  marginBottom: 8,
-                }}
-              >
-                {error}
-              </div>
-            )}
-
-            {parsed.parseError && (
-              <div
-                style={{
-                  color: tokens.colorPaletteRedForeground1,
-                  marginBottom: 8,
-                }}
-              >
-                {parsed.parseError}
-              </div>
-            )}
-
-            <Textarea
-              className={styles.textarea}
-              value={content}
-              onChange={(_, d) => setContent(d.value)}
-              placeholder={t.transferImportPlaceholder}
-              disabled={busy}
-            />
-
-            <div className={styles.row} style={{ marginTop: 12 }}>
-              <Input
-                value={setId}
-                disabled
-                style={{ flex: 1, minWidth: 220 }}
-                placeholder={t.transferSetId}
-              />
-              <Input
-                value={setName}
-                onChange={(_, d) => setSetName(d.value)}
-                style={{ flex: 1, minWidth: 220 }}
-                placeholder={t.transferSetName}
-              />
-            </div>
-
-            <div className={styles.stats}>
-              <span>
-                {t.transferTodosCount.replace(
-                  "{count}",
-                  String(stats.todoCount),
-                )}
-              </span>
-              <span>
-                {t.transferCommentsCount.replace(
-                  "{count}",
-                  String(stats.commentCount),
-                )}
-              </span>
-            </div>
-
-            <div className={styles.preview}>
-              {stats.todoCount > 0
-                ? renderPreviewTodos(parsed.todos)
-                : t.transferPreviewPlaceholder}
-            </div>
-          </DialogContent>
-          <DialogActions>
-            <Button
-              appearance="secondary"
-              onClick={() => setMsTodoOpen(true)}
-              style={{ marginRight: "auto" }}
-            >
-              {t.msTodoImport}
-            </Button>
-            <Button appearance="secondary" onClick={onClose}>
-              {t.close}
-            </Button>
-            <Button
-              appearance="primary"
-              onClick={runImport}
-              disabled={
-                busy ||
-                !content.trim() ||
-                !!parsed.parseError ||
-                stats.todoCount === 0 ||
-                !setName.trim() ||
-                !setId.trim()
+    <>
+      <Dialog open={open} onOpenChange={(_, d) => !d.open && onClose()}>
+        <DialogSurface style={{ maxWidth: 700 }}>
+          <DialogBody>
+            <DialogTitle
+              action={
+                <Button
+                  appearance="subtle"
+                  icon={<Dismiss24Regular />}
+                  onClick={onClose}
+                />
               }
             >
-              {busy ? t.saving : t.todoImport}
-            </Button>
-          </DialogActions>
-        </DialogBody>
-      </DialogSurface>
+              {t.sidebarImportSet}
+            </DialogTitle>
+            <DialogContent>
+              <div className={styles.row}>
+                <Dropdown
+                  selectedOptions={[format]}
+                  onOptionSelect={(_, d) =>
+                    setFormat(d.optionValue as TransferFormat)
+                  }
+                >
+                  <Option value="json">JSON</Option>
+                  <Option value="yaml">YAML</Option>
+                  <Option value="md">Markdown</Option>
+                </Dropdown>
+                <Switch
+                  label={t.transferIncludeComments}
+                  checked={includeComments}
+                  onChange={(_, d) => setIncludeComments(d.checked)}
+                />
+              </div>
+
+              {error && (
+                <div
+                  style={{
+                    color: tokens.colorPaletteRedForeground1,
+                    marginBottom: 8,
+                  }}
+                >
+                  {error}
+                </div>
+              )}
+
+              {parsed.parseError && (
+                <div
+                  style={{
+                    color: tokens.colorPaletteRedForeground1,
+                    marginBottom: 8,
+                  }}
+                >
+                  {parsed.parseError}
+                </div>
+              )}
+
+              <Textarea
+                className={styles.textarea}
+                value={content}
+                onChange={(_, d) => setContent(d.value)}
+                placeholder={t.transferImportPlaceholder}
+                disabled={busy}
+              />
+
+              <div className={styles.row} style={{ marginTop: 12 }}>
+                <Input
+                  value={setId}
+                  disabled
+                  style={{ flex: 1, minWidth: 220 }}
+                  placeholder={t.transferSetId}
+                />
+                <Input
+                  value={setName}
+                  onChange={(_, d) => setSetName(d.value)}
+                  style={{ flex: 1, minWidth: 220 }}
+                  placeholder={t.transferSetName}
+                />
+              </div>
+
+              <div className={styles.stats}>
+                <span>
+                  {t.transferTodosCount.replace(
+                    "{count}",
+                    String(stats.todoCount),
+                  )}
+                </span>
+                <span>
+                  {t.transferCommentsCount.replace(
+                    "{count}",
+                    String(stats.commentCount),
+                  )}
+                </span>
+              </div>
+
+              <div className={styles.preview}>
+                {stats.todoCount > 0
+                  ? renderPreviewTodos(parsed.todos)
+                  : t.transferPreviewPlaceholder}
+              </div>
+            </DialogContent>
+            <DialogActions style={{ gridColumn: "1 / 4" }}>
+              <Button
+                appearance="secondary"
+                onClick={() => setMsTodoOpen(true)}
+                style={{ marginRight: "auto" }}
+              >
+                {t.msTodoImport}
+              </Button>
+              <Button appearance="secondary" onClick={onClose}>
+                {t.close}
+              </Button>
+              <Button
+                appearance="primary"
+                onClick={runImport}
+                disabled={
+                  busy ||
+                  !content.trim() ||
+                  !!parsed.parseError ||
+                  stats.todoCount === 0 ||
+                  !setName.trim() ||
+                  !setId.trim()
+                }
+              >
+                {busy ? t.saving : t.todoImport}
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
 
       <ImportMsTodoDialog
         open={msTodoOpen}
@@ -434,6 +436,6 @@ export function ImportSetDialog({
         sets={sets}
         onImported={onImported}
       />
-    </Dialog>
+    </>
   );
 }
