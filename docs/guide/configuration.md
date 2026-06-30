@@ -16,7 +16,9 @@ Configured during the initialization wizard or in **Settings → App Config** (o
 | `prism_redirect_uri` | The callback URL registered in your Prism app, e.g. `https://glint.example.com/callback`. Must match exactly. |
 | `use_pkce` | `true` for public (PKCE) clients; `false` for confidential (secret-based) clients. |
 | `allowed_team_id` | Restrict sign-in to members of a specific Prism team. Leave empty to allow any authenticated Prism user. |
+| `session_ttl` | Session lifetime in seconds. `0` lets Glint derive the lifetime from the Prism access-token expiry. |
 | `action_bar_defaults` | Array of action keys shown in the per-todo quick-action bar for all users by default. See [Action Bar](#action-bar-defaults) below. |
+| `user_profile_cache_ttl` | How long (in seconds) resolved user names/avatars are cached in KV. `0` disables caching. Default: `86400` (1 day). |
 
 All values are stored under the KV key `config:app` as a JSON object.
 
@@ -65,6 +67,8 @@ Per-team branding and behaviour, configurable in **Settings → Branding** (owne
 | `accent_color` | CSS color value (hex, `rgb()`, etc.) applied as the primary theme color. Leave empty for default. |
 | `welcome_message` | Short message shown below the app name on the login page. Optional. |
 | `default_set_name` | Name given to the auto-created set when a team is first accessed. Default: `"Not Grouped"`. |
+| `allow_member_create_sets` | When `true`, members can create sets without the `manage_sets` permission. Default: `false`. |
+| `default_timezone` | IANA timezone (e.g. `UTC`, `Asia/Shanghai`) used by set [auto-renew](./sets#auto-renew) when a set has no timezone of its own. Default: `"UTC"`. |
 
 Team settings are stored under the KV key `team_settings:{teamId}`.
 
@@ -174,6 +178,27 @@ See [Realtime Sync](./realtime) for full details on how the WebSocket layer work
 
 ---
 
+## Scheduled Jobs (Cron)
+
+Glint registers a Cloudflare Cron Trigger that runs every 15 minutes:
+
+```jsonc
+{
+  "triggers": {
+    "crons": ["*/15 * * * *"]
+  }
+}
+```
+
+On each run the worker:
+
+1. **Processes set auto-renew** — resets completed todos to incomplete for any set whose renew time has passed for the current local day. See [Auto-Renew](./sets#auto-renew).
+2. **Refreshes the site service token** — keeps the long-lived Prism service token used for cross-app profile resolution fresh.
+
+No additional setup is required; Cloudflare invokes the schedule automatically once the worker is deployed.
+
+---
+
 ## KV Key Reference
 
 | Key pattern | Contents | TTL |
@@ -183,6 +208,9 @@ See [Realtime Sync](./realtime) for full details on how the WebSocket layer work
 | `team_settings:{teamId}` | JSON object with branding/settings | None (permanent) |
 | `session:{sessionId}` | JSON session data including access token | Set to token expiry |
 | `user-teams:{userId}` | JSON array of `TeamInfo` objects | 10 minutes |
+| `user_profile:{userId}` | Cached display name / username / avatar from Prism | `user_profile_cache_ttl` (default 1 day) |
+| `user_settings:{userId}` | JSON of personal preferences | None (permanent) |
+| `site:service_token` | Long-lived Prism service token for profile resolution | Refreshed by cron |
 
 The `user-teams` cache is populated at login and used by cross-app middleware to resolve team membership without a live Prism API call. It expires after 10 minutes; if absent, the middleware falls back to a live lookup.
 

@@ -14,7 +14,16 @@ bun run lint
 ```bash
 prettier -w worker src
 ```
-1. Your commit message should only contain ASCII characters and should be clean. e.g,
+4. Keep the documentation up to date. Whenever you add, change, or remove an
+   API endpoint, configuration option, permission, or user-facing feature,
+   update the corresponding pages under `docs/` **in the same change**. Remember
+   to update both the English (`docs/`) and Chinese (`docs/zh/`) versions, and
+   adjust the sidebar in `docs/.vitepress/config.ts` when adding or removing
+   pages. You can preview your changes with:
+```bash
+bun run docs:dev
+```
+5. Your commit message should only contain ASCII characters and should be clean. e.g,
 ```text
 implement <stuff you implemented>
 fix <bug you fixed>

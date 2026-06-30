@@ -26,7 +26,8 @@ Fetch the current branding and configuration settings for a team.
     "accent_color": "",
     "welcome_message": "",
     "default_set_name": "Not Grouped",
-    "allow_member_create_sets": false
+    "allow_member_create_sets": false,
+    "default_timezone": "UTC"
   }
 }
 ```
@@ -39,6 +40,7 @@ Fetch the current branding and configuration settings for a team.
 | `welcome_message` | string | Optional message shown on the login page. |
 | `default_set_name` | string | Name given to the auto-created first set. Default: `"Not Grouped"`. |
 | `allow_member_create_sets` | boolean | Whether members can create sets. When `true`, members bypass the `manage_sets` default restriction for set creation only. |
+| `default_timezone` | string | IANA timezone used by set [auto-renew](./sets#auto-renew) when a set has no timezone of its own. Default: `"UTC"`. |
 
 **Error responses:**
 
@@ -70,7 +72,8 @@ Update one or more team settings fields. Only the provided fields are updated; o
   "accent_color": "#0078d4",
   "welcome_message": "Sign in to track your work.",
   "default_set_name": "Inbox",
-  "allow_member_create_sets": true
+  "allow_member_create_sets": true,
+  "default_timezone": "Asia/Shanghai"
 }
 ```
 
@@ -84,6 +87,7 @@ Update one or more team settings fields. Only the provided fields are updated; o
 | `welcome_message` | Any string or empty to clear. |
 | `default_set_name` | Non-empty string if provided. Affects newly created workspaces; does not rename any existing sets. |
 | `allow_member_create_sets` | Boolean. |
+| `default_timezone` | A valid IANA timezone name (e.g. `UTC`, `Asia/Shanghai`). Used as the fallback for set auto-renew. |
 
 **Response:**
 
@@ -95,7 +99,8 @@ Update one or more team settings fields. Only the provided fields are updated; o
     "accent_color": "#0078d4",
     "welcome_message": "Sign in to track your work.",
     "default_set_name": "Inbox",
-    "allow_member_create_sets": true
+    "allow_member_create_sets": true,
+    "default_timezone": "Asia/Shanghai"
   }
 }
 ```

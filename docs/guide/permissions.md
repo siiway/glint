@@ -47,6 +47,7 @@ The first matching rule wins. Per-set overrides give you surgical control: tight
 | `manage_settings` | No | No | Edit site name, logo, branding, and app config |
 | `manage_permissions` | No | No | Edit permission rules (owner-only to grant) |
 | `manage_sets` | Yes | No | Create, rename, delete, and reorder todo sets |
+| `manage_set_links` | Yes | No | Create and manage public share links for sets |
 | `create_todos` | Yes | Yes | Create new todos |
 | `edit_own_todos` | Yes | Yes | Edit todos the user created |
 | `edit_any_todo` | Yes | No | Edit todos created by others |
@@ -54,6 +55,7 @@ The first matching rule wins. Per-set overrides give you surgical control: tight
 | `delete_any_todo` | Yes | No | Delete todos created by others |
 | `complete_any_todo` | Yes | No | Toggle completion on others' todos |
 | `add_subtodos` | Yes | Yes | Create nested sub-todos |
+| `claim_todos` | Yes | Yes | Claim or release a todo to/from yourself |
 | `reorder_todos` | Yes | No | Drag to reorder todos |
 | `comment` | Yes | Yes | Add comments to todos |
 | `delete_own_comments` | Yes | Yes | Delete comments the user posted |

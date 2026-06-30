@@ -23,6 +23,10 @@ List all todos in a set, ordered by `sortOrder`. Includes sub-todos (identified 
       "completed": false,
       "sortOrder": 1,
       "commentCount": 2,
+      "claimedBy": "user-uuid",
+      "claimedByName": "Ada Lovelace",
+      "claimedByUsername": "ada",
+      "claimedByAvatar": "https://example.com/a.png",
       "createdAt": "2026-03-17T12:00:00.000Z",
       "updatedAt": "2026-03-17T14:30:00.000Z"
     },
@@ -34,6 +38,10 @@ List all todos in a set, ordered by `sortOrder`. Includes sub-todos (identified 
       "completed": true,
       "sortOrder": 1,
       "commentCount": 0,
+      "claimedBy": null,
+      "claimedByName": null,
+      "claimedByUsername": null,
+      "claimedByAvatar": null,
       "createdAt": "2026-03-17T13:00:00.000Z",
       "updatedAt": "2026-03-17T14:00:00.000Z"
     }
@@ -47,6 +55,7 @@ List all todos in a set, ordered by `sortOrder`. Includes sub-todos (identified 
     "delete_any_todo": true,
     "complete_any_todo": true,
     "add_subtodos": true,
+    "claim_todos": true,
     "reorder_todos": true,
     "comment": true,
     "delete_own_comments": true,
@@ -65,10 +74,18 @@ List all todos in a set, ordered by `sortOrder`. Includes sub-todos (identified 
 | `todos[].completed` | boolean | Whether the todo is marked complete. |
 | `todos[].sortOrder` | number | Integer position within the list (or within its parent's sub-list). |
 | `todos[].commentCount` | number | Number of comments attached to this todo. |
+| `todos[].claimedBy` | string \| null | User ID of the person who claimed the todo, or `null` if unclaimed. See [Claiming](#post-api-teams-teamid-todos-id-claim). |
+| `todos[].claimedByName` | string \| null | Resolved display name of the claimer (from Prism), or `null`. |
+| `todos[].claimedByUsername` | string \| null | Resolved username of the claimer, or `null`. |
+| `todos[].claimedByAvatar` | string \| null | Resolved avatar URL of the claimer, or `null`. |
 | `todos[].createdAt` | string (ISO 8601) | Creation timestamp. |
 | `todos[].updatedAt` | string (ISO 8601) | Last modification timestamp. |
 | `role` | string | Current user's team role. |
 | `permissions` | object | Resolved permission map for this set. Used by the frontend to render actions. |
+
+::: info
+Claimer identity fields (`claimedByName` / `claimedByUsername` / `claimedByAvatar`) are resolved from Prism and cached. For personal spaces, only the calling user's identity is resolved.
+:::
 
 **Error responses:**
 
@@ -112,21 +129,26 @@ Create a new todo in the set. Pass `parentId` to create a sub-todo beneath an ex
     "completed": false,
     "sortOrder": 5,
     "commentCount": 0,
+    "claimedBy": null,
+    "claimedByName": null,
+    "claimedByAvatar": null,
     "createdAt": "2026-03-17T12:00:00.000Z",
     "updatedAt": "2026-03-17T12:00:00.000Z"
   }
 }
 ```
 
-The new todo is placed at the end of the relevant list (top-level or sub-list).
+The new todo is placed at the end of the relevant list (top-level or sub-list). A `todo:created` event is broadcast to other connected clients (see [Realtime Sync](../guide/realtime)).
 
 **Error responses:**
 
 | Status | `error` | Cause |
 | --- | --- | --- |
 | `400` | `"Title is required"` | `title` is missing or empty. |
-| `400` | `"Parent not found"` | `parentId` references a todo that doesn't exist in this set. |
-| `403` | `"Forbidden"` | Lacks `create_todos` (or `add_subtodos` for sub-todos). |
+| `404` | `"Set not found"` | The target set does not exist in this team. |
+| `404` | `"Parent todo not found"` | `parentId` references a todo that doesn't exist in this set. |
+| `403` | `"No permission: <key>"` | Lacks `create_todos` (or `add_subtodos` for sub-todos). |
+| `409` | `"Todo item title already exists among sibling todos"` | A sibling todo already has this title. |
 
 ---
 
@@ -170,9 +192,12 @@ Update one or more fields on a todo. Permission checks differ by field and by wh
 
 | Status | `error` | Cause |
 | --- | --- | --- |
-| `400` | `"Title cannot be empty"` | `title` was provided but is an empty string. |
-| `403` | `"Forbidden"` | Lacks required permission for the provided fields. |
-| `404` | `"Todo not found"` | No todo with that ID in this team. |
+| `400` | `"Title is required"` | `title` was provided but is an empty string. |
+| `403` | `"No permission to edit"` / `"No permission to toggle completion"` / `"No permission to reorder"` | Lacks the required permission for the provided fields. |
+| `404` | `"Not found"` | No todo with that ID in this team. |
+| `409` | `"Todo item title already exists among sibling todos"` | The new title collides with a sibling. |
+
+A `todo:updated` event is broadcast on success.
 
 ---
 
@@ -196,8 +221,10 @@ Deleting a todo permanently removes it and all nested sub-todos and comments. Th
 
 | Status | `error` | Cause |
 | --- | --- | --- |
-| `403` | `"Forbidden"` | Lacks the required delete permission. |
-| `404` | `"Todo not found"` | No todo with that ID in this team. |
+| `403` | `"No permission to delete"` | Lacks the required delete permission. |
+| `404` | `"Not found"` | No todo with that ID in this team. |
+
+A `todo:deleted` event is broadcast on success.
 
 ---
 
@@ -215,7 +242,8 @@ Batch update `sortOrder` values for multiple todos in one request. Typically cal
     { "id": "uuid-1", "sortOrder": 1 },
     { "id": "uuid-2", "sortOrder": 2 },
     { "id": "uuid-3", "sortOrder": 3 }
-  ]
+  ],
+  "setId": "set-uuid"
 }
 ```
 
@@ -224,6 +252,7 @@ Batch update `sortOrder` values for multiple todos in one request. Typically cal
 | `items` | array | Array of `{id, sortOrder}` pairs for every todo whose position changed. |
 | `items[].id` | string (UUID) | ID of the todo. |
 | `items[].sortOrder` | number | New integer sort position. |
+| `setId` | string (optional) | The set being reordered. When provided, a `todo:reordered` event is broadcast to connected clients for that set. |
 
 **Response:**
 
@@ -235,5 +264,48 @@ Batch update `sortOrder` values for multiple todos in one request. Typically cal
 
 | Status | `error` | Cause |
 | --- | --- | --- |
-| `400` | `"Items required"` | `items` array is missing or empty. |
-| `403` | `"Forbidden"` | Lacks `reorder_todos`. |
+| `400` | `"No items"` | `items` array is missing or empty. |
+| `403` | `"No permission to reorder"` | Lacks `reorder_todos`. |
+
+---
+
+## `POST /api/teams/:teamId/todos/:id/claim`
+
+Toggle a **claim** on a todo. Claiming assigns the todo to yourself; calling it again while you hold the claim releases it. A todo can only be claimed by one person at a time.
+
+**Auth required:** Yes — `claim_todos` for the set
+
+**Path parameters:**
+
+| Parameter | Description |
+| --- | --- |
+| `id` | UUID of the todo to claim or release. |
+
+**Behavior:**
+
+- If the todo is unclaimed → it becomes claimed by you.
+- If you already hold the claim → it is released (set back to `null`).
+- If someone else holds the claim → returns `409`.
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "claimedBy": "your-user-id",
+  "claimedByName": "Ada Lovelace",
+  "claimedByUsername": "ada",
+  "claimedByAvatar": "https://example.com/a.png"
+}
+```
+
+When releasing a claim, all `claimedBy*` fields are `null`. A `todo:claimed` event is broadcast to connected clients.
+
+**Error responses:**
+
+| Status | `error` | Cause |
+| --- | --- | --- |
+| `403` | `"No permission to claim todos"` | Lacks `claim_todos`. |
+| `404` | `"Not found"` | No todo with that ID in this team. |
+| `409` | `"Already claimed by another user"` | The todo is currently claimed by someone else. |
+| `503` | `"Claim feature unavailable: database migration required"` | The `claimed_by` column is missing — apply pending D1 migrations. |

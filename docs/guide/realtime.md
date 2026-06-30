@@ -30,7 +30,7 @@ When a mutation completes (create, update, delete, reorder, claim), the worker f
 | `todo:updated` | `{ id, ...changed fields }` — partial |
 | `todo:deleted` | `{ id }` |
 | `todo:reordered` | `{ items: [{ id, sortOrder }] }` |
-| `todo:claimed` | `{ id, claimedBy, claimedByName, claimedByAvatar }` |
+| `todo:claimed` | `{ id, claimedBy, claimedByName, claimedByUsername, claimedByAvatar }` |
 
 All events include `setId` so the client can ignore events from other sets if the connection is unexpectedly scoped too broadly.
 
@@ -84,3 +84,11 @@ Upgrade: websocket
 Requires an active session (same cookie used by all other API routes). Returns `403` if the user is not a member of the team. Returns `426` if the request is not a WebSocket upgrade.
 
 The endpoint is handled by `worker/routes/ws.ts` and proxied into the `TodoSync` Durable Object at `worker/durable-objects/todo-sync.ts`.
+
+### SSE Fallback Endpoint
+
+```
+GET /api/teams/:teamId/sets/:setId/sse
+```
+
+For environments where WebSockets are unavailable, a Server-Sent Events stream delivers the same event types. The client uses it automatically when `realtime_transport` is `sse`, or when `auto` mode fails to establish a WebSocket. It is also handled via the team's `TodoSync` Durable Object and requires the same session and team membership.

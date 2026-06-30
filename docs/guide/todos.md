@@ -43,6 +43,20 @@ If the set has **Split Completed Todos** enabled, completed todos move to a coll
 
 ---
 
+## Claiming
+
+Claiming lets a team member signal "I'm working on this." A claimed todo shows the claimer's name and avatar.
+
+- Click the **Claim** action (available in the action bar / context menu) to claim a todo to yourself.
+- Click it again while you hold the claim to **release** it.
+- A todo can only be held by one person at a time — attempting to claim a todo already held by someone else is rejected.
+
+Claims sync in realtime via the `todo:claimed` event, so everyone viewing the set sees the change instantly.
+
+Requires: `claim_todos` permission.
+
+---
+
 ## Inline Editing
 
 1. Click **Edit** from the `...` menu or right-click context menu.

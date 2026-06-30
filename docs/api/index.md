@@ -27,6 +27,7 @@ See [Authentication API](./auth) for full details on the login flow.
 | `GET`    | `/api/init/branding`  | None     | Public: get site name and logo URL             |
 | `GET`    | `/api/init/config`    | None     | Get full app config (Prism settings)           |
 | `PUT`    | `/api/init/config`    | Session  | Update app config (owner only after init)      |
+| `POST`   | `/api/init/register-permissions` | Session | Register Glint's permission scopes into Prism |
 
 ### Auth
 
@@ -41,7 +42,7 @@ See [Authentication API](./auth) for full details on the login flow.
 
 | Method   | Path                               | Auth    | Description                                    |
 | -------- | ---------------------------------- | ------- | ---------------------------------------------- |
-| `GET`    | `/api/user/settings`               | Session | Get user preferences (action bar, transport)   |
+| `GET`    | `/api/user/settings`               | Session | Get user preferences (action bar, transport, UI) |
 | `PUT`    | `/api/user/settings`               | Session | Update user preferences                        |
 
 ### Team Settings
@@ -66,9 +67,12 @@ See [Authentication API](./auth) for full details on the login flow.
 | -------- | --------------------------------------- | ------- | ---------------------------------------------- |
 | `GET`    | `/api/teams/:teamId/sets`               | Session | List all sets (auto-creates default if empty)  |
 | `POST`   | `/api/teams/:teamId/sets`               | Session | Create a set (`manage_sets`)                   |
-| `PATCH`  | `/api/teams/:teamId/sets/:setId`        | Session | Rename a set (`manage_sets` or owner)          |
+| `PATCH`  | `/api/teams/:teamId/sets/:setId`        | Session | Rename / set auto-renew & options (`manage_sets` or owner) |
 | `DELETE` | `/api/teams/:teamId/sets/:setId`        | Session | Delete a set and all todos (`manage_sets`)     |
 | `POST`   | `/api/teams/:teamId/sets/reorder`       | Session | Batch update set sort orders (`manage_sets`)   |
+| `GET`    | `/api/teams/:teamId/sets/:setId/export` | Session | Export a set as Markdown / JSON / YAML (`view_todos`) |
+| `POST`   | `/api/teams/:teamId/sets/:setId/import` | Session | Import todos into a set (`create_todos`)        |
+| `POST`   | `/api/teams/:teamId/sets/import`        | Session | Import a payload as a new set (`manage_sets`)   |
 
 ### Todos
 
@@ -79,6 +83,7 @@ See [Authentication API](./auth) for full details on the login flow.
 | `PATCH`  | `/api/teams/:teamId/todos/:id`               | Session | Update title, completion, or sort order        |
 | `DELETE` | `/api/teams/:teamId/todos/:id`               | Session | Delete todo and its sub-todos (cascade)        |
 | `POST`   | `/api/teams/:teamId/todos/reorder`           | Session | Batch update todo sort orders (`reorder_todos`)|
+| `POST`   | `/api/teams/:teamId/todos/:id/claim`         | Session | Claim / release a todo (`claim_todos`)         |
 
 ### Comments
 
@@ -88,6 +93,34 @@ See [Authentication API](./auth) for full details on the login flow.
 | `POST`   | `/api/teams/:teamId/todos/:todoId/comments`                | Session | Add a comment (`comment`)               |
 | `DELETE` | `/api/teams/:teamId/todos/:todoId/comments/:commentId`     | Session | Delete a comment                        |
 
+### Share Links
+
+| Method   | Path                                                  | Auth    | Description                                    |
+| -------- | ---------------------------------------------------- | ------- | ---------------------------------------------- |
+| `GET`    | `/api/teams/:teamId/sets/:setId/share-links`         | Session | List share links for a set                     |
+| `GET`    | `/api/teams/:teamId/share-links`                     | Session | List all share links in the team               |
+| `POST`   | `/api/teams/:teamId/sets/:setId/share-links`         | Session | Create a share link (`manage_set_links`)       |
+| `PATCH`  | `/api/teams/:teamId/share-links/:linkId`             | Session | Update a share link (`manage_set_links`)       |
+| `DELETE` | `/api/teams/:teamId/share-links/:linkId`             | Session | Delete a share link (`manage_set_links`)       |
+| `GET`    | `/api/shared/:token`                                 | Token   | Public: read shared set & todos                |
+| `POST`   | `/api/shared/:token/todos`                           | Token   | Public: create a todo (if `canCreate`)         |
+| `PATCH`  | `/api/shared/:token/todos/:id`                       | Token   | Public: update a todo (capability-gated)       |
+| `DELETE` | `/api/shared/:token/todos/:id`                       | Token   | Public: delete a todo (if `canDelete`)         |
+| `POST`   | `/api/shared/:token/todos/reorder`                   | Token   | Public: reorder todos (if `canReorder`)        |
+| `GET`    | `/api/shared/:token/badge.svg`                       | Token   | Public: progress badge SVG                      |
+| `GET`    | `/api/shared/:token/todo-list.svg`                   | Token   | Public: rendered checklist SVG                  |
+
+See [Share Links](./shares) for the full reference.
+
+### Realtime
+
+| Method   | Path                                                  | Auth    | Description                                    |
+| -------- | ---------------------------------------------------- | ------- | ---------------------------------------------- |
+| `GET`    | `/api/teams/:teamId/sets/:setId/ws`                  | Session | WebSocket upgrade for live todo sync           |
+| `GET`    | `/api/teams/:teamId/sets/:setId/sse`                 | Session | Server-Sent Events fallback for live sync      |
+
+See [Realtime Sync](../guide/realtime) for details.
+
 ### Cross-App (Bearer Token)
 
 | Method   | Path                                                        | Auth   | Scope           | Description                      |
@@ -96,7 +129,10 @@ See [Authentication API](./auth) for full details on the login flow.
 | `GET`    | `/api/cross-app/teams/:teamId/sets/:setId/todos`            | Bearer | `read_todos`    | List todos in a set              |
 | `POST`   | `/api/cross-app/teams/:teamId/sets/:setId/todos`            | Bearer | `write_todos`   | Create a todo                    |
 | `PATCH`  | `/api/cross-app/teams/:teamId/todos/:todoId`                | Bearer | `write_todos`   | Update todo title or completion  |
-| `DELETE` | `/api/cross-app/teams/:teamId/todos/:todoId`                | Bearer | `delete_todos`  | Delete a todo                    |
+| `DELETE`  | `/api/cross-app/teams/:teamId/todos/:todoId`                | Bearer | `delete_todos`  | Delete a todo                    |
+| `POST`   | `/api/cross-app/teams/:teamId/todos/:todoId/claim`          | Bearer | `claim_todos`   | Claim / release a todo           |
+
+This table lists only the most common cross-app endpoints; see [Cross-App](./cross-app) for the complete set (sets, comments, settings, permissions, overview/feed, and realtime).
 
 ---
 

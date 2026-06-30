@@ -47,6 +47,7 @@ flowchart TD
 | `manage_settings` | 否 | 否 | 编辑站点名称、Logo、品牌设置和应用配置 |
 | `manage_permissions` | 否 | 否 | 编辑权限规则（仅所有者可授予） |
 | `manage_sets` | 是 | 否 | 创建、重命名、删除和重新排序待办分组 |
+| `manage_set_links` | 是 | 否 | 为分组创建和管理公开分享链接 |
 | `create_todos` | 是 | 是 | 创建新的待办事项 |
 | `edit_own_todos` | 是 | 是 | 编辑本人创建的待办事项 |
 | `edit_any_todo` | 是 | 否 | 编辑他人创建的待办事项 |
@@ -54,6 +55,7 @@ flowchart TD
 | `delete_any_todo` | 是 | 否 | 删除他人创建的待办事项 |
 | `complete_any_todo` | 是 | 否 | 切换他人待办事项的完成状态 |
 | `add_subtodos` | 是 | 是 | 创建嵌套的子待办事项 |
+| `claim_todos` | 是 | 是 | 将待办事项认领给自己或释放 |
 | `reorder_todos` | 是 | 否 | 拖拽重新排序待办事项 |
 | `comment` | 是 | 是 | 对待办事项添加评论 |
 | `delete_own_comments` | 是 | 是 | 删除本人发布的评论 |

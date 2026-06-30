@@ -30,7 +30,7 @@ graph LR
 | `todo:updated` | `{ id, ...已变更字段 }` — 部分更新 |
 | `todo:deleted` | `{ id }` |
 | `todo:reordered` | `{ items: [{ id, sortOrder }] }` |
-| `todo:claimed` | `{ id, claimedBy, claimedByName, claimedByAvatar }` |
+| `todo:claimed` | `{ id, claimedBy, claimedByName, claimedByUsername, claimedByAvatar }` |
 
 所有事件均包含 `setId`，以便客户端在连接范围过宽时忽略来自其他分组的事件。
 
@@ -84,3 +84,11 @@ Upgrade: websocket
 需要有效的会话（与所有其他 API 路由使用相同的 Cookie）。若用户不是该团队的成员，返回 `403`。若请求不是 WebSocket 升级请求，返回 `426`。
 
 该端点由 `worker/routes/ws.ts` 处理，并代理至 `worker/durable-objects/todo-sync.ts` 中的 `TodoSync` Durable Object。
+
+### SSE 回退端点
+
+```
+GET /api/teams/:teamId/sets/:setId/sse
+```
+
+对于无法使用 WebSocket 的环境，Server-Sent Events 流会传递相同的事件类型。当 `realtime_transport` 为 `sse`，或 `auto` 模式无法建立 WebSocket 连接时，客户端会自动使用它。它同样由团队的 `TodoSync` Durable Object 处理，并要求相同的会话和团队成员身份。

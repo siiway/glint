@@ -68,6 +68,45 @@ When enabled, completed todos are separated from active todos within the set —
 
 This is set per-set and does not affect other sets. The setting persists for all users viewing the set (it's a server-side property, not a personal preference).
 
+### Auto-Renew
+
+Auto-renew turns a set into a recurring checklist. When enabled, **all completed todos in the set are reset to incomplete once per day** at a configured time — ideal for daily standups, routines, or habit lists.
+
+| Option | Description |
+| --- | --- |
+| **Auto-renew** | Master toggle for the feature. |
+| **Renew time** | The `HH:MM` local time of day at which the reset runs (e.g. `06:00`). |
+| **Timezone** | The IANA timezone used to interpret the renew time. When left blank, the team's `default_timezone` (Settings → Branding) is used. |
+
+A Cloudflare cron job runs every 15 minutes and renews each eligible set the first time the local clock passes its renew time on a new day. The set's todos and titles are kept — only their completion state is cleared.
+
+Requires: `manage_sets`, or you must be the creator of the set.
+
+---
+
+## Importing & Exporting
+
+Sets can be exported and imported in **Markdown**, **JSON**, or **YAML** formats. This is handy for backups, moving a checklist between workspaces, or seeding a set from an external source.
+
+### Export
+
+1. Open the `...` menu on a set and choose **Export**.
+2. Pick a format (Markdown / JSON / YAML) and whether to include comments.
+3. The file downloads with a name derived from the set.
+
+Requires: `view_todos` for the set.
+
+### Import
+
+You can either import into the **current set** (append or replace its todos) or create a **brand-new set** from the imported content.
+
+- **Append** adds the imported todos to the existing list.
+- **Replace** wipes the set's current todos first (requires `manage_sets`).
+
+Markdown uses the familiar `- [ ]` / `- [x]` checkbox syntax with indentation for sub-todos. JSON and YAML carry the full structure including set metadata.
+
+Requires: `create_todos` to import into a set; `manage_sets` to replace contents or import as a new set.
+
 ---
 
 ## Per-Set Permissions

@@ -15,6 +15,7 @@
 | `manage_settings` | `false` | `false` |
 | `manage_permissions` | `false` | `false` |
 | `manage_sets` | `true` | `false` |
+| `manage_set_links` | `true` | `false` |
 | `create_todos` | `true` | `true` |
 | `edit_own_todos` | `true` | `true` |
 | `edit_any_todo` | `true` | `false` |
@@ -22,11 +23,16 @@
 | `delete_any_todo` | `true` | `false` |
 | `complete_any_todo` | `true` | `false` |
 | `add_subtodos` | `true` | `true` |
+| `claim_todos` | `true` | `true` |
 | `reorder_todos` | `true` | `false` |
 | `comment` | `true` | `true` |
 | `delete_own_comments` | `true` | `true` |
 | `delete_any_comment` | `true` | `false` |
 | `view_todos` | `true` | `true` |
+
+::: tip
+**联合所有者**角色的默认值与管理员相同，但和所有者一样，始终将每个权限解析为 `true`，且不能被任何覆盖限制。
+:::
 
 ---
 
@@ -44,6 +50,7 @@
     "manage_settings",
     "manage_permissions",
     "manage_sets",
+    "manage_set_links",
     "create_todos",
     "edit_own_todos",
     "edit_any_todo",
@@ -51,6 +58,7 @@
     "delete_any_todo",
     "complete_any_todo",
     "add_subtodos",
+    "claim_todos",
     "reorder_todos",
     "comment",
     "delete_own_comments",
@@ -111,6 +119,7 @@
     "manage_settings": false,
     "manage_permissions": false,
     "manage_sets": true,
+    "manage_set_links": true,
     "create_todos": true,
     "edit_own_todos": true,
     "edit_any_todo": true,
@@ -118,6 +127,7 @@
     "delete_any_todo": true,
     "complete_any_todo": true,
     "add_subtodos": true,
+    "claim_todos": true,
     "reorder_todos": true,
     "comment": true,
     "delete_own_comments": true,
