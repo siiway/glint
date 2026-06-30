@@ -89,6 +89,7 @@ Valid action keys:
 | `complete` | Toggle completion |
 | `claim` | Claim / unclaim the todo |
 | `comment` | Open the comments panel |
+| `move` | Move the todo to another list |
 | `delete` | Delete the todo |
 
 Built-in site default (used when not configured): `["add_after", "edit", "complete", "delete"]`.

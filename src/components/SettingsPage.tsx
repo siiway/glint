@@ -34,6 +34,7 @@ import {
   CheckmarkCircle24Regular,
   PersonAvailable24Regular,
   Comment24Regular,
+  ArrowMove24Regular,
 } from "@fluentui/react-icons";
 import { Footer } from "./Footer";
 import { useI18n } from "../i18n";
@@ -75,6 +76,7 @@ const ALL_ACTION_BAR_KEYS = [
   "complete",
   "claim",
   "comment",
+  "move",
   "delete",
 ] as const;
 type ActionBarKey = (typeof ALL_ACTION_BAR_KEYS)[number];
@@ -850,6 +852,7 @@ export function SettingsPage({
                 complete: <CheckmarkCircle24Regular style={{ fontSize: 16 }} />,
                 claim: <PersonAvailable24Regular style={{ fontSize: 16 }} />,
                 comment: <Comment24Regular style={{ fontSize: 16 }} />,
+                move: <ArrowMove24Regular style={{ fontSize: 16 }} />,
                 delete: <Delete24Regular style={{ fontSize: 16 }} />,
               };
               const labelMap: Record<ActionKey, string> = {
@@ -860,6 +863,7 @@ export function SettingsPage({
                 complete: t.actionMarkComplete,
                 claim: t.actionClaim,
                 comment: t.actionComments,
+                move: t.actionMove,
                 delete: t.delete,
               };
               return (
@@ -948,6 +952,7 @@ export function SettingsPage({
                       <PersonAvailable24Regular style={{ fontSize: 16 }} />
                     ),
                     comment: <Comment24Regular style={{ fontSize: 16 }} />,
+                    move: <ArrowMove24Regular style={{ fontSize: 16 }} />,
                     delete: <Delete24Regular style={{ fontSize: 16 }} />,
                   };
                   const labelMap: Record<ActionKey, string> = {
@@ -958,6 +963,7 @@ export function SettingsPage({
                     complete: t.actionMarkComplete,
                     claim: t.actionClaim,
                     comment: t.actionComments,
+                    move: t.actionMove,
                     delete: t.delete,
                   };
                   return (
@@ -1048,6 +1054,7 @@ export function SettingsPage({
                   complete: t.actionMarkComplete,
                   claim: t.actionClaim,
                   comment: t.actionComments,
+                  move: t.actionMove,
                   delete: t.delete,
                 };
                 return (
@@ -1764,6 +1771,7 @@ export function SettingsPage({
                       <PersonAvailable24Regular style={{ fontSize: 16 }} />
                     ),
                     comment: <Comment24Regular style={{ fontSize: 16 }} />,
+                    move: <ArrowMove24Regular style={{ fontSize: 16 }} />,
                     delete: <Delete24Regular style={{ fontSize: 16 }} />,
                   };
                   const labelMap: Record<ActionBarKey, string> = {
@@ -1774,6 +1782,7 @@ export function SettingsPage({
                     complete: t.actionMarkComplete,
                     claim: t.actionClaim,
                     comment: t.actionComments,
+                    move: t.actionMove,
                     delete: t.delete,
                   };
                   return (

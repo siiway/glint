@@ -89,6 +89,7 @@ team_a, team_b, team_c
 | `complete` | 切换完成状态 |
 | `claim` | 认领 / 取消认领待办事项 |
 | `comment` | 打开评论面板 |
+| `move` | 将待办移动到其他列表 |
 | `delete` | 删除待办事项 |
 
 内置站点默认值（未配置时使用）：`["add_after", "edit", "complete", "delete"]`。

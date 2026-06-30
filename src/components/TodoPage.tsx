@@ -50,6 +50,7 @@ import {
   PersonDelete24Regular,
   ArrowUp24Regular,
   ArrowDown24Regular,
+  ArrowMove24Regular,
   ChevronDoubleRight20Regular,
 } from "@fluentui/react-icons";
 import { useNavigate, useMatch } from "react-router-dom";
@@ -777,6 +778,10 @@ export function TodoPage() {
     c.userId === user?.id
       ? hasPerm("delete_own_comments")
       : hasPerm("delete_any_comment");
+  // Moving requires another list to move into, the right to edit the todo here,
+  // and permission to create todos (in the destination).
+  const canMoveTodo = (todo: Todo) =>
+    sets.length > 1 && canModify(todo) && hasPerm("create_todos");
 
   const rootTodos = todos
     .filter((t) => t.parentId === null)
@@ -1408,6 +1413,14 @@ export function TodoPage() {
           {todo.completed ? t.actionMarkIncomplete : t.actionMarkComplete}
         </MenuItem>
       )}
+      {canMoveTodo(todo) && (
+        <MenuItem
+          icon={<ArrowMove24Regular />}
+          onClick={() => setMoveTodoId(todo.id)}
+        >
+          {t.actionMove}
+        </MenuItem>
+      )}
       {canDeleteTodo(todo) && (
         <MenuItem
           icon={<Delete24Regular />}
@@ -1567,6 +1580,22 @@ export function TodoPage() {
               onClick={(e) => {
                 e.stopPropagation();
                 setCommentTodoId(todo.id);
+              }}
+            />
+          </Tooltip>
+        );
+      case "move":
+        if (!canMoveTodo(todo)) return null;
+        return (
+          <Tooltip key={key} content={t.actionMove} relationship="label">
+            <Button
+              appearance="transparent"
+              size="small"
+              className={styles.actionBarBtn}
+              icon={<ArrowMove24Regular />}
+              onClick={(e) => {
+                e.stopPropagation();
+                setMoveTodoId(todo.id);
               }}
             />
           </Tooltip>
@@ -2576,9 +2605,7 @@ export function TodoPage() {
             })
           }
           onMove={() => setMoveTodoId(contextTodo.id)}
-          canMove={
-            sets.length > 1 && canModify(contextTodo) && hasPerm("create_todos")
-          }
+          canMove={canMoveTodo(contextTodo)}
           rootCount={rootTodos.length}
         />
       )}

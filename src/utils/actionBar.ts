@@ -8,6 +8,7 @@ export const ALL_ACTION_KEYS = [
   "complete",
   "claim",
   "comment",
+  "move",
   "delete",
 ] as const;
 
