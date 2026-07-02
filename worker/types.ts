@@ -13,6 +13,8 @@ export type AppConfig = {
   use_pkce: boolean;
   allowed_team_id: string;
   session_ttl: number;
+  /** Message shown to every user once, right after they sign in. Empty = disabled. */
+  welcome_message: string;
   /** Default quick-action keys shown in the todo action bar. Not set = use built-in default. */
   action_bar_defaults?: string[];
   /** How long to cache resolved user profile names/avatars in KV, in seconds. 0 = no cache. Default 86400 (1 day). */
@@ -29,6 +31,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   use_pkce: true,
   allowed_team_id: "",
   session_ttl: 0,
+  welcome_message: "",
 };
 
 export type TeamRole = "owner" | "co-owner" | "admin" | "member";
@@ -83,7 +86,6 @@ export type TeamSettings = {
   site_name: string;
   site_logo_url: string;
   accent_color: string;
-  welcome_message: string;
   default_set_name: string;
   allow_member_create_sets: boolean;
   default_timezone: string;
@@ -93,7 +95,6 @@ export const DEFAULT_SETTINGS: TeamSettings = {
   site_name: "Glint",
   site_logo_url: "",
   accent_color: "",
-  welcome_message: "",
   default_set_name: "Not Grouped",
   allow_member_create_sets: false,
   default_timezone: "UTC",

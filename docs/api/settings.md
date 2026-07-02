@@ -24,7 +24,6 @@ Fetch the current branding and configuration settings for a team.
     "site_name": "Glint",
     "site_logo_url": "",
     "accent_color": "",
-    "welcome_message": "",
     "default_set_name": "Not Grouped",
     "allow_member_create_sets": false,
     "default_timezone": "UTC"
@@ -37,7 +36,6 @@ Fetch the current branding and configuration settings for a team.
 | `site_name` | string | Displayed in the sidebar and browser title. Default: `"Glint"`. |
 | `site_logo_url` | string | URL to a logo image. Empty means use text title. |
 | `accent_color` | string | CSS color value for the primary theme. Empty means use default. |
-| `welcome_message` | string | Optional message shown on the login page. |
 | `default_set_name` | string | Name given to the auto-created first set. Default: `"Not Grouped"`. |
 | `allow_member_create_sets` | boolean | Whether members can create sets. When `true`, members bypass the `manage_sets` default restriction for set creation only. |
 | `default_timezone` | string | IANA timezone used by set [auto-renew](./sets#auto-renew) when a set has no timezone of its own. Default: `"UTC"`. |
@@ -70,7 +68,6 @@ Update one or more team settings fields. Only the provided fields are updated; o
   "site_name": "My Team Todos",
   "site_logo_url": "https://cdn.example.com/logo.png",
   "accent_color": "#0078d4",
-  "welcome_message": "Sign in to track your work.",
   "default_set_name": "Inbox",
   "allow_member_create_sets": true,
   "default_timezone": "Asia/Shanghai"
@@ -84,7 +81,6 @@ Update one or more team settings fields. Only the provided fields are updated; o
 | `site_name` | Non-empty string if provided. |
 | `site_logo_url` | Must be a valid URL or empty string. Logo is fetched by the browser directly — must be publicly accessible. |
 | `accent_color` | Any CSS color value (`#hex`, `rgb()`, named, etc.) or empty string to reset. |
-| `welcome_message` | Any string or empty to clear. |
 | `default_set_name` | Non-empty string if provided. Affects newly created workspaces; does not rename any existing sets. |
 | `allow_member_create_sets` | Boolean. |
 | `default_timezone` | A valid IANA timezone name (e.g. `UTC`, `Asia/Shanghai`). Used as the fallback for set auto-renew. |
@@ -97,7 +93,6 @@ Update one or more team settings fields. Only the provided fields are updated; o
     "site_name": "My Team Todos",
     "site_logo_url": "https://cdn.example.com/logo.png",
     "accent_color": "#0078d4",
-    "welcome_message": "Sign in to track your work.",
     "default_set_name": "Inbox",
     "allow_member_create_sets": true,
     "default_timezone": "Asia/Shanghai"

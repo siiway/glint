@@ -17,6 +17,7 @@ Glint 的所有配置都存储在 Cloudflare KV 中，并通过 Web 界面或环
 | `use_pkce` | 公开（PKCE）客户端设为 `true`；机密（密钥）客户端设为 `false`。 |
 | `allowed_team_id` | 将登录限制为特定 Prism 团队的成员。留空则允许任何已认证的 Prism 用户登录。 |
 | `session_ttl` | 会话的有效期（秒）。设为 `0` 时让 Glint 根据 Prism 访问令牌的过期时间推导有效期。 |
+| `welcome_message` | 每位用户登录后在对话框中向其展示一次的消息。留空则禁用。 |
 | `action_bar_defaults` | 默认情况下为所有用户显示在待办事项快捷操作栏中的操作键数组。详见下方[操作栏默认值](#操作栏默认值)。 |
 | `user_profile_cache_ttl` | 解析后的用户名/头像在 KV 中缓存的时长（秒）。设为 `0` 时禁用缓存。默认值：`86400`（1 天）。 |
 
@@ -65,7 +66,6 @@ team_a, team_b, team_c
 | `site_name` | 显示在侧边栏标题、浏览器标签页标题和登录页面中的名称。 |
 | `site_logo_url` | Logo 图片的 URL。设置后替代侧边栏中的文字标题。必须可公开访问。 |
 | `accent_color` | 作为主题色应用的 CSS 颜色值（十六进制、`rgb()` 等）。留空则使用默认主题色。 |
-| `welcome_message` | 登录页面应用名称下方显示的简短文字。可选。 |
 | `default_set_name` | 首次访问团队时自动创建的分组名称。默认值：`"Not Grouped"`（未分组）。 |
 | `allow_member_create_sets` | 为 `true` 时，成员无需 `manage_sets` 权限即可创建分组。默认值：`false`。 |
 | `default_timezone` | 当分组自身未设置时区时，分组[自动续期](./sets#auto-renew)使用的 IANA 时区（如 `UTC`、`Asia/Shanghai`）。默认值：`"UTC"`。 |

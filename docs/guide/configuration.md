@@ -17,6 +17,7 @@ Configured during the initialization wizard or in **Settings → App Config** (o
 | `use_pkce` | `true` for public (PKCE) clients; `false` for confidential (secret-based) clients. |
 | `allowed_team_id` | Restrict sign-in to members of a specific Prism team. Leave empty to allow any authenticated Prism user. |
 | `session_ttl` | Session lifetime in seconds. `0` lets Glint derive the lifetime from the Prism access-token expiry. |
+| `welcome_message` | Message shown once to every user right after they sign in (in a dialog). Leave empty to disable. |
 | `action_bar_defaults` | Array of action keys shown in the per-todo quick-action bar for all users by default. See [Action Bar](#action-bar-defaults) below. |
 | `user_profile_cache_ttl` | How long (in seconds) resolved user names/avatars are cached in KV. `0` disables caching. Default: `86400` (1 day). |
 
@@ -65,7 +66,6 @@ Per-team branding and behaviour, configurable in **Settings → Branding** (owne
 | `site_name` | Display name shown in the sidebar header, browser tab title, and login page. |
 | `site_logo_url` | URL to a logo image. When set, replaces the text title in the sidebar. Must be publicly accessible. |
 | `accent_color` | CSS color value (hex, `rgb()`, etc.) applied as the primary theme color. Leave empty for default. |
-| `welcome_message` | Short message shown below the app name on the login page. Optional. |
 | `default_set_name` | Name given to the auto-created set when a team is first accessed. Default: `"Not Grouped"`. |
 | `allow_member_create_sets` | When `true`, members can create sets without the `manage_sets` permission. Default: `false`. |
 | `default_timezone` | IANA timezone (e.g. `UTC`, `Asia/Shanghai`) used by set [auto-renew](./sets#auto-renew) when a set has no timezone of its own. Default: `"UTC"`. |

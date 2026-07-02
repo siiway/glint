@@ -328,7 +328,6 @@ const zh: typeof en = {
   brandingAccentColor: "强调色",
   brandingDefaults: "默认设置",
   brandingDefaultSetName: "默认分组名称",
-  brandingWelcomeMessage: "欢迎消息",
   brandingSaveSettings: "保存设置",
 
   // Settings - Permissions
@@ -363,6 +362,10 @@ const zh: typeof en = {
   appConfigAllowedTeamIdEnvHint:
     "已通过 ALLOWED_TEAM_ID 环境变量设置，无法在此修改。",
   appConfigSave: "保存应用配置",
+  appConfigWelcomeMessage: "欢迎消息",
+  appConfigWelcomeMessageHint: "在每位用户登录后向其展示一次。留空则禁用。",
+  welcomeDialogTitle: "欢迎",
+  welcomeDialogDismiss: "知道了",
   appConfigActionBarDefaults: "默认快捷操作",
   appConfigActionBarDefaultsHint:
     "所有用户的快捷操作栏默认显示的操作。用户和工作区管理员可以覆盖此设置。",

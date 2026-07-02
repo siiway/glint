@@ -63,6 +63,7 @@ type AppConfig = {
   use_pkce: boolean;
   allowed_team_id: string;
   session_ttl: number;
+  welcome_message: string;
   action_bar_defaults: string[];
   user_profile_cache_ttl: number;
   allowed_team_id_from_env: boolean;
@@ -91,7 +92,6 @@ type TeamSettings = {
   site_name: string;
   site_logo_url: string;
   accent_color: string;
-  welcome_message: string;
   default_set_name: string;
   allow_member_create_sets: boolean;
   default_timezone: string;
@@ -316,6 +316,7 @@ export function SettingsPage({
       const data = (await configRes.json()) as { config: AppConfig };
       setEditAppConfig({
         ...data.config,
+        welcome_message: data.config.welcome_message ?? "",
         action_bar_defaults:
           data.config.action_bar_defaults ?? ACTION_BAR_SITE_FALLBACK,
         user_profile_cache_ttl: data.config.user_profile_cache_ttl ?? 86400,
@@ -1215,22 +1216,6 @@ export function SettingsPage({
 
             <div className={styles.field}>
               <Body2 className={styles.fieldLabel}>
-                {t.brandingWelcomeMessage}
-              </Body2>
-              <Input
-                value={editSettings.welcome_message}
-                onChange={(_, d) =>
-                  setEditSettings(
-                    (s) => s && { ...s, welcome_message: d.value },
-                  )
-                }
-                disabled={!canManage}
-                placeholder="Welcome to our team workspace!"
-              />
-            </div>
-
-            <div className={styles.field}>
-              <Body2 className={styles.fieldLabel}>
                 {t.settingsDefaultTimezone}
               </Body2>
               <TimezoneSelector
@@ -1730,6 +1715,29 @@ export function SettingsPage({
                   }}
                 >
                   {t.appConfigUserProfileCacheTtlHint}
+                </Body1>
+              </div>
+
+              <div className={styles.field}>
+                <Body2 className={styles.fieldLabel}>
+                  {t.appConfigWelcomeMessage}
+                </Body2>
+                <Input
+                  value={editAppConfig.welcome_message ?? ""}
+                  onChange={(_, d) =>
+                    setEditAppConfig(
+                      (c) => c && { ...c, welcome_message: d.value },
+                    )
+                  }
+                  placeholder="Welcome to Glint!"
+                />
+                <Body1
+                  style={{
+                    fontSize: 12,
+                    color: tokens.colorNeutralForeground4,
+                  }}
+                >
+                  {t.appConfigWelcomeMessageHint}
                 </Body1>
               </div>
 

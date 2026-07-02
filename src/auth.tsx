@@ -51,6 +51,8 @@ type AuthContextType = {
   sessionExpiredNotice: boolean;
   appTokenWarning: boolean;
   dismissAppTokenWarning: () => void;
+  welcomeMessage: string | null;
+  dismissWelcome: () => void;
   login: () => Promise<void>;
   logout: () => Promise<void>;
   goToLogin: () => Promise<void>;
@@ -106,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [sessionExpiredNotice, setSessionExpiredNotice] = useState(false);
   const [appTokenWarning, setAppTokenWarning] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState<string | null>(null);
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -126,6 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => setAppTokenWarning(false),
     [],
   );
+
+  const dismissWelcome = useCallback(() => setWelcomeMessage(null), []);
 
   // Show persistent session-expired notice on 401; let users decide when to re-login.
   useEffect(() => {
@@ -207,10 +212,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { ok: false, reason, message: errorBody.error };
       }
 
-      const data: { user: User } = await res.json();
+      const data: { user: User; welcomeMessage?: string } = await res.json();
       setUser(data.user);
       setSessionExpiredNotice(false);
       if (data.user?.isAppToken) setAppTokenWarning(true);
+      if (data.welcomeMessage?.trim()) setWelcomeMessage(data.welcomeMessage);
       return { ok: true };
     },
     [],
@@ -236,6 +242,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionExpiredNotice,
         appTokenWarning,
         dismissAppTokenWarning,
+        welcomeMessage,
+        dismissWelcome,
         login,
         logout,
         goToLogin,

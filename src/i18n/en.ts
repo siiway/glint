@@ -347,7 +347,6 @@ export default {
   brandingAccentColor: "Accent Color",
   brandingDefaults: "Defaults",
   brandingDefaultSetName: "Default Set Name",
-  brandingWelcomeMessage: "Welcome Message",
   brandingSaveSettings: "Save Settings",
 
   // Settings - Permissions
@@ -385,6 +384,11 @@ export default {
   appConfigAllowedTeamIdEnvHint:
     "Set via ALLOWED_TEAM_ID environment variable. Cannot be changed here.",
   appConfigSave: "Save App Config",
+  appConfigWelcomeMessage: "Welcome Message",
+  appConfigWelcomeMessageHint:
+    "Shown once to every user right after they sign in. Leave empty to disable.",
+  welcomeDialogTitle: "Welcome",
+  welcomeDialogDismiss: "Got it",
   appConfigActionBarDefaults: "Default Quick Actions",
   appConfigActionBarDefaultsHint:
     "Actions shown in the quick-action bar for all users by default. Users and workspace admins can override this.",

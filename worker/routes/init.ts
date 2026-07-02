@@ -88,6 +88,7 @@ init.put("/api/init/config", async (c) => {
       ? (["allowed_team_id"] as (keyof AppConfig)[])
       : []),
     "session_ttl",
+    "welcome_message",
     "action_bar_defaults",
     "user_profile_cache_ttl",
   ];

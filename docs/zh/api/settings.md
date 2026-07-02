@@ -24,7 +24,6 @@
     "site_name": "Glint",
     "site_logo_url": "",
     "accent_color": "",
-    "welcome_message": "",
     "default_set_name": "Not Grouped",
     "allow_member_create_sets": false,
     "default_timezone": "UTC"
@@ -37,7 +36,6 @@
 | `site_name` | string | 显示在侧边栏和浏览器标题中。默认值：`"Glint"`。 |
 | `site_logo_url` | string | Logo 图片 URL。为空则使用文字标题。 |
 | `accent_color` | string | 主题色的 CSS 颜色值。为空则使用默认主题色。 |
-| `welcome_message` | string | 登录页面显示的可选文字。 |
 | `default_set_name` | string | 自动创建的首个分组名称。默认值：`"Not Grouped"`。 |
 | `allow_member_create_sets` | boolean | 成员是否可以创建分组。为 `true` 时，成员仅在创建分组方面绕过 `manage_sets` 的默认限制。 |
 | `default_timezone` | string | 当分组自身未设置时区时，分组[自动续期](./sets#auto-renew)使用的 IANA 时区。默认值：`"UTC"`。 |
@@ -70,7 +68,6 @@
   "site_name": "我的团队待办",
   "site_logo_url": "https://cdn.example.com/logo.png",
   "accent_color": "#0078d4",
-  "welcome_message": "登录以跟踪你的工作。",
   "default_set_name": "收件箱",
   "allow_member_create_sets": true,
   "default_timezone": "Asia/Shanghai"
@@ -84,7 +81,6 @@
 | `site_name` | 若提供，不能为空字符串。 |
 | `site_logo_url` | 必须是有效 URL 或空字符串。Logo 由浏览器直接获取——必须可公开访问。 |
 | `accent_color` | 任何 CSS 颜色值（`#hex`、`rgb()`、颜色名称等）或空字符串（重置为默认）。 |
-| `welcome_message` | 任意字符串，或空字符串（清除）。 |
 | `default_set_name` | 若提供，不能为空字符串。影响新建工作区；不会重命名已有分组。 |
 | `allow_member_create_sets` | 布尔值。 |
 | `default_timezone` | 有效的 IANA 时区名称（如 `UTC`、`Asia/Shanghai`）。用作分组自动续期的回退值。 |
@@ -97,7 +93,6 @@
     "site_name": "我的团队待办",
     "site_logo_url": "https://cdn.example.com/logo.png",
     "accent_color": "#0078d4",
-    "welcome_message": "登录以跟踪你的工作。",
     "default_set_name": "收件箱",
     "allow_member_create_sets": true,
     "default_timezone": "Asia/Shanghai"

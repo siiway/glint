@@ -167,6 +167,8 @@ auth.post("/api/auth/callback", async (c) => {
       teams: session.teams,
       isAppToken: session.isAppToken ?? false,
     },
+    // Shown once by the client right after a successful sign-in.
+    welcomeMessage: config.welcome_message ?? "",
   });
 });
 

@@ -14,7 +14,6 @@ const ALLOWED_SETTINGS_KEYS: (keyof TeamSettings)[] = [
   "site_name",
   "site_logo_url",
   "accent_color",
-  "welcome_message",
   "default_set_name",
   "allow_member_create_sets",
   "default_timezone",

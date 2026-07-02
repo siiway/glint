@@ -96,6 +96,8 @@ function AppShell() {
     sessionExpiredNotice,
     appTokenWarning,
     dismissAppTokenWarning,
+    welcomeMessage,
+    dismissWelcome,
     goToLogin,
     logout,
   } = useAuth();
@@ -169,6 +171,26 @@ function AppShell() {
               </Button>
               <Button appearance="primary" onClick={() => void logout()}>
                 {t.signOut}
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+      <Dialog
+        open={!!welcomeMessage}
+        onOpenChange={(_, d) => !d.open && dismissWelcome()}
+      >
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>{t.welcomeDialogTitle}</DialogTitle>
+            <DialogContent>
+              <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                {welcomeMessage}
+              </div>
+            </DialogContent>
+            <DialogActions>
+              <Button appearance="primary" onClick={dismissWelcome}>
+                {t.welcomeDialogDismiss}
               </Button>
             </DialogActions>
           </DialogBody>

@@ -709,7 +709,6 @@ Read team settings. Available to any team member.
     "site_name": "Acme Todos",
     "site_logo_url": "",
     "accent_color": "#6366f1",
-    "welcome_message": "",
     "default_set_name": "Not Grouped",
     "allow_member_create_sets": false,
     "default_timezone": "UTC"
@@ -739,7 +738,6 @@ Update team settings. Requires the `manage_settings` Glint permission (owner or 
 {
   "site_name": "Acme Todos",
   "accent_color": "#6366f1",
-  "welcome_message": "Welcome to the team!",
   "default_set_name": "Inbox",
   "allow_member_create_sets": true,
   "default_timezone": "America/New_York"
@@ -753,7 +751,6 @@ Only the fields listed below are accepted; any other keys are ignored:
 | `site_name`                | string  | Display name for the workspace                |
 | `site_logo_url`            | string  | URL for the workspace logo                    |
 | `accent_color`             | string  | CSS color value for the accent color          |
-| `welcome_message`          | string  | Message shown to members on the home screen   |
 | `default_set_name`         | string  | Default name for the ungrouped set            |
 | `allow_member_create_sets` | boolean | Whether members can create new sets           |
 | `default_timezone`         | string  | IANA timezone identifier                      |
