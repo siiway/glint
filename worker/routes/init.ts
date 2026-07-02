@@ -7,6 +7,7 @@ import {
   setAppConfig,
   getTeamSettings,
   parseAllowedTeamIds,
+  resolveOwnerTeamIds,
 } from "../config";
 import { getPrism, getTeamRole } from "../auth";
 import { CROSS_APP_SCOPES } from "../crossAppScopes";
@@ -40,12 +41,12 @@ init.get("/api/init/config", async (c) => {
     if (!cached) return c.json({ error: "Unauthorized" }, 401);
     const session = cached as SessionData;
     const config = await getAppConfig(c.env.KV, c.env);
-    const allowedTeamIds = parseAllowedTeamIds(config.allowed_team_id);
-    if (allowedTeamIds.length > 0) {
-      const isOwnerInAllowedTeam = allowedTeamIds.some(
+    const ownerTeamIds = resolveOwnerTeamIds(config);
+    if (ownerTeamIds.length > 0) {
+      const isOwnerInOwnerTeam = ownerTeamIds.some(
         (teamId) => getTeamRole(session, teamId) === "owner",
       );
-      if (!isOwnerInAllowedTeam)
+      if (!isOwnerInOwnerTeam)
         return c.json({ error: "Only team owner can view app config" }, 403);
     }
   }
@@ -67,12 +68,12 @@ init.put("/api/init/config", async (c) => {
     if (!cached) return c.json({ error: "Unauthorized" }, 401);
     const session = cached as SessionData;
     const config = await getAppConfig(c.env.KV, c.env);
-    const allowedTeamIds = parseAllowedTeamIds(config.allowed_team_id);
-    if (allowedTeamIds.length > 0) {
-      const isOwnerInAllowedTeam = allowedTeamIds.some(
+    const ownerTeamIds = resolveOwnerTeamIds(config);
+    if (ownerTeamIds.length > 0) {
+      const isOwnerInOwnerTeam = ownerTeamIds.some(
         (teamId) => getTeamRole(session, teamId) === "owner",
       );
-      if (!isOwnerInAllowedTeam)
+      if (!isOwnerInOwnerTeam)
         return c.json({ error: "Only team owner can change app config" }, 403);
     }
   }
@@ -87,6 +88,7 @@ init.put("/api/init/config", async (c) => {
     ...(!c.env.ALLOWED_TEAM_ID?.trim()
       ? (["allowed_team_id"] as (keyof AppConfig)[])
       : []),
+    "owner_team_id",
     "session_ttl",
     "welcome_message",
     "action_bar_defaults",
@@ -201,9 +203,9 @@ init.post("/api/init/register-permissions", async (c) => {
   const session = cached as SessionData;
 
   const config = await getAppConfig(c.env.KV, c.env);
-  const allowedTeamIds = parseAllowedTeamIds(config.allowed_team_id);
-  if (allowedTeamIds.length > 0) {
-    const isOwner = allowedTeamIds.some(
+  const ownerTeamIds = resolveOwnerTeamIds(config);
+  if (ownerTeamIds.length > 0) {
+    const isOwner = ownerTeamIds.some(
       (teamId) => getTeamRole(session, teamId) === "owner",
     );
     if (!isOwner)

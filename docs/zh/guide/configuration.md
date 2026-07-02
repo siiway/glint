@@ -16,6 +16,7 @@ Glint 的所有配置都存储在 Cloudflare KV 中，并通过 Web 界面或环
 | `prism_redirect_uri` | Prism 应用中注册的回调 URL，例如 `https://glint.example.com/callback`。必须完全匹配。 |
 | `use_pkce` | 公开（PKCE）客户端设为 `true`；机密（密钥）客户端设为 `false`。 |
 | `allowed_team_id` | 将登录限制为特定 Prism 团队的成员。留空则允许任何已认证的 Prism 用户登录。 |
+| `owner_team_id` | 将查看 / 修改应用配置以及注册权限的权限限制为该 Prism 团队的 owner。留空则回退为 `allowed_team_id`。 |
 | `session_ttl` | 会话的有效期（秒）。设为 `0` 时让 Glint 根据 Prism 访问令牌的过期时间推导有效期。 |
 | `welcome_message` | 每位用户登录后在对话框中向其展示一次的消息。留空则禁用。 |
 | `action_bar_defaults` | 默认情况下为所有用户显示在待办事项快捷操作栏中的操作键数组。详见下方[操作栏默认值](#操作栏默认值)。 |
@@ -53,6 +54,24 @@ team_a, team_b, team_c
 
 ::: tip
 通过**`ALLOWED_TEAM_ID` 环境变量**（在 `wrangler.jsonc` 或 Cloudflare 控制台中设置）指定的值会覆盖 KV 中存储的值，且无法通过 UI 修改。当环境变量生效时，设置页面会显示"已锁定"提示。
+:::
+
+### `owner_team_id`
+
+`allowed_team_id` 控制**谁能登录**，但它本身也决定了**谁能管理实例**：任何一个允许团队的 owner 都能查看、修改应用配置并注册权限。当你把同一个 Glint 实例共享给多个团队使用时，这并不安全——任意一个允许团队的 owner 都能重新配置整个实例。
+
+`owner_team_id` 将这两项职责分离。设置后，只有指定团队的 owner 才能：
+
+- 查看应用配置（`GET /api/init/config`）
+- 修改应用配置（`PUT /api/init/config`）
+- 注册跨应用权限（`POST /api/init/register-permissions`）
+
+当 `owner_team_id` 为空时，Glint 回退为使用 `allowed_team_id` 作为管理门禁（即先前的行为），因此现有部署不受影响。
+
+与 `allowed_team_id` 一样，可配置多个团队 ID，用逗号、分号或空格分隔。该值存储在 KV 中，并在**设置 → 应用配置**中编辑；不提供环境变量覆盖。
+
+::: warning
+`owner_team_id` 是一个**管理边界**，而非登录边界。它不影响谁能登录——登录控制请使用 `allowed_team_id`。
 :::
 
 ---

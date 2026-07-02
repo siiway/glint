@@ -361,6 +361,9 @@ const zh: typeof en = {
   appConfigAllowedTeamIdHint: "支持多个团队 ID，用逗号、分号或空格分隔。",
   appConfigAllowedTeamIdEnvHint:
     "已通过 ALLOWED_TEAM_ID 环境变量设置，无法在此修改。",
+  appConfigOwnerTeamId: "管理团队 ID",
+  appConfigOwnerTeamIdHint:
+    "只有这些团队的 owner 才能查看 / 修改应用配置以及注册权限。留空则回退为「允许的团队 ID」。支持多个团队 ID，用逗号、分号或空格分隔。",
   appConfigSave: "保存应用配置",
   appConfigWelcomeMessage: "欢迎消息",
   appConfigWelcomeMessageHint: "在每位用户登录后向其展示一次。留空则禁用。",

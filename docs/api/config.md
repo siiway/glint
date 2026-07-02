@@ -62,7 +62,8 @@ Returns the current app configuration. The `prism_client_secret` field is always
     "prism_client_secret": "",
     "prism_redirect_uri": "https://glint.example.com/callback",
     "use_pkce": true,
-    "allowed_team_id": ""
+    "allowed_team_id": "",
+    "owner_team_id": ""
   }
 }
 ```
@@ -75,12 +76,13 @@ Returns the current app configuration. The `prism_client_secret` field is always
 | `prism_redirect_uri` | string | OAuth callback URI. |
 | `use_pkce` | boolean | `true` for PKCE (public) clients. |
 | `allowed_team_id` | string | If set, restricts sign-in to members of this team. If locked via env var, the value is shown but cannot be changed from the UI. |
+| `owner_team_id` | string | If set, restricts viewing/changing the app config and registering permissions to owners of this team. If empty, falls back to `allowed_team_id`. Supports multiple team IDs separated by comma, semicolon, or spaces. |
 
 ---
 
 ## `PUT /api/init/config`
 
-Update the app configuration. Before initialization, anyone can call this. After initialization, only the team owner can update it.
+Update the app configuration. Before initialization, anyone can call this. After initialization, only an owner of the `owner_team_id` team (or, when that is empty, the `allowed_team_id` team) can update it.
 
 **Auth required:** Owner (after initialization)
 
@@ -93,7 +95,8 @@ Update the app configuration. Before initialization, anyone can call this. After
   "prism_client_secret": "your-secret",
   "prism_redirect_uri": "https://glint.example.com/callback",
   "use_pkce": false,
-  "allowed_team_id": "team-uuid"
+  "allowed_team_id": "team-uuid",
+  "owner_team_id": "admin-team-uuid"
 }
 ```
 
@@ -111,7 +114,8 @@ Send `"prism_client_secret": ""` to clear a previously stored secret (e.g. switc
     "prism_client_secret": "",
     "prism_redirect_uri": "https://glint.example.com/callback",
     "use_pkce": false,
-    "allowed_team_id": "team-uuid"
+    "allowed_team_id": "team-uuid",
+    "owner_team_id": "admin-team-uuid"
   }
 }
 ```
@@ -141,7 +145,8 @@ One-time initialization. Creates all database tables (using `CREATE TABLE IF NOT
     "prism_client_secret": "",
     "prism_redirect_uri": "https://glint.example.com/callback",
     "use_pkce": true,
-    "allowed_team_id": ""
+    "allowed_team_id": "",
+    "owner_team_id": ""
   }
 }
 ```

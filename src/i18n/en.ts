@@ -383,6 +383,9 @@ export default {
     "Supports multiple team IDs separated by comma, semicolon, or spaces.",
   appConfigAllowedTeamIdEnvHint:
     "Set via ALLOWED_TEAM_ID environment variable. Cannot be changed here.",
+  appConfigOwnerTeamId: "Admin Team ID",
+  appConfigOwnerTeamIdHint:
+    "Only owners of these team(s) can view or change the app config and register permissions. Leave empty to fall back to the Allowed Team ID. Supports multiple team IDs separated by comma, semicolon, or spaces.",
   appConfigSave: "Save App Config",
   appConfigWelcomeMessage: "Welcome Message",
   appConfigWelcomeMessageHint:

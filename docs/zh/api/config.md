@@ -62,7 +62,8 @@
     "prism_client_secret": "",
     "prism_redirect_uri": "https://glint.example.com/callback",
     "use_pkce": true,
-    "allowed_team_id": ""
+    "allowed_team_id": "",
+    "owner_team_id": ""
   }
 }
 ```
@@ -75,12 +76,13 @@
 | `prism_redirect_uri` | string | OAuth 回调 URI。 |
 | `use_pkce` | boolean | PKCE（公开）客户端为 `true`。 |
 | `allowed_team_id` | string | 若设置，限制登录范围为该团队成员。若通过环境变量锁定，UI 中显示该值但不可修改。 |
+| `owner_team_id` | string | 若设置，仅该团队的 owner 才能查看 / 修改应用配置以及注册权限。留空则回退为 `allowed_team_id`。支持多个团队 ID，用逗号、分号或空格分隔。 |
 
 ---
 
 ## `PUT /api/init/config`
 
-更新应用配置。初始化之前任何人均可调用；初始化之后仅团队所有者可更新。
+更新应用配置。初始化之前任何人均可调用；初始化之后仅 `owner_team_id` 团队的所有者（若未设置则为 `allowed_team_id` 团队的所有者）可更新。
 
 **需要身份验证：** 所有者（初始化后）
 
@@ -93,7 +95,8 @@
   "prism_client_secret": "your-secret",
   "prism_redirect_uri": "https://glint.example.com/callback",
   "use_pkce": false,
-  "allowed_team_id": "team-uuid"
+  "allowed_team_id": "team-uuid",
+  "owner_team_id": "admin-team-uuid"
 }
 ```
 
@@ -111,7 +114,8 @@
     "prism_client_secret": "",
     "prism_redirect_uri": "https://glint.example.com/callback",
     "use_pkce": false,
-    "allowed_team_id": "team-uuid"
+    "allowed_team_id": "team-uuid",
+    "owner_team_id": "admin-team-uuid"
   }
 }
 ```
@@ -141,7 +145,8 @@
     "prism_client_secret": "",
     "prism_redirect_uri": "https://glint.example.com/callback",
     "use_pkce": true,
-    "allowed_team_id": ""
+    "allowed_team_id": "",
+    "owner_team_id": ""
   }
 }
 ```

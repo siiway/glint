@@ -62,6 +62,7 @@ type AppConfig = {
   prism_redirect_uri: string;
   use_pkce: boolean;
   allowed_team_id: string;
+  owner_team_id: string;
   session_ttl: number;
   welcome_message: string;
   action_bar_defaults: string[];
@@ -1649,6 +1650,29 @@ export function SettingsPage({
                   {editAppConfig.allowed_team_id_from_env
                     ? t.appConfigAllowedTeamIdEnvHint
                     : t.appConfigAllowedTeamIdHint}
+                </Body1>
+              </div>
+
+              <div className={styles.field}>
+                <Body2 className={styles.fieldLabel}>
+                  {t.appConfigOwnerTeamId}
+                </Body2>
+                <Input
+                  value={editAppConfig.owner_team_id}
+                  onChange={(_, d) =>
+                    setEditAppConfig(
+                      (c) => c && { ...c, owner_team_id: d.value },
+                    )
+                  }
+                  placeholder={t.initAllowedTeamIdPlaceholder}
+                />
+                <Body1
+                  style={{
+                    fontSize: 12,
+                    color: tokens.colorNeutralForeground4,
+                  }}
+                >
+                  {t.appConfigOwnerTeamIdHint}
                 </Body1>
               </div>
 

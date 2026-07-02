@@ -8,6 +8,18 @@ export function parseAllowedTeamIds(raw: string): string[] {
     .filter(Boolean);
 }
 
+/**
+ * Resolve which team(s) gate access to app-config administration (viewing /
+ * changing app config, registering permissions). Prefers the dedicated
+ * `owner_team_id`; falls back to `allowed_team_id` for backward compatibility
+ * when it is not set.
+ */
+export function resolveOwnerTeamIds(config: AppConfig): string[] {
+  const owners = parseAllowedTeamIds(config.owner_team_id);
+  if (owners.length > 0) return owners;
+  return parseAllowedTeamIds(config.allowed_team_id);
+}
+
 export async function getAppConfig(
   kv: KVNamespace,
   env?: { ALLOWED_TEAM_ID?: string },

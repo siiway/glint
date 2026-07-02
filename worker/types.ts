@@ -12,6 +12,12 @@ export type AppConfig = {
   prism_redirect_uri: string;
   use_pkce: boolean;
   allowed_team_id: string;
+  /**
+   * Restricts who can view/change the app config and register permissions to
+   * owners of these team(s). If empty, falls back to allowed_team_id.
+   * Supports multiple team IDs separated by comma, semicolon, or spaces.
+   */
+  owner_team_id: string;
   session_ttl: number;
   /** Message shown to every user once, right after they sign in. Empty = disabled. */
   welcome_message: string;
@@ -30,6 +36,7 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
   prism_redirect_uri: "",
   use_pkce: true,
   allowed_team_id: "",
+  owner_team_id: "",
   session_ttl: 0,
   welcome_message: "",
 };

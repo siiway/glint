@@ -16,6 +16,7 @@ Configured during the initialization wizard or in **Settings → App Config** (o
 | `prism_redirect_uri` | The callback URL registered in your Prism app, e.g. `https://glint.example.com/callback`. Must match exactly. |
 | `use_pkce` | `true` for public (PKCE) clients; `false` for confidential (secret-based) clients. |
 | `allowed_team_id` | Restrict sign-in to members of a specific Prism team. Leave empty to allow any authenticated Prism user. |
+| `owner_team_id` | Restrict who can view/change the app config and register permissions to owners of this Prism team. Leave empty to fall back to `allowed_team_id`. |
 | `session_ttl` | Session lifetime in seconds. `0` lets Glint derive the lifetime from the Prism access-token expiry. |
 | `welcome_message` | Message shown once to every user right after they sign in (in a dialog). Leave empty to disable. |
 | `action_bar_defaults` | Array of action keys shown in the per-todo quick-action bar for all users by default. See [Action Bar](#action-bar-defaults) below. |
@@ -53,6 +54,24 @@ team_a, team_b, team_c
 
 ::: tip
 `allowed_team_id` set via the **`ALLOWED_TEAM_ID` environment variable** (in `wrangler.jsonc` or the Cloudflare dashboard) takes precedence over the KV-stored value and cannot be modified from the UI. The Settings page shows a "locked" indicator when the env var is active.
+:::
+
+### `owner_team_id`
+
+`allowed_team_id` controls **who can log in**, but by itself it also decides **who administers the instance**: any owner of an allowed team can view and change the app config and register permissions. When you share a single Glint instance across several teams, that is unsafe — an owner of any allowed team could reconfigure the whole instance.
+
+`owner_team_id` separates these two concerns. When set, only owners of the specified team(s) can:
+
+- view the app config (`GET /api/init/config`)
+- change the app config (`PUT /api/init/config`)
+- register cross-app permissions (`POST /api/init/register-permissions`)
+
+When `owner_team_id` is empty, Glint falls back to `allowed_team_id` for the admin gate (the previous behaviour), so existing deployments are unaffected.
+
+Like `allowed_team_id`, multiple team IDs can be specified, separated by commas, semicolons, or spaces. This value is stored in KV and edited from **Settings → App Config**; there is no environment-variable override.
+
+::: warning
+`owner_team_id` is an **administration boundary**, not a login boundary. It does not affect who can sign in — use `allowed_team_id` for that.
 :::
 
 ---
