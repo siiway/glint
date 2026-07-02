@@ -189,9 +189,7 @@
       "completed": false,
       "sortOrder": 1,
       "commentCount": 0,
-      "claimedBy": null,
-      "claimedByName": null,
-      "claimedByAvatar": null,
+      "assignees": [],
       "createdAt": "2026-06-01T10:00:00.000Z",
       "updatedAt": "2026-06-01T10:00:00.000Z"
     }

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import type { Assignee } from "../types";
 
 export type WsEvent =
   | { type: "todo:created"; setId: string; todo: TodoPayload }
@@ -14,13 +15,10 @@ export type WsEvent =
       items: { id: string; sortOrder: number }[];
     }
   | {
-      type: "todo:claimed";
+      type: "todo:assigned";
       setId: string;
       id: string;
-      claimedBy: string | null;
-      claimedByName: string | null;
-      claimedByUsername?: string | null;
-      claimedByAvatar: string | null;
+      assignees: Assignee[];
     }
   | {
       type: "todo:moved";
@@ -38,9 +36,7 @@ export type TodoPayload = {
   completed: boolean;
   sortOrder: number;
   commentCount: number;
-  claimedBy: string | null;
-  claimedByName: string | null;
-  claimedByAvatar: string | null;
+  assignees: Assignee[];
   createdAt: string;
   updatedAt: string;
 };

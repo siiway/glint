@@ -17,23 +17,13 @@ export type TransferPayload = {
   todos: TransferTodo[];
 };
 
-const claimedBySupportCache = new WeakMap<D1Database, boolean>();
-export async function supportsClaimedBy(db: D1Database): Promise<boolean> {
-  const cached = claimedBySupportCache.get(db);
-  if (cached !== undefined) return cached;
-  const info = await db.prepare("PRAGMA table_info(todos)").all();
-  const supported = info.results.some((r) => r.name === "claimed_by");
-  claimedBySupportCache.set(db, supported);
-  return supported;
-}
-
 export function renderMarkdown(nodes: TransferTodo[], depth = 0): string {
   const lines: string[] = [];
   const pad = "  ".repeat(depth);
   for (const node of nodes) {
     lines.push(`${pad}- [${node.completed ? "x" : " "}] ${node.title}`);
-    if (node.claimedByName) {
-      lines.push(`${pad}  > claimed: ${node.claimedByName}`);
+    if (node.assigneeNames?.length) {
+      lines.push(`${pad}  > assigned: ${node.assigneeNames.join(", ")}`);
     }
     for (const comment of node.comments ?? []) {
       lines.push(`${pad}  > ${comment}`);
@@ -58,13 +48,31 @@ export async function buildTransferPayload(
     .first<{ id: string; name: string }>();
   if (!set) return null;
 
-  const claimSupported = await supportsClaimedBy(db);
   const todoRows = await db
     .prepare(
-      `SELECT id, parent_id, title, completed${claimSupported ? ", claimed_by" : ""} FROM todos WHERE set_id = ? AND team_id = ? ORDER BY sort_order ASC, created_at ASC`,
+      `SELECT id, parent_id, title, completed FROM todos WHERE set_id = ? AND team_id = ? ORDER BY sort_order ASC, created_at ASC`,
     )
     .bind(setId, teamId)
     .all();
+
+  // Map each todo id to the display names of its assignees (if the feature and
+  // any assignments exist). Names come from the caller-supplied nameMap.
+  const assigneeNamesByTodo: Record<string, string[]> = {};
+  if (Object.keys(nameMap).length > 0) {
+    const assigneeRows = await db
+      .prepare(
+        "SELECT todo_id, user_id FROM todo_assignees WHERE team_id = ? AND todo_id IN (SELECT id FROM todos WHERE set_id = ? AND team_id = ?)",
+      )
+      .bind(teamId, setId, teamId)
+      .all()
+      .catch(() => ({ results: [] as Record<string, unknown>[] }));
+    for (const row of assigneeRows.results) {
+      const todoId = row.todo_id as string;
+      const name = nameMap[row.user_id as string];
+      if (!name) continue;
+      (assigneeNamesByTodo[todoId] ??= []).push(name);
+    }
+  }
 
   const commentsMap: Record<string, string[]> = {};
   if (includeComments) {
@@ -85,11 +93,10 @@ export async function buildTransferPayload(
   const parentOf = new Map<string, string | null>();
   for (const row of todoRows.results) {
     const id = row.id as string;
-    const claimedBy = claimSupported ? (row.claimed_by as string | null) : null;
     byId.set(id, {
       title: row.title as string,
       completed: row.completed === 1,
-      claimedByName: claimedBy ? (nameMap[claimedBy] ?? undefined) : undefined,
+      assigneeNames: assigneeNamesByTodo[id],
       comments: commentsMap[id],
     });
     parentOf.set(id, (row.parent_id as string) || null);

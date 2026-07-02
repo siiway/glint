@@ -70,7 +70,7 @@
 
 | 字段 | 约束 |
 | --- | --- |
-| `action_bar` | 有效操作键的数组：`add_before`、`add_after`、`add_subtodo`、`edit`、`complete`、`claim`、`comment`、`delete`。传递 `null` 以重置为工作区/站点默认值。 |
+| `action_bar` | 有效操作键的数组：`add_before`、`add_after`、`add_subtodo`、`edit`、`complete`、`assign_self`、`assign`、`comment`、`move`、`delete`。传递 `null` 以重置为工作区/站点默认值。 |
 | `realtime_transport` | 其中之一：`"ws"`、`"sse"`、`"auto"`。 |
 | `workspace_favicon` | 布尔值。 |
 | `detailed_status` | 布尔值。 |

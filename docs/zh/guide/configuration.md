@@ -106,7 +106,8 @@ team_a, team_b, team_c
 | `add_subtodo` | 添加嵌套子待办事项 |
 | `edit` | 编辑待办事项标题 |
 | `complete` | 切换完成状态 |
-| `claim` | 认领 / 取消认领待办事项 |
+| `assign_self` | 将待办事项分配给自己 / 取消分配 |
+| `assign` | 打开分配选择器（分配给团队成员） |
 | `comment` | 打开评论面板 |
 | `move` | 将待办移动到其他列表 |
 | `delete` | 删除待办事项 |

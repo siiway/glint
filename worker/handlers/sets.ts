@@ -17,9 +17,9 @@ import {
   insertTransferTodo,
   parseImportContent,
   serializeExport,
-  supportsClaimedBy,
   type TransferTodo,
 } from "../transfer";
+import { supportsAssignees } from "../assignees";
 
 type Ctx = Context<{ Bindings: Bindings; Variables: Variables }>;
 
@@ -295,20 +295,20 @@ export const exportSet = async (c: Ctx): Promise<Response> => {
   const includeComments = c.req.query("includeComments") === "1";
 
   let nameMap: Record<string, string> = {};
-  if (await supportsClaimedBy(c.env.DB)) {
-    const claimedRows = await c.env.DB.prepare(
-      "SELECT DISTINCT claimed_by FROM todos WHERE set_id = ? AND team_id = ? AND claimed_by IS NOT NULL",
+  if (await supportsAssignees(c.env.DB)) {
+    const assigneeRows = await c.env.DB.prepare(
+      "SELECT DISTINCT user_id FROM todo_assignees WHERE team_id = ? AND todo_id IN (SELECT id FROM todos WHERE set_id = ? AND team_id = ?)",
     )
-      .bind(setId, teamId)
+      .bind(teamId, setId, teamId)
       .all();
-    const claimedIds = new Set(
-      claimedRows.results.map((r) => r.claimed_by as string),
+    const assigneeIds = new Set(
+      assigneeRows.results.map((r) => r.user_id as string),
     );
-    if (claimedIds.size > 0) {
+    if (assigneeIds.size > 0) {
       const config = await getAppConfig(c.env.KV);
       const ids = isPersonalSpaceId(teamId, session.userId)
         ? new Set([session.userId])
-        : claimedIds;
+        : assigneeIds;
       ({ nameMap } = await resolveUserProfiles(
         c.env.KV,
         config,

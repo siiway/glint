@@ -43,17 +43,41 @@ If the set has **Split Completed Todos** enabled, completed todos move to a coll
 
 ---
 
-## Claiming
+## Assignment
 
-Claiming lets a team member signal "I'm working on this." A claimed todo shows the claimer's name and avatar.
+Assignment lets you say "this is on these people." A todo can be assigned to
+**multiple** team members at once, and each assignee's avatar is shown on the
+todo row.
 
-- Click the **Claim** action (available in the action bar / context menu) to claim a todo to yourself.
-- Click it again while you hold the claim to **release** it.
-- A todo can only be held by one person at a time — attempting to claim a todo already held by someone else is rejected.
+- Use **Assign…** (action bar, `...` menu, or right-click) to open the
+  assignee picker — a GitHub-style popup with a search box and a checkable
+  member list. Ticking a member assigns them; unticking removes them. Everyone
+  currently assigned shows a check.
+- Use **Assign to me** / **Unassign me** for the one-click self-assign shortcut.
+  (This replaces the old "claim" feature; existing claims were migrated to
+  self-assignments.)
 
-Claims sync in realtime via the `todo:claimed` event, so everyone viewing the set sees the change instantly.
+Assignments sync in realtime via the `todo:assigned` event, so everyone viewing
+the set sees the change instantly.
 
-Requires: `claim_todos` permission.
+Requires: `assign_todos` permission.
+
+---
+
+## Assigned to me
+
+A pinned **Assigned to me** category sits at the top of the sidebar, above your
+todo lists. It gathers every incomplete todo assigned to you in the current
+workspace, grouped by todo list. Each list group can be collapsed or expanded
+(MS To Do style); the expand/collapse state is remembered per user in the
+background.
+
+You can complete a todo directly from this view. Completing it keeps the
+assignment but removes it from the list (completed todos are hidden here).
+
+Derived apps can read the same data across **all** your workspaces through the
+cross-app [`GET /api/cross-app/assigned-to-me`](../api/cross-app#get-api-cross-app-assigned-to-me)
+endpoint, which partitions results by workspace.
 
 ---
 

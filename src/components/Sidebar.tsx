@@ -44,6 +44,7 @@ import {
   DesktopRegular,
   WeatherSunnyRegular,
   WeatherMoonRegular,
+  Mail24Regular,
 } from "@fluentui/react-icons";
 import type { TodoSet, TodoSpace } from "../types";
 import { ROLE_COLORS } from "../types";
@@ -173,6 +174,11 @@ const useStyles = makeStyles({
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
   },
+  pinnedSeparator: {
+    height: "1px",
+    backgroundColor: tokens.colorNeutralStroke2,
+    margin: "6px 4px",
+  },
   addSetRow: {
     display: "flex",
     gap: "4px",
@@ -208,6 +214,8 @@ type Props = {
   sets: TodoSet[];
   selectedSetId: string;
   onSetSelect: (id: string) => void;
+  assignedViewActive: boolean;
+  onSelectAssignedView: () => void;
   loadingSets: boolean;
   siteName: string;
   siteLogo: string;
@@ -243,6 +251,8 @@ export function Sidebar({
   sets,
   selectedSetId,
   onSetSelect,
+  assignedViewActive,
+  onSelectAssignedView,
   loadingSets,
   siteName,
   siteLogo,
@@ -448,6 +458,22 @@ export function Sidebar({
   function renderSetsList() {
     return (
       <>
+        {/* Pinned, non-reorderable "Assigned to me" category. */}
+        <div
+          className={mergeClasses(
+            styles.setItem,
+            assignedViewActive && styles.setItemActive,
+          )}
+          onClick={() => {
+            onSelectAssignedView();
+            if (isMobile) onDrawerChange(false);
+          }}
+        >
+          <Mail24Regular />
+          <span className={styles.setName}>{t.assignedToMe}</span>
+        </div>
+        <div className={styles.pinnedSeparator} />
+
         {sets.map((s, i) => (
           <div
             key={s.id}

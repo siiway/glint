@@ -7,12 +7,12 @@
 import type { Context } from "hono";
 import type { Bindings, Variables } from "../types";
 import { getTeamRole, isPersonalSpaceId } from "../auth";
-import { supportsClaimedBy } from "../transfer";
+import { supportsAssignees } from "../assignees";
 
 type Ctx = Context<{ Bindings: Bindings; Variables: Variables }>;
 
 /**
- * GET overview — sets count, todo counts, my claimed count.
+ * GET overview — sets count, todo counts, count assigned to me.
  * Required permission: team membership (no specific permission key).
  */
 export const getOverview = async (c: Ctx): Promise<Response> => {
@@ -21,9 +21,9 @@ export const getOverview = async (c: Ctx): Promise<Response> => {
   const role = getTeamRole(session, teamId);
   if (!role) return c.json({ error: "Not a member of this team" }, 403);
 
-  const claimSupported = await supportsClaimedBy(c.env.DB);
+  const assigneesSupported = await supportsAssignees(c.env.DB);
 
-  const [setsRow, totalRow, completedRow, claimedRow] = await Promise.all([
+  const [setsRow, totalRow, completedRow, assignedRow] = await Promise.all([
     c.env.DB.prepare(
       "SELECT COUNT(*) as count FROM todo_sets WHERE team_id = ?",
     )
@@ -39,9 +39,11 @@ export const getOverview = async (c: Ctx): Promise<Response> => {
     )
       .bind(teamId)
       .first<{ count: number }>(),
-    claimSupported
+    assigneesSupported
       ? c.env.DB.prepare(
-          "SELECT COUNT(*) as count FROM todos WHERE team_id = ? AND claimed_by = ? AND completed = 0",
+          `SELECT COUNT(*) as count FROM todo_assignees a
+           JOIN todos t ON t.id = a.todo_id
+           WHERE a.team_id = ? AND a.user_id = ? AND t.completed = 0`,
         )
           .bind(teamId, session.userId)
           .first<{ count: number }>()
@@ -56,12 +58,12 @@ export const getOverview = async (c: Ctx): Promise<Response> => {
     total,
     completed,
     pending: total - completed,
-    claimedByMe: claimedRow?.count ?? 0,
+    assignedToMe: assignedRow?.count ?? 0,
   });
 };
 
 /**
- * GET my-todos — incomplete todos created by, or claimed by, the calling user.
+ * GET my-todos — incomplete todos created by, or assigned to, the calling user.
  */
 export const getMyTodos = async (c: Ctx): Promise<Response> => {
   const teamId = c.req.param("teamId")!;
@@ -69,27 +71,30 @@ export const getMyTodos = async (c: Ctx): Promise<Response> => {
   const role = getTeamRole(session, teamId);
   if (!role) return c.json({ error: "Not a member of this team" }, 403);
 
-  const claimSupported = await supportsClaimedBy(c.env.DB);
+  const assigneesSupported = await supportsAssignees(c.env.DB);
 
-  const claimClause = claimSupported
-    ? `AND (t.user_id = ? OR t.claimed_by = ?)`
+  const whereClause = assigneesSupported
+    ? `AND (t.user_id = ? OR EXISTS (
+         SELECT 1 FROM todo_assignees a
+         WHERE a.todo_id = t.id AND a.user_id = ?
+       ))`
     : `AND t.user_id = ?`;
-  const binds = claimSupported
+  const binds = assigneesSupported
     ? [teamId, session.userId, session.userId]
     : [teamId, session.userId];
 
   const result = await c.env.DB.prepare(
     `SELECT t.id, t.set_id, t.user_id, t.title, t.completed,
-          ${claimSupported ? "t.claimed_by," : "NULL as claimed_by,"}
           t.created_at, t.updated_at,
-          s.name as set_name
+          s.name as set_name,
+          ${assigneesSupported ? "EXISTS (SELECT 1 FROM todo_assignees a WHERE a.todo_id = t.id AND a.user_id = ?)" : "0"} as assigned_to_me
    FROM todos t
    LEFT JOIN todo_sets s ON s.id = t.set_id
-   WHERE t.team_id = ? ${claimClause} AND t.completed = 0
+   WHERE t.team_id = ? ${whereClause} AND t.completed = 0
    ORDER BY t.updated_at DESC
    LIMIT 50`,
   )
-    .bind(...binds)
+    .bind(...(assigneesSupported ? [session.userId, ...binds] : binds))
     .all();
 
   return c.json({
@@ -100,9 +105,8 @@ export const getMyTodos = async (c: Ctx): Promise<Response> => {
       userId: row.user_id as string,
       title: row.title as string,
       completed: row.completed === 1,
-      claimedBy: (row.claimed_by as string) || null,
       isMyTodo: row.user_id === session.userId,
-      isClaimedByMe: row.claimed_by === session.userId,
+      isAssignedToMe: row.assigned_to_me === 1,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
     })),

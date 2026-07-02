@@ -19,7 +19,7 @@
  *   complete_todos  — toggle todo completion
  *   delete_todos    — delete todos
  *   reorder_todos   — change todo sort order
- *   claim_todos     — claim/unclaim todos
+ *   assign_todos    — assign/unassign todos to team members
  *   write_todos     — legacy catch-all: accepted wherever create/edit/complete is needed
  *   manage_sets     — create/rename/delete/reorder/configure sets, bulk import/export
  *   comment         — post comments
@@ -165,9 +165,9 @@ export function requireCrossAppAuth(innerScope: string | string[]) {
       // 5. Resolve the calling user's username + display name + avatar so the
       //    synthetic session matches the shape of a cookie-auth session.
       //    Without this, downstream code (resolveUserProfiles, comment
-      //    listing, claim handler) falls back to the userId for username /
+      //    listing, assignee resolution) falls back to the userId for username /
       //    display name and skips avatar entirely — which is why
-      //    claimedByName / comment author show a 32-char hex string and
+      //    assignee names / comment author show a 32-char hex string and
       //    self-authored comments render with no avatar.
       //
       //    introspectToken's `username` is optional in the spec and is often

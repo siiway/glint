@@ -1,6 +1,6 @@
 # Realtime Sync
 
-Glint uses WebSockets to push todo changes to all connected users instantly. When one user creates, edits, completes, reorders, or claims a todo, every other user viewing the same set sees the update without refreshing.
+Glint uses WebSockets to push todo changes to all connected users instantly. When one user creates, edits, completes, reorders, or assigns a todo, every other user viewing the same set sees the update without refreshing.
 
 ---
 
@@ -18,7 +18,7 @@ graph LR
 
 Each team gets its own **`TodoSync` Durable Object** instance, named after the team ID. When a browser opens a todo set, it opens a WebSocket connection to `/api/teams/:teamId/sets/:setId/ws`. The worker authenticates the request and forwards the upgrade to the Durable Object, tagging the socket with the set ID.
 
-When a mutation completes (create, update, delete, reorder, claim), the worker fires an asynchronous broadcast to the same Durable Object. The DO looks up all sockets tagged with that set ID and sends the event JSON to each one. The broadcast is fire-and-forget — it does not block the mutation response.
+When a mutation completes (create, update, delete, reorder, assign), the worker fires an asynchronous broadcast to the same Durable Object. The DO looks up all sockets tagged with that set ID and sends the event JSON to each one. The broadcast is fire-and-forget — it does not block the mutation response.
 
 ---
 
@@ -30,7 +30,7 @@ When a mutation completes (create, update, delete, reorder, claim), the worker f
 | `todo:updated` | `{ id, ...changed fields }` — partial |
 | `todo:deleted` | `{ id }` |
 | `todo:reordered` | `{ items: [{ id, sortOrder }] }` |
-| `todo:claimed` | `{ id, claimedBy, claimedByName, claimedByUsername, claimedByAvatar }` |
+| `todo:assigned` | `{ id, assignees: [{ userId, name, username, avatarUrl }] }` |
 
 All events include `setId` so the client can ignore events from other sets if the connection is unexpectedly scoped too broadly.
 

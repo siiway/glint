@@ -23,10 +23,14 @@
       "completed": false,
       "sortOrder": 1,
       "commentCount": 2,
-      "claimedBy": "user-uuid",
-      "claimedByName": "Ada Lovelace",
-      "claimedByUsername": "ada",
-      "claimedByAvatar": "https://example.com/a.png",
+      "assignees": [
+        {
+          "userId": "user-uuid",
+          "name": "Ada Lovelace",
+          "username": "ada",
+          "avatarUrl": "https://example.com/a.png"
+        }
+      ],
       "createdAt": "2026-03-17T12:00:00.000Z",
       "updatedAt": "2026-03-17T14:30:00.000Z"
     },
@@ -38,10 +42,7 @@
       "completed": true,
       "sortOrder": 1,
       "commentCount": 0,
-      "claimedBy": null,
-      "claimedByName": null,
-      "claimedByUsername": null,
-      "claimedByAvatar": null,
+      "assignees": [],
       "createdAt": "2026-03-17T13:00:00.000Z",
       "updatedAt": "2026-03-17T14:00:00.000Z"
     }
@@ -55,7 +56,7 @@
     "delete_any_todo": true,
     "complete_any_todo": true,
     "add_subtodos": true,
-    "claim_todos": true,
+    "assign_todos": true,
     "reorder_todos": true,
     "comment": true,
     "delete_own_comments": true,
@@ -74,17 +75,18 @@
 | `todos[].completed` | boolean | 是否已标记完成。 |
 | `todos[].sortOrder` | number | 列表内的整数排序位置（或在父项子列表中的位置）。 |
 | `todos[].commentCount` | number | 附加到该待办的评论数量。 |
-| `todos[].claimedBy` | string \| null | 认领该待办的用户 ID；未认领时为 `null`。参见[认领](#post-api-teams-teamid-todos-id-claim)。 |
-| `todos[].claimedByName` | string \| null | 认领者的解析后显示名称（来自 Prism）；否则为 `null`。 |
-| `todos[].claimedByUsername` | string \| null | 认领者的解析后用户名；否则为 `null`。 |
-| `todos[].claimedByAvatar` | string \| null | 认领者的解析后头像 URL；否则为 `null`。 |
+| `todos[].assignees` | array | 该待办的被分配人列表；未分配时为空数组。参见[分配](#put-api-teams-teamid-todos-id-assignees)。 |
+| `todos[].assignees[].userId` | string (UUID) | 被分配人的用户 ID。 |
+| `todos[].assignees[].name` | string \| null | 解析后的显示名称（来自 Prism）；否则为 `null`。 |
+| `todos[].assignees[].username` | string \| null | 解析后的用户名；否则为 `null`。 |
+| `todos[].assignees[].avatarUrl` | string \| null | 解析后的头像 URL；否则为 `null`。 |
 | `todos[].createdAt` | string（ISO 8601） | 创建时间戳。 |
 | `todos[].updatedAt` | string（ISO 8601） | 最后修改时间戳。 |
 | `role` | string | 当前用户的团队角色。 |
 | `permissions` | object | 该分组的解析后权限映射。前端用此决定显示哪些操作。 |
 
 ::: info
-认领者身份字段（`claimedByName` / `claimedByUsername` / `claimedByAvatar`）从 Prism 解析并缓存。对于个人空间，仅解析调用方自身的身份。
+被分配人身份字段（`name` / `username` / `avatarUrl`）从 Prism 解析并缓存。对于个人空间，仅解析调用方自身的身份。
 :::
 
 **错误响应：**
@@ -129,9 +131,7 @@
     "completed": false,
     "sortOrder": 5,
     "commentCount": 0,
-    "claimedBy": null,
-    "claimedByName": null,
-    "claimedByAvatar": null,
+    "assignees": [],
     "createdAt": "2026-03-17T12:00:00.000Z",
     "updatedAt": "2026-03-17T12:00:00.000Z"
   }
@@ -308,43 +308,130 @@
 
 ---
 
-## `POST /api/teams/:teamId/todos/:id/claim`
+## `PUT /api/teams/:teamId/todos/:id/assignees`
 
-切换待办事项的**认领**状态。认领会将该待办分配给你自己；在你持有认领时再次调用会释放它。同一时间一个待办只能被一个人认领。
+**整体替换**一个待办的被分配人集合。一个待办可以同时分配给多名团队成员。发送完整的
+目标用户 ID 列表，服务端会与当前被分配人做差异比较。仅分配给自己时传
+`{ "userIds": ["your-user-id"] }`；取消所有分配时传 `{ "userIds": [] }`。
 
-**需要身份验证：** 是 — 该分组的 `claim_todos` 权限
+此接口取代了旧的单人"认领"功能。已有的认领已迁移为分配给自己。
+
+**需要身份验证：** 是 — 该分组的 `assign_todos` 权限
 
 **路径参数：**
 
 | 参数 | 说明 |
 | --- | --- |
-| `id` | 要认领或释放的待办事项 UUID。 |
+| `id` | 要（重新）分配的待办事项 UUID。 |
 
-**行为：**
+**请求体：**
 
-- 若待办未被认领 → 变为由你认领。
-- 若你已持有认领 → 释放它（重置为 `null`）。
-- 若他人持有认领 → 返回 `409`。
+```json
+{ "userIds": ["user-uuid-1", "user-uuid-2"] }
+```
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `userIds` | string[] | 完整的被分配人用户 ID 集合。非团队成员的 ID 会被忽略。 |
 
 **响应：**
 
 ```json
 {
   "ok": true,
-  "claimedBy": "your-user-id",
-  "claimedByName": "Ada Lovelace",
-  "claimedByUsername": "ada",
-  "claimedByAvatar": "https://example.com/a.png"
+  "assignees": [
+    {
+      "userId": "user-uuid-1",
+      "name": "Ada Lovelace",
+      "username": "ada",
+      "avatarUrl": "https://example.com/a.png"
+    }
+  ]
 }
 ```
 
-释放认领时，所有 `claimedBy*` 字段均为 `null`。同时会向已连接的客户端广播 `todo:claimed` 事件。
+会向已连接的客户端广播携带解析后 `assignees` 数组的 `todo:assigned` 事件。
 
 **错误响应：**
 
 | 状态码 | `error` | 原因 |
 | --- | --- | --- |
-| `403` | `"No permission to claim todos"` | 缺少 `claim_todos` 权限。 |
+| `403` | `"No permission to assign todos"` | 缺少 `assign_todos` 权限。 |
 | `404` | `"Not found"` | 该团队中不存在此 ID 的待办事项。 |
-| `409` | `"Already claimed by another user"` | 该待办当前已被他人认领。 |
-| `503` | `"Claim feature unavailable: database migration required"` | 缺少 `claimed_by` 列 —— 请应用尚未执行的 D1 迁移。 |
+| `503` | `"Assignment feature unavailable: database migration required"` | 缺少 `todo_assignees` 表 —— 请应用尚未执行的 D1 迁移。 |
+
+---
+
+## `GET /api/teams/:teamId/members`
+
+列出当前工作区中待办可被分配的成员。个人空间仅返回调用方本人；团队空间从 Prism 解析。
+供分配选择器使用。
+
+**需要身份验证：** 是 — 团队成员身份。
+
+**响应：**
+
+```json
+{
+  "members": [
+    {
+      "userId": "user-uuid",
+      "name": "Ada Lovelace",
+      "username": "ada",
+      "avatarUrl": "https://example.com/a.png"
+    }
+  ]
+}
+```
+
+---
+
+## `GET /api/teams/:teamId/assigned-to-me`
+
+当前工作区中分配给调用方的未完成待办，按待办列表分组。用于置顶的**分配给我**分类。
+已完成的待办不会返回（分配关系保留但隐藏）。
+
+**需要身份验证：** 是 — 团队成员身份。
+
+**响应：**
+
+```json
+{
+  "groups": [
+    {
+      "setId": "set-uuid",
+      "setName": "Sprint 12",
+      "todos": [
+        {
+          "id": "todo-uuid",
+          "setId": "set-uuid",
+          "parentId": null,
+          "title": "Set up CI pipeline",
+          "completed": false,
+          "createdAt": "2026-03-17T12:00:00.000Z",
+          "updatedAt": "2026-03-17T14:30:00.000Z"
+        }
+      ]
+    }
+  ],
+  "expand": { "set-uuid": false }
+}
+```
+
+`expand` 将列表的 `setId` 映射到其在"分配给我"视图中持久化的展开 / 折叠状态。缺失表示
+展开（默认）。
+
+---
+
+## `POST /api/teams/:teamId/assigned-expand`
+
+持久化"分配给我"视图中某个列表的展开 / 折叠状态。为配合 `navigator.sendBeacon` 设计，
+因此请求为尽力而为，始终返回 `{ "ok": true }`。
+
+**需要身份验证：** 是 — 团队成员身份。
+
+**请求体：**
+
+```json
+{ "setId": "set-uuid", "expanded": false }
+```

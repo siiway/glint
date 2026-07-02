@@ -23,10 +23,14 @@ List all todos in a set, ordered by `sortOrder`. Includes sub-todos (identified 
       "completed": false,
       "sortOrder": 1,
       "commentCount": 2,
-      "claimedBy": "user-uuid",
-      "claimedByName": "Ada Lovelace",
-      "claimedByUsername": "ada",
-      "claimedByAvatar": "https://example.com/a.png",
+      "assignees": [
+        {
+          "userId": "user-uuid",
+          "name": "Ada Lovelace",
+          "username": "ada",
+          "avatarUrl": "https://example.com/a.png"
+        }
+      ],
       "createdAt": "2026-03-17T12:00:00.000Z",
       "updatedAt": "2026-03-17T14:30:00.000Z"
     },
@@ -38,10 +42,7 @@ List all todos in a set, ordered by `sortOrder`. Includes sub-todos (identified 
       "completed": true,
       "sortOrder": 1,
       "commentCount": 0,
-      "claimedBy": null,
-      "claimedByName": null,
-      "claimedByUsername": null,
-      "claimedByAvatar": null,
+      "assignees": [],
       "createdAt": "2026-03-17T13:00:00.000Z",
       "updatedAt": "2026-03-17T14:00:00.000Z"
     }
@@ -55,7 +56,7 @@ List all todos in a set, ordered by `sortOrder`. Includes sub-todos (identified 
     "delete_any_todo": true,
     "complete_any_todo": true,
     "add_subtodos": true,
-    "claim_todos": true,
+    "assign_todos": true,
     "reorder_todos": true,
     "comment": true,
     "delete_own_comments": true,
@@ -74,17 +75,18 @@ List all todos in a set, ordered by `sortOrder`. Includes sub-todos (identified 
 | `todos[].completed` | boolean | Whether the todo is marked complete. |
 | `todos[].sortOrder` | number | Integer position within the list (or within its parent's sub-list). |
 | `todos[].commentCount` | number | Number of comments attached to this todo. |
-| `todos[].claimedBy` | string \| null | User ID of the person who claimed the todo, or `null` if unclaimed. See [Claiming](#post-api-teams-teamid-todos-id-claim). |
-| `todos[].claimedByName` | string \| null | Resolved display name of the claimer (from Prism), or `null`. |
-| `todos[].claimedByUsername` | string \| null | Resolved username of the claimer, or `null`. |
-| `todos[].claimedByAvatar` | string \| null | Resolved avatar URL of the claimer, or `null`. |
+| `todos[].assignees` | array | People this todo is assigned to. Empty when unassigned. See [Assignment](#put-api-teams-teamid-todos-id-assignees). |
+| `todos[].assignees[].userId` | string (UUID) | Assignee's user ID. |
+| `todos[].assignees[].name` | string \| null | Resolved display name (from Prism), or `null`. |
+| `todos[].assignees[].username` | string \| null | Resolved username, or `null`. |
+| `todos[].assignees[].avatarUrl` | string \| null | Resolved avatar URL, or `null`. |
 | `todos[].createdAt` | string (ISO 8601) | Creation timestamp. |
 | `todos[].updatedAt` | string (ISO 8601) | Last modification timestamp. |
 | `role` | string | Current user's team role. |
 | `permissions` | object | Resolved permission map for this set. Used by the frontend to render actions. |
 
 ::: info
-Claimer identity fields (`claimedByName` / `claimedByUsername` / `claimedByAvatar`) are resolved from Prism and cached. For personal spaces, only the calling user's identity is resolved.
+Assignee identity fields (`name` / `username` / `avatarUrl`) are resolved from Prism and cached. For personal spaces, only the calling user's identity is resolved.
 :::
 
 **Error responses:**
@@ -129,9 +131,7 @@ Create a new todo in the set. Pass `parentId` to create a sub-todo beneath an ex
     "completed": false,
     "sortOrder": 5,
     "commentCount": 0,
-    "claimedBy": null,
-    "claimedByName": null,
-    "claimedByAvatar": null,
+    "assignees": [],
     "createdAt": "2026-03-17T12:00:00.000Z",
     "updatedAt": "2026-03-17T12:00:00.000Z"
   }
@@ -308,43 +308,137 @@ A `todo:moved` event is broadcast to both the source and target sets on success.
 
 ---
 
-## `POST /api/teams/:teamId/todos/:id/claim`
+## `PUT /api/teams/:teamId/todos/:id/assignees`
 
-Toggle a **claim** on a todo. Claiming assigns the todo to yourself; calling it again while you hold the claim releases it. A todo can only be claimed by one person at a time.
+Replace the **full set** of people a todo is assigned to. A todo can be assigned
+to multiple team members at once. Send the complete desired list of user IDs;
+the server diffs it against the current assignees. To assign yourself only,
+pass `{ "userIds": ["your-user-id"] }`; to unassign everyone, pass
+`{ "userIds": [] }`.
 
-**Auth required:** Yes — `claim_todos` for the set
+This endpoint replaces the older single-user "claim" feature. Legacy claims were
+migrated to self-assignments.
+
+**Auth required:** Yes — `assign_todos` for the set
 
 **Path parameters:**
 
 | Parameter | Description |
 | --- | --- |
-| `id` | UUID of the todo to claim or release. |
+| `id` | UUID of the todo to (re)assign. |
 
-**Behavior:**
+**Request body:**
 
-- If the todo is unclaimed → it becomes claimed by you.
-- If you already hold the claim → it is released (set back to `null`).
-- If someone else holds the claim → returns `409`.
+```json
+{ "userIds": ["user-uuid-1", "user-uuid-2"] }
+```
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `userIds` | string[] | The complete set of assignee user IDs. IDs that are not members of the team are ignored. |
 
 **Response:**
 
 ```json
 {
   "ok": true,
-  "claimedBy": "your-user-id",
-  "claimedByName": "Ada Lovelace",
-  "claimedByUsername": "ada",
-  "claimedByAvatar": "https://example.com/a.png"
+  "assignees": [
+    {
+      "userId": "user-uuid-1",
+      "name": "Ada Lovelace",
+      "username": "ada",
+      "avatarUrl": "https://example.com/a.png"
+    }
+  ]
 }
 ```
 
-When releasing a claim, all `claimedBy*` fields are `null`. A `todo:claimed` event is broadcast to connected clients.
+A `todo:assigned` event (carrying the resolved `assignees` array) is broadcast to
+connected clients.
 
 **Error responses:**
 
 | Status | `error` | Cause |
 | --- | --- | --- |
-| `403` | `"No permission to claim todos"` | Lacks `claim_todos`. |
+| `403` | `"No permission to assign todos"` | Lacks `assign_todos`. |
 | `404` | `"Not found"` | No todo with that ID in this team. |
-| `409` | `"Already claimed by another user"` | The todo is currently claimed by someone else. |
-| `503` | `"Claim feature unavailable: database migration required"` | The `claimed_by` column is missing — apply pending D1 migrations. |
+| `503` | `"Assignment feature unavailable: database migration required"` | The `todo_assignees` table is missing — apply pending D1 migrations. |
+
+---
+
+## `GET /api/teams/:teamId/members`
+
+List the members a todo can be assigned to in this workspace. Personal spaces
+resolve to just the calling user; team spaces are resolved from Prism. Used by
+the assignee picker.
+
+**Auth required:** Yes — team membership.
+
+**Response:**
+
+```json
+{
+  "members": [
+    {
+      "userId": "user-uuid",
+      "name": "Ada Lovelace",
+      "username": "ada",
+      "avatarUrl": "https://example.com/a.png"
+    }
+  ]
+}
+```
+
+---
+
+## `GET /api/teams/:teamId/assigned-to-me`
+
+Incomplete todos assigned to the calling user in this workspace, grouped by
+todo list. Powers the pinned **Assigned to me** category. Completed todos are
+omitted (the assignment is kept but hidden).
+
+**Auth required:** Yes — team membership.
+
+**Response:**
+
+```json
+{
+  "groups": [
+    {
+      "setId": "set-uuid",
+      "setName": "Sprint 12",
+      "todos": [
+        {
+          "id": "todo-uuid",
+          "setId": "set-uuid",
+          "parentId": null,
+          "title": "Set up CI pipeline",
+          "completed": false,
+          "createdAt": "2026-03-17T12:00:00.000Z",
+          "updatedAt": "2026-03-17T14:30:00.000Z"
+        }
+      ]
+    }
+  ],
+  "expand": { "set-uuid": false }
+}
+```
+
+`expand` maps a list's `setId` to its persisted expand/collapse state in the
+"Assigned to me" view. A missing entry means expanded (default).
+
+---
+
+## `POST /api/teams/:teamId/assigned-expand`
+
+Persist the expand/collapse state of a list in the "Assigned to me" view.
+Designed to be called with `navigator.sendBeacon`, so the request is
+best-effort and always returns `{ "ok": true }`.
+
+**Auth required:** Yes — team membership.
+
+**Request body:**
+
+```json
+{ "setId": "set-uuid", "expanded": false }
+```

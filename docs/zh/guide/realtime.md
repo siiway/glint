@@ -1,6 +1,6 @@
 # 实时同步
 
-Glint 使用 WebSocket 将待办事项变更即时推送给所有已连接的用户。当一名用户创建、编辑、完成、重新排序或认领一个待办事项时，所有正在查看同一分组的其他用户无需刷新页面即可看到更新。
+Glint 使用 WebSocket 将待办事项变更即时推送给所有已连接的用户。当一名用户创建、编辑、完成、重新排序或分配一个待办事项时，所有正在查看同一分组的其他用户无需刷新页面即可看到更新。
 
 ---
 
@@ -18,7 +18,7 @@ graph LR
 
 每个团队对应一个独立的 **`TodoSync` Durable Object** 实例，以团队 ID 命名。当浏览器打开某个待办分组时，会向 `/api/teams/:teamId/sets/:setId/ws` 建立 WebSocket 连接。Worker 对请求进行身份验证，然后将升级请求转发给 Durable Object，并用分组 ID 标记该 Socket。
 
-当一次变更操作完成（创建、更新、删除、重排序、认领）后，Worker 会向同一个 Durable Object 异步广播事件。DO 查找所有带有该分组 ID 标记的 Socket，并向每个 Socket 发送事件 JSON。广播是"即发即忘"的——不会阻塞变更操作的响应。
+当一次变更操作完成（创建、更新、删除、重排序、分配）后，Worker 会向同一个 Durable Object 异步广播事件。DO 查找所有带有该分组 ID 标记的 Socket，并向每个 Socket 发送事件 JSON。广播是"即发即忘"的——不会阻塞变更操作的响应。
 
 ---
 
@@ -30,7 +30,7 @@ graph LR
 | `todo:updated` | `{ id, ...已变更字段 }` — 部分更新 |
 | `todo:deleted` | `{ id }` |
 | `todo:reordered` | `{ items: [{ id, sortOrder }] }` |
-| `todo:claimed` | `{ id, claimedBy, claimedByName, claimedByUsername, claimedByAvatar }` |
+| `todo:assigned` | `{ id, assignees: [{ userId, name, username, avatarUrl }] }` |
 
 所有事件均包含 `setId`，以便客户端在连接范围过宽时忽略来自其他分组的事件。
 

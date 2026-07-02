@@ -33,6 +33,7 @@ import {
   Edit24Regular,
   CheckmarkCircle24Regular,
   PersonAvailable24Regular,
+  People24Regular,
   Comment24Regular,
   ArrowMove24Regular,
 } from "@fluentui/react-icons";
@@ -76,7 +77,8 @@ const ALL_ACTION_BAR_KEYS = [
   "add_subtodo",
   "edit",
   "complete",
-  "claim",
+  "assign_self",
+  "assign",
   "comment",
   "move",
   "delete",
@@ -852,7 +854,10 @@ export function SettingsPage({
                 add_subtodo: <AddCircle24Regular style={{ fontSize: 16 }} />,
                 edit: <Edit24Regular style={{ fontSize: 16 }} />,
                 complete: <CheckmarkCircle24Regular style={{ fontSize: 16 }} />,
-                claim: <PersonAvailable24Regular style={{ fontSize: 16 }} />,
+                assign_self: (
+                  <PersonAvailable24Regular style={{ fontSize: 16 }} />
+                ),
+                assign: <People24Regular style={{ fontSize: 16 }} />,
                 comment: <Comment24Regular style={{ fontSize: 16 }} />,
                 move: <ArrowMove24Regular style={{ fontSize: 16 }} />,
                 delete: <Delete24Regular style={{ fontSize: 16 }} />,
@@ -863,7 +868,8 @@ export function SettingsPage({
                 add_subtodo: t.actionAddSubTodo,
                 edit: t.edit,
                 complete: t.actionMarkComplete,
-                claim: t.actionClaim,
+                assign_self: t.actionAssignSelf,
+                assign: t.actionAssign,
                 comment: t.actionComments,
                 move: t.actionMove,
                 delete: t.delete,
@@ -950,9 +956,10 @@ export function SettingsPage({
                     complete: (
                       <CheckmarkCircle24Regular style={{ fontSize: 16 }} />
                     ),
-                    claim: (
+                    assign_self: (
                       <PersonAvailable24Regular style={{ fontSize: 16 }} />
                     ),
+                    assign: <People24Regular style={{ fontSize: 16 }} />,
                     comment: <Comment24Regular style={{ fontSize: 16 }} />,
                     move: <ArrowMove24Regular style={{ fontSize: 16 }} />,
                     delete: <Delete24Regular style={{ fontSize: 16 }} />,
@@ -963,7 +970,8 @@ export function SettingsPage({
                     add_subtodo: t.actionAddSubTodo,
                     edit: t.edit,
                     complete: t.actionMarkComplete,
-                    claim: t.actionClaim,
+                    assign_self: t.actionAssignSelf,
+                    assign: t.actionAssign,
                     comment: t.actionComments,
                     move: t.actionMove,
                     delete: t.delete,
@@ -1054,7 +1062,8 @@ export function SettingsPage({
                   add_subtodo: t.actionAddSubTodo,
                   edit: t.edit,
                   complete: t.actionMarkComplete,
-                  claim: t.actionClaim,
+                  assign_self: t.actionAssignSelf,
+                  assign: t.actionAssign,
                   comment: t.actionComments,
                   move: t.actionMove,
                   delete: t.delete,
@@ -1799,9 +1808,10 @@ export function SettingsPage({
                     complete: (
                       <CheckmarkCircle24Regular style={{ fontSize: 16 }} />
                     ),
-                    claim: (
+                    assign_self: (
                       <PersonAvailable24Regular style={{ fontSize: 16 }} />
                     ),
+                    assign: <People24Regular style={{ fontSize: 16 }} />,
                     comment: <Comment24Regular style={{ fontSize: 16 }} />,
                     move: <ArrowMove24Regular style={{ fontSize: 16 }} />,
                     delete: <Delete24Regular style={{ fontSize: 16 }} />,
@@ -1812,7 +1822,8 @@ export function SettingsPage({
                     add_subtodo: t.actionAddSubTodo,
                     edit: t.edit,
                     complete: t.actionMarkComplete,
-                    claim: t.actionClaim,
+                    assign_self: t.actionAssignSelf,
+                    assign: t.actionAssign,
                     comment: t.actionComments,
                     move: t.actionMove,
                     delete: t.delete,

@@ -72,7 +72,7 @@ Log in to Prism, open Glint's app settings, go to **Permissions**, and add scope
 | `complete_todos`   | Toggle completion            | Mark todos complete/incomplete (own and others', per role)       |
 | `delete_todos`     | Delete todos                 | Delete todos (own and others', per role)                         |
 | `reorder_todos`    | Reorder todos                | Change todo sort order (drag-and-drop equivalent)                |
-| `claim_todos`      | Claim todos                  | Claim or release a todo to/from yourself                         |
+| `assign_todos`     | Assign todos                 | Assign or unassign a todo to/from team members (or yourself)     |
 | `manage_sets`      | Manage sets                  | Create, rename, delete, reorder, and configure sets (auto-renew, timezone, split-completed). Also covers bulk import-as-new-set and replace-mode imports. |
 | `comment`          | Post comments                | Add comments to todos                                            |
 | `delete_comments`  | Delete comments              | Delete comments (own and others', per role)                      |
@@ -84,7 +84,7 @@ Log in to Prism, open Glint's app settings, go to **Permissions**, and add scope
 
 **Minimum for a todo-writing integration:** `read_todos`, `create_todos`
 
-**Recommended for a full automation integration:** `read_todos`, `create_todos`, `edit_todos`, `complete_todos`, `delete_todos`, `reorder_todos`, `claim_todos`
+**Recommended for a full automation integration:** `read_todos`, `create_todos`, `edit_todos`, `complete_todos`, `delete_todos`, `reorder_todos`, `assign_todos`
 
 ### Importing the Scope Definitions into Prism
 
@@ -123,9 +123,9 @@ Instead of typing each definition by hand, paste the JSON block below into Prism
     "description": "Change todo sort order (drag-and-drop equivalent)."
   },
   {
-    "scope": "claim_todos",
-    "title": "Claim todos",
-    "description": "Assign or release a todo to/from yourself."
+    "scope": "assign_todos",
+    "title": "Assign todos",
+    "description": "Assign or unassign a todo to/from team members (or yourself)."
   },
   {
     "scope": "write_todos",

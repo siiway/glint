@@ -7,12 +7,11 @@
 import type { Context } from "hono";
 import { PERMISSION_KEYS } from "../types";
 import type { Bindings, Variables, PermissionKey } from "../types";
-import { getTeamRole, isPersonalSpaceId } from "../auth";
+import { getTeamRole } from "../auth";
 import { getAppConfig } from "../config";
 import { hasPermission } from "../permissions";
-import { resolveUserProfiles } from "../userProfileCache";
 import { broadcast } from "../realtime";
-import { supportsClaimedBy } from "../transfer";
+import { resolveAssignees } from "../assignees";
 
 type Ctx = Context<{ Bindings: Bindings; Variables: Variables }>;
 
@@ -27,10 +26,8 @@ export const listTodos = async (c: Ctx): Promise<Response> => {
     return c.json({ error: "No permission to view todos in this set" }, 403);
   }
 
-  const claimSupported = await supportsClaimedBy(c.env.DB);
-
   const result = await c.env.DB.prepare(
-    `SELECT id, user_id, parent_id, title, completed, sort_order, ${claimSupported ? "claimed_by" : "NULL AS claimed_by"}, created_at, updated_at FROM todos WHERE set_id = ? AND team_id = ? ORDER BY sort_order ASC, created_at ASC`,
+    `SELECT id, user_id, parent_id, title, completed, sort_order, created_at, updated_at FROM todos WHERE set_id = ? AND team_id = ? ORDER BY sort_order ASC, created_at ASC`,
   )
     .bind(setId, teamId)
     .all();
@@ -50,43 +47,28 @@ export const listTodos = async (c: Ctx): Promise<Response> => {
     perms[key] = await hasPermission(c.env.DB, teamId, role, key, setId);
   }
 
-  const claimedIds = new Set(
-    result.results
-      .map((r) => r.claimed_by as string | null)
-      .filter((id): id is string => !!id),
+  const config = await getAppConfig(c.env.KV);
+  const assigneeMap = await resolveAssignees(
+    c.env.DB,
+    c.env.KV,
+    config,
+    session,
+    teamId,
+    result.results.map((r) => r.id as string),
   );
-  let nameMap: Record<string, string> = {};
-  let usernameMap: Record<string, string> = {};
-  let avatarMap: Record<string, string> = {};
-  if (claimedIds.size > 0) {
-    const config = await getAppConfig(c.env.KV);
-    const ids = isPersonalSpaceId(teamId, session.userId)
-      ? new Set([session.userId])
-      : claimedIds;
-    ({ nameMap, usernameMap, avatarMap } = await resolveUserProfiles(
-      c.env.KV,
-      config,
-      session,
-      teamId,
-      ids,
-    ));
-  }
 
   return c.json({
     todos: result.results.map((row) => {
-      const claimedBy = (row.claimed_by as string) || null;
+      const id = row.id as string;
       return {
-        id: row.id as string,
+        id,
         userId: row.user_id as string,
         parentId: (row.parent_id as string) || null,
         title: row.title as string,
         completed: row.completed === 1,
         sortOrder: row.sort_order as number,
-        commentCount: countMap[row.id as string] ?? 0,
-        claimedBy,
-        claimedByName: claimedBy ? (nameMap[claimedBy] ?? null) : null,
-        claimedByUsername: claimedBy ? (usernameMap[claimedBy] ?? null) : null,
-        claimedByAvatar: claimedBy ? (avatarMap[claimedBy] ?? null) : null,
+        commentCount: countMap[id] ?? 0,
+        assignees: assigneeMap.get(id) ?? [],
         createdAt: row.created_at as string,
         updatedAt: row.updated_at as string,
       };
@@ -180,9 +162,7 @@ export const createTodo = async (c: Ctx): Promise<Response> => {
     completed: false,
     sortOrder,
     commentCount: 0,
-    claimedBy: null,
-    claimedByName: null,
-    claimedByAvatar: null,
+    assignees: [],
     createdAt: now,
     updatedAt: now,
   };
@@ -524,75 +504,4 @@ export const deleteTodo = async (c: Ctx): Promise<Response> => {
   });
 
   return c.json({ ok: true });
-};
-
-export const claimTodo = async (c: Ctx): Promise<Response> => {
-  const teamId = c.req.param("teamId")!;
-  const todoId = (c.req.param("id") ?? c.req.param("todoId"))!;
-  const session = c.get("session");
-  const role = getTeamRole(session, teamId);
-  if (!role) return c.json({ error: "Not a member of this team" }, 403);
-
-  if (!(await supportsClaimedBy(c.env.DB))) {
-    return c.json(
-      { error: "Claim feature unavailable: database migration required" },
-      503,
-    );
-  }
-
-  const existing = await c.env.DB.prepare(
-    "SELECT id, set_id, claimed_by FROM todos WHERE id = ? AND team_id = ?",
-  )
-    .bind(todoId, teamId)
-    .first<{ id: string; set_id: string; claimed_by: string | null }>();
-  if (!existing) return c.json({ error: "Not found" }, 404);
-
-  if (
-    !(await hasPermission(
-      c.env.DB,
-      teamId,
-      role,
-      "claim_todos",
-      existing.set_id,
-    ))
-  ) {
-    return c.json({ error: "No permission to claim todos" }, 403);
-  }
-
-  if (existing.claimed_by && existing.claimed_by !== session.userId) {
-    return c.json({ error: "Already claimed by another user" }, 409);
-  }
-
-  const claimedBy =
-    existing.claimed_by === session.userId ? null : session.userId;
-
-  await c.env.DB.prepare(
-    "UPDATE todos SET claimed_by = ?, updated_at = datetime('now') WHERE id = ? AND team_id = ?",
-  )
-    .bind(claimedBy, todoId, teamId)
-    .run();
-
-  const claimedByName = claimedBy
-    ? session.displayName || session.username
-    : null;
-  const claimedByUsername = claimedBy ? session.username : null;
-  const claimedByAvatar = claimedBy ? session.avatarUrl || null : null;
-
-  broadcast(c.env, teamId, {
-    type: "todo:claimed",
-    setId: existing.set_id,
-    id: todoId,
-    claimedBy,
-    claimedByName,
-    claimedByUsername,
-    claimedByAvatar,
-  });
-
-  return c.json({
-    ok: true,
-    claimedBy,
-    claimedByName,
-    claimedByUsername,
-    claimedByAvatar,
-  });
 };

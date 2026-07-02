@@ -55,7 +55,7 @@ The first matching rule wins. Per-set overrides give you surgical control: tight
 | `delete_any_todo` | Yes | No | Delete todos created by others |
 | `complete_any_todo` | Yes | No | Toggle completion on others' todos |
 | `add_subtodos` | Yes | Yes | Create nested sub-todos |
-| `claim_todos` | Yes | Yes | Claim or release a todo to/from yourself |
+| `assign_todos` | Yes | Yes | Assign or unassign a todo to/from team members (or yourself) |
 | `reorder_todos` | Yes | No | Drag to reorder todos |
 | `comment` | Yes | Yes | Add comments to todos |
 | `delete_own_comments` | Yes | Yes | Delete comments the user posted |

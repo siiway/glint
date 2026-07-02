@@ -44,9 +44,9 @@ export const CROSS_APP_SCOPES: CrossAppScopeDef[] = [
     description: "Change todo sort order (drag-and-drop equivalent).",
   },
   {
-    scope: "claim_todos",
-    title: "Claim todos",
-    description: "Assign or release a todo to/from yourself.",
+    scope: "assign_todos",
+    title: "Assign todos",
+    description: "Assign or unassign a todo to/from team members (or yourself).",
   },
   {
     scope: "write_todos",
@@ -90,6 +90,6 @@ export const CROSS_APP_SCOPES: CrossAppScopeDef[] = [
     scope: "workbench",
     title: "Workbench access (bundle)",
     description:
-      "Convenience bundle: grants read/write on todos, sets, comments, claims, settings — everything Workbench needs in normal use. Does NOT include manage_permissions; an app that needs to modify the team permission matrix must request that scope explicitly.",
+      "Convenience bundle: grants read/write on todos, sets, comments, assignments, settings — everything Workbench needs in normal use. Does NOT include manage_permissions; an app that needs to modify the team permission matrix must request that scope explicitly.",
   },
 ];

@@ -1,3 +1,10 @@
+export type Assignee = {
+  userId: string;
+  name: string | null;
+  username: string | null;
+  avatarUrl: string | null;
+};
+
 export type Todo = {
   id: string;
   userId: string;
@@ -6,13 +13,18 @@ export type Todo = {
   completed: boolean;
   sortOrder: number;
   commentCount: number;
-  claimedBy: string | null;
-  claimedByName: string | null;
-  claimedByUsername?: string | null;
-  claimedByAvatar: string | null;
+  assignees: Assignee[];
 
   createdAt: string;
   updatedAt: string;
+};
+
+/** A team member that a todo can be assigned to. */
+export type TeamMember = {
+  userId: string;
+  name: string;
+  username: string;
+  avatarUrl: string | null;
 };
 
 export type TodoSet = {

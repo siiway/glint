@@ -156,6 +156,16 @@ init.post("/api/init/setup", async (c) => {
     `CREATE INDEX IF NOT EXISTS idx_todos_parent ON todos(parent_id)`,
     `CREATE INDEX IF NOT EXISTS idx_todos_set_sort ON todos(set_id, sort_order)`,
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_todos_set_title_unique ON todos(set_id, COALESCE(parent_id, '__root__'), title)`,
+    `CREATE TABLE IF NOT EXISTS todo_assignees (
+      todo_id TEXT NOT NULL REFERENCES todos(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL,
+      team_id TEXT NOT NULL,
+      assigned_by TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      PRIMARY KEY (todo_id, user_id)
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_todo_assignees_user ON todo_assignees(team_id, user_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_todo_assignees_todo ON todo_assignees(todo_id)`,
     `CREATE TABLE IF NOT EXISTS comments (
       id TEXT PRIMARY KEY,
       todo_id TEXT NOT NULL REFERENCES todos(id) ON DELETE CASCADE,

@@ -70,7 +70,7 @@ Glint 的所有者必须首先在 Prism 的控制台中定义 App B 可以申请
 | `complete_todos`   | 切换完成状态         | 标记待办完成或未完成                               |
 | `delete_todos`     | 删除待办             | 删除待办                                           |
 | `reorder_todos`    | 调整待办顺序         | 修改待办排序（等同于拖拽排序）                     |
-| `claim_todos`      | 认领待办             | 将待办认领到自己名下，或取消认领                   |
+| `assign_todos`     | 分配待办             | 将待办分配给团队成员（或自己），或取消分配         |
 | `manage_sets`      | 管理分组             | 新建、重命名、删除、排序、配置分组（自动续期、时区、分隔已完成）；以及作为新分组的批量导入与替换模式导入 |
 | `comment`          | 发布评论             | 在待办下添加评论                                   |
 | `delete_comments`  | 删除评论             | 删除自己或他人的评论（视团队权限）                 |
@@ -117,9 +117,9 @@ Glint 的所有者必须首先在 Prism 的控制台中定义 App B 可以申请
     "description": "修改待办排序（等同于拖拽排序）。"
   },
   {
-    "scope": "claim_todos",
-    "title": "认领待办",
-    "description": "将待办认领到自己名下，或取消认领。"
+    "scope": "assign_todos",
+    "title": "分配待办",
+    "description": "将待办分配给团队成员（或自己），或取消分配。"
   },
   {
     "scope": "write_todos",

@@ -16,7 +16,7 @@
  *   complete_todos  → complete_any_todo                       (PATCH todo completion)
  *   delete_todos    → delete_own_todos / delete_any_todo      (DELETE todo)
  *   reorder_todos   → reorder_todos                           (POST todos/reorder, PATCH todo sortOrder)
- *   claim_todos     → claim_todos                             (POST todos/:id/claim)
+ *   assign_todos    → assign_todos                            (PUT todos/:id/assignees)
  *   manage_sets     → manage_sets                             (POST/PATCH/DELETE set, reorder, import)
  *   read_settings   → (team membership only)                  (GET settings)
  *   manage_settings → manage_settings                         (PATCH settings)
@@ -42,12 +42,17 @@ import {
   reorderSets,
 } from "../handlers/sets";
 import {
-  claimTodo,
   createTodo,
   deleteTodo,
   listTodos,
   reorderTodos,
 } from "../handlers/todos";
+import {
+  listMembers,
+  setAssignees,
+  getAssignedToMe,
+  getAssignedToMeAll,
+} from "../handlers/assignees";
 import {
   createComment,
   deleteComment,
@@ -99,7 +104,17 @@ route.post(
 );
 route.post("/teams/:teamId/todos/reorder", "reorder_todos", reorderTodos);
 route.delete("/teams/:teamId/todos/:todoId", "delete_todos", deleteTodo);
-route.post("/teams/:teamId/todos/:todoId/claim", "claim_todos", claimTodo);
+
+// ─── Assignment ─────────────────────────────────────────────────────────────
+route.get("/teams/:teamId/members", "read_todos", listMembers);
+route.put(
+  "/teams/:teamId/todos/:todoId/assignees",
+  "assign_todos",
+  setAssignees,
+);
+// "Assigned to me" — one workspace, or (teamless route) across all workspaces.
+route.get("/teams/:teamId/assigned-to-me", "read_todos", getAssignedToMe);
+route.get("/assigned-to-me", "read_todos", getAssignedToMeAll);
 
 // PATCH todo: scope-per-field gate. The shared handler already checks Glint
 // permissions; we only add the cross-app scope-per-field gate on top.

@@ -42,7 +42,7 @@ The [Cross-App Integration guide](/guide/cross-app#importing-the-scope-definitio
 | `complete_todos`   | `PATCH /api/cross-app/teams/:teamId/todos/:todoId` (completed field only)   |
 | `delete_todos`     | `DELETE /api/cross-app/teams/:teamId/todos/:todoId`                         |
 | `reorder_todos`    | `POST /api/cross-app/teams/:teamId/todos/reorder`                           |
-| `claim_todos`      | `POST /api/cross-app/teams/:teamId/todos/:todoId/claim`                     |
+| `assign_todos`     | `PUT /api/cross-app/teams/:teamId/todos/:todoId/assignees`                  |
 | `manage_sets`      | `POST /api/cross-app/teams/:teamId/sets`                                    |
 |                    | `PATCH /api/cross-app/teams/:teamId/sets/:setId` (incl. auto-renew, timezone, split-completed) |
 |                    | `DELETE /api/cross-app/teams/:teamId/sets/:setId`                           |
@@ -389,9 +389,14 @@ List all todos in a set. Respects the user's `view_todos` permission.
       "completed": false,
       "sortOrder": 1,
       "commentCount": 2,
-      "claimedBy": "user_id_or_null",
-      "claimedByName": "Display Name",
-      "claimedByAvatar": "https://example.com/a.png",
+      "assignees": [
+        {
+          "userId": "user_id",
+          "name": "Display Name",
+          "username": "handle",
+          "avatarUrl": "https://example.com/a.png"
+        }
+      ],
       "createdAt": "2026-04-01T10:00:00.000Z",
       "updatedAt": "2026-04-01T10:00:00.000Z"
     },
@@ -403,9 +408,7 @@ List all todos in a set. Respects the user's `view_todos` permission.
       "completed": true,
       "sortOrder": 1,
       "commentCount": 0,
-      "claimedBy": null,
-      "claimedByName": null,
-      "claimedByAvatar": null,
+      "assignees": [],
       "createdAt": "2026-04-01T10:05:00.000Z",
       "updatedAt": "2026-04-02T08:00:00.000Z"
     }
@@ -413,7 +416,7 @@ List all todos in a set. Respects the user's `view_todos` permission.
 }
 ```
 
-Todos are returned flat. Sub-todos have a non-null `parentId` referencing their parent. `claimedByName` / `claimedByAvatar` are resolved from Prism for team spaces; for personal spaces only the calling user is resolved.
+Todos are returned flat. Sub-todos have a non-null `parentId` referencing their parent. Assignee `name` / `username` / `avatarUrl` are resolved from Prism for team spaces; for personal spaces only the calling user is resolved.
 
 **Errors:**
 
@@ -564,32 +567,114 @@ Persist new sort orders for one or more todos after a drag-and-drop reorder. Sub
 
 ---
 
-### `POST /api/cross-app/teams/:teamId/todos/:todoId/claim`
+### `PUT /api/cross-app/teams/:teamId/todos/:todoId/assignees`
 
-Toggle the claim on a todo: claims for the caller if unclaimed, releases if claimed by the caller. Returns `409` if claimed by someone else.
+Replace the full set of assignees on a todo. Send the complete desired list of
+user IDs; IDs that are not members of the team are ignored. Pass `[]` to
+unassign everyone. (Replaces the legacy single-user "claim" endpoint.)
 
-**Required scope:** `claim_todos`
+**Required scope:** `assign_todos`
+
+**Request body:**
+
+```json
+{ "userIds": ["user-uuid-1", "user-uuid-2"] }
+```
 
 **Response `200`:**
 
 ```json
 {
   "ok": true,
-  "claimedBy": "user_id_or_null",
-  "claimedByName": "Display Name or null",
-  "claimedByAvatar": "https://example.com/a.png"
+  "assignees": [
+    {
+      "userId": "user-uuid-1",
+      "name": "Display Name",
+      "username": "handle",
+      "avatarUrl": "https://example.com/a.png"
+    }
+  ]
 }
 ```
 
 **Errors:**
 
-| Status | Cause                                                              |
-| ------ | ------------------------------------------------------------------ |
-| `401`  | Token missing or inactive                                          |
-| `403`  | Token lacks `claim_todos` scope or user lacks `claim_todos` permission |
-| `404`  | Todo not found or does not belong to `teamId`                      |
-| `409`  | Already claimed by another user                                    |
-| `503`  | Database missing the `claimed_by` column (run migrations)          |
+| Status | Cause                                                                  |
+| ------ | ---------------------------------------------------------------------- |
+| `401`  | Token missing or inactive                                             |
+| `403`  | Token lacks `assign_todos` scope or user lacks `assign_todos` permission |
+| `404`  | Todo not found or does not belong to `teamId`                         |
+| `503`  | Database missing the `todo_assignees` table (run migrations)          |
+
+---
+
+### `GET /api/cross-app/teams/:teamId/members`
+
+List the members that todos in this workspace can be assigned to.
+
+**Required scope:** `read_todos`
+
+**Response `200`:** `{ "members": [{ "userId", "name", "username", "avatarUrl" }] }`
+
+---
+
+### `GET /api/cross-app/teams/:teamId/assigned-to-me`
+
+Incomplete todos assigned to the caller in this workspace, grouped by list.
+Identical shape to the native [`GET /api/teams/:teamId/assigned-to-me`](./todos#get-api-teams-teamid-assigned-to-me).
+
+**Required scope:** `read_todos`
+
+---
+
+### `GET /api/cross-app/assigned-to-me`
+
+Every incomplete todo assigned to the caller **across all their workspaces**,
+grouped by workspace. This is the endpoint derived apps use to build a
+cross-workspace "my work" view; it partitions results by workspace so an app can
+lay them out per team.
+
+**Required scope:** `read_todos` (no team path parameter — the token's user is
+resolved and all of their memberships are queried).
+
+**Response `200`:**
+
+```json
+{
+  "workspaces": [
+    {
+      "teamId": "team-uuid",
+      "name": "Acme Engineering",
+      "kind": "team",
+      "todos": [
+        {
+          "id": "todo-uuid",
+          "setId": "set-uuid",
+          "setName": "Sprint 12",
+          "parentId": null,
+          "title": "Set up CI pipeline",
+          "updatedAt": "2026-04-01T10:00:00.000Z"
+        }
+      ]
+    },
+    {
+      "teamId": "personal:user-uuid",
+      "name": "Ada Lovelace",
+      "kind": "personal",
+      "todos": []
+    }
+  ]
+}
+```
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `workspaces[].teamId` | string | Workspace (team) ID, or `personal:<userId>` for the personal space. |
+| `workspaces[].name` | string | Workspace display name. |
+| `workspaces[].kind` | `"team"` \| `"personal"` | Whether this is a team or the caller's personal space. |
+| `workspaces[].todos` | array | Incomplete todos assigned to the caller in that workspace. |
+
+Completed todos are omitted (the assignment is retained but hidden).
 
 ---
 
@@ -775,7 +860,7 @@ Only the fields listed below are accepted; any other keys are ignored:
 
 ## Realtime
 
-Subscribe to live updates for a single set. Both endpoints require `read_todos` and team membership; events are pushed for any todo, comment, or claim change in that set, regardless of which client made the change (native UI, cross-app API, or share link).
+Subscribe to live updates for a single set. Both endpoints require `read_todos` and team membership; events are pushed for any todo, comment, or assignment change in that set, regardless of which client made the change (native UI, cross-app API, or share link).
 
 WebSocket clients must include `Authorization: Bearer <token>` on the upgrade request — browser `WebSocket` doesn't support custom headers, so most cross-app integrations will run from a server or a non-browser client.
 
@@ -794,8 +879,8 @@ data: {"setId":"uuid","todo":{...}}
 event: todo:updated
 data: {"setId":"uuid","todo":{"id":"uuid","completed":true}}
 
-event: todo:claimed
-data: {"setId":"uuid","id":"uuid","claimedBy":"user_id","claimedByName":"Alice","claimedByAvatar":null}
+event: todo:assigned
+data: {"setId":"uuid","id":"uuid","assignees":[{"userId":"user_id","name":"Alice","username":"alice","avatarUrl":null}]}
 ```
 
 ### `* /api/cross-app/teams/:teamId/sets/:setId/ws`

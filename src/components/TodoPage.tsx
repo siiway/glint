@@ -14,12 +14,10 @@ import {
   Caption1,
   Title2,
   Spinner,
+  Avatar,
   Menu,
   MenuTrigger,
   MenuPopover,
-  Popover,
-  PopoverTrigger,
-  PopoverSurface,
   MenuList,
   MenuItem,
   Tooltip,
@@ -48,6 +46,8 @@ import {
   ArrowExport24Regular,
   PersonAvailable24Regular,
   PersonDelete24Regular,
+  PersonAdd24Regular,
+  People24Regular,
   ArrowUp24Regular,
   ArrowDown24Regular,
   ArrowMove24Regular,
@@ -55,9 +55,11 @@ import {
 } from "@fluentui/react-icons";
 import { useNavigate, useMatch } from "react-router-dom";
 import { useAuth } from "../auth";
-import type { Todo, TodoSet, TeamRole, Comment, TodoSpace } from "../types";
+import type { Todo, TodoSet, TeamRole, Comment, TodoSpace, Assignee } from "../types";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { Sidebar } from "./Sidebar";
+import { AssigneePicker } from "./AssigneePicker";
+import { AssignedToMe } from "./AssignedToMe";
 import { SelectSpacePage } from "./SelectSpacePage";
 import { CommentsDialog } from "./CommentsDialog";
 import { SelectionBar } from "./SelectionBar";
@@ -221,51 +223,40 @@ const useStyles = makeStyles({
       color: tokens.colorBrandForeground1,
     },
   },
-  claimedBadge: {
+  assigneeCluster: {
     display: "flex",
     alignItems: "center",
-    gap: "2px",
-    color: tokens.colorPaletteGreenForeground1,
-    fontSize: "12px",
-  },
-  claimedAvatar: {
-    width: "16px",
-    height: "16px",
-    borderRadius: "50%",
-    objectFit: "cover" as const,
-  },
-  claimedFlyout: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    padding: "12px 14px",
-    minWidth: "180px",
-  },
-  claimedFlyoutAvatar: {
-    width: "36px",
-    height: "36px",
-    borderRadius: "50%",
-    objectFit: "cover" as const,
+    cursor: "pointer",
     flexShrink: 0,
   },
-  claimedFlyoutInfo: {
+  assigneeAvatar: {
+    marginLeft: "-6px",
+    border: `2px solid ${tokens.colorNeutralBackground1}`,
+    borderRadius: "50%",
+    ":first-child": {
+      marginLeft: 0,
+    },
+  },
+  assigneeMore: {
+    marginLeft: "-6px",
+    width: "20px",
+    height: "20px",
+    borderRadius: "50%",
+    backgroundColor: tokens.colorNeutralBackground4,
+    color: tokens.colorNeutralForeground2,
+    fontSize: "10px",
+    fontWeight: 600,
     display: "flex",
-    flexDirection: "column" as const,
-    gap: "4px",
+    alignItems: "center",
+    justifyContent: "center",
+    border: `2px solid ${tokens.colorNeutralBackground1}`,
   },
-  claimedFlyoutName: {
-    fontWeight: "600",
-    fontSize: "13px",
-    color: tokens.colorNeutralForeground1,
-  },
-  claimedFlyoutSub: {
-    fontSize: "11px",
-    color: tokens.colorNeutralForeground3,
-  },
-  claimedFlyoutUsername: {
-    fontSize: "11px",
+  assignAddBtn: {
+    minWidth: "20px",
+    width: "20px",
+    height: "20px",
+    padding: "0",
     color: tokens.colorNeutralForeground4,
-    fontFamily: "'Cascadia Code', 'Cascadia Mono', Consolas, monospace",
   },
   empty: {
     textAlign: "center" as const,
@@ -292,6 +283,10 @@ const useStyles = makeStyles({
     alignItems: "center",
   },
 });
+
+// Special pinned "Assigned to me" pseudo-set. Selected via the URL like a set
+// id, but resolves to a dedicated view instead of a real todo list.
+export const ASSIGNED_VIEW_ID = "assigned-to-me";
 
 function ensureFaviconLink() {
   const existing = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
@@ -454,6 +449,13 @@ export function TodoPage() {
   const [moveTodoId, setMoveTodoId] = useState<string | null>(null);
   const [moveError, setMoveError] = useState<string | null>(null);
 
+  // GitHub-style assignee picker: which todo's picker is currently open.
+  const [assignPickerTodoId, setAssignPickerTodoId] = useState<string | null>(
+    null,
+  );
+
+  const isAssignedView = selectedSetId === ASSIGNED_VIEW_ID;
+
   const actionBarActions = useMemo(
     () =>
       getEffectiveActions(
@@ -590,9 +592,11 @@ export function TodoPage() {
   useEffect(() => {
     if (loadingSets || !selectedSpaceId || sets.length === 0 || showSettings)
       return;
-    const validSetId = sets.some((s) => s.id === selectedSetId)
-      ? selectedSetId
-      : sets[0].id;
+    const validSetId =
+      sets.some((s) => s.id === selectedSetId) ||
+      selectedSetId === ASSIGNED_VIEW_ID
+        ? selectedSetId
+        : sets[0].id;
     if (validSetId !== selectedSetId) {
       navigate(`/${selectedSpaceId}/${validSetId}`, { replace: true });
     }
@@ -607,6 +611,7 @@ export function TodoPage() {
 
   const fetchTodos = useCallback(async () => {
     if (!selectedSpaceId || !selectedSetId) return;
+    if (selectedSetId === ASSIGNED_VIEW_ID) return;
     fetchTodosAbort.current?.abort();
     const ctrl = new AbortController();
     fetchTodosAbort.current = ctrl;
@@ -684,7 +689,7 @@ export function TodoPage() {
   useRealtimeSync({
     teamId: selectedSpaceId,
     setId: selectedSetId ?? "",
-    enabled: !!selectedSpaceId && !!selectedSetId,
+    enabled: !!selectedSpaceId && !!selectedSetId && !isAssignedView,
     transport: userSettings.realtime_transport ?? "auto",
     onEvent: useCallback(
       (event: WsEvent) => {
@@ -739,16 +744,10 @@ export function TodoPage() {
                   : t,
               );
             }
-            case "todo:claimed":
+            case "todo:assigned":
               return prev.map((t) =>
                 t.id === event.id
-                  ? {
-                      ...t,
-                      claimedBy: event.claimedBy,
-                      claimedByName: event.claimedByName,
-                      claimedByUsername: event.claimedByUsername ?? null,
-                      claimedByAvatar: event.claimedByAvatar,
-                    }
+                  ? { ...t, assignees: event.assignees }
                   : t,
               );
             default:
@@ -847,31 +846,53 @@ export function TodoPage() {
     });
   };
 
-  const claimTodo = async (todo: Todo) => {
-    const unclaiming = todo.claimedBy === user?.id;
-    const newClaimed = unclaiming ? null : (user?.id ?? null);
-    const newName = unclaiming
-      ? null
-      : user?.displayName || user?.username || null;
-    const newUsername = unclaiming ? null : (user?.username ?? null);
-    const newAvatar = unclaiming ? null : user?.avatarUrl || null;
+  // Optimistically set a todo's assignees, then persist via the full-set PUT.
+  const putAssignees = async (todoId: string, assignees: Assignee[]) => {
     setTodos((prev) =>
-      prev.map((t) =>
-        t.id === todo.id
-          ? {
-              ...t,
-              claimedBy: newClaimed,
-              claimedByName: newName,
-              claimedByUsername: newUsername,
-              claimedByAvatar: newAvatar,
-            }
-          : t,
-      ),
+      prev.map((t) => (t.id === todoId ? { ...t, assignees } : t)),
     );
-    await fetch(`/api/teams/${selectedSpaceId}/todos/${todo.id}/claim`, {
-      method: "POST",
-    });
+    try {
+      const res = await fetch(
+        `/api/teams/${selectedSpaceId}/todos/${todoId}/assignees`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userIds: assignees.map((a) => a.userId) }),
+        },
+      );
+      if (res.ok) {
+        const data: { assignees: Assignee[] } = await res.json();
+        setTodos((prev) =>
+          prev.map((t) =>
+            t.id === todoId ? { ...t, assignees: data.assignees } : t,
+          ),
+        );
+      }
+    } catch {
+      // Keep optimistic state on network failure.
+    }
   };
+
+  // Toggle the current user in/out of a todo's assignees (migrated "claim").
+  const toggleSelfAssign = async (todo: Todo) => {
+    if (!user) return;
+    const has = todo.assignees.some((a) => a.userId === user.id);
+    const next = has
+      ? todo.assignees.filter((a) => a.userId !== user.id)
+      : [
+          ...todo.assignees,
+          {
+            userId: user.id,
+            name: user.displayName || user.username || null,
+            username: user.username ?? null,
+            avatarUrl: user.avatarUrl || null,
+          },
+        ];
+    await putAssignees(todo.id, next);
+  };
+
+  const isAssignedToMe = (todo: Todo) =>
+    !!user && todo.assignees.some((a) => a.userId === user.id);
 
   const saveEdit = async (todoId: string) => {
     if (!editTitle.trim()) return;
@@ -1394,21 +1415,28 @@ export function TodoPage() {
           {t.edit}
         </MenuItem>
       )}
-      {hasPerm("claim_todos") &&
-        (!todo.claimedBy || todo.claimedBy === user?.id) && (
-          <MenuItem
-            icon={
-              todo.claimedBy === user?.id ? (
-                <PersonDelete24Regular />
-              ) : (
-                <PersonAvailable24Regular />
-              )
-            }
-            onClick={() => claimTodo(todo)}
-          >
-            {todo.claimedBy === user?.id ? t.actionUnclaim : t.actionClaim}
-          </MenuItem>
-        )}
+      {hasPerm("assign_todos") && (
+        <MenuItem
+          icon={
+            isAssignedToMe(todo) ? (
+              <PersonDelete24Regular />
+            ) : (
+              <PersonAvailable24Regular />
+            )
+          }
+          onClick={() => toggleSelfAssign(todo)}
+        >
+          {isAssignedToMe(todo) ? t.actionUnassignSelf : t.actionAssignSelf}
+        </MenuItem>
+      )}
+      {hasPerm("assign_todos") && (
+        <MenuItem
+          icon={<People24Regular />}
+          onClick={() => setAssignPickerTodoId(todo.id)}
+        >
+          {t.actionAssign}
+        </MenuItem>
+      )}
       {canToggleTodo(todo) && (
         <MenuItem
           icon={
@@ -1542,17 +1570,13 @@ export function TodoPage() {
             />
           </Tooltip>
         );
-      case "claim":
-        if (
-          !hasPerm("claim_todos") ||
-          (todo.claimedBy && todo.claimedBy !== user?.id)
-        )
-          return null;
+      case "assign_self":
+        if (!hasPerm("assign_todos")) return null;
         return (
           <Tooltip
             key={key}
             content={
-              todo.claimedBy === user?.id ? t.actionUnclaim : t.actionClaim
+              isAssignedToMe(todo) ? t.actionUnassignSelf : t.actionAssignSelf
             }
             relationship="label"
           >
@@ -1561,7 +1585,7 @@ export function TodoPage() {
               size="small"
               className={styles.actionBarBtn}
               icon={
-                todo.claimedBy === user?.id ? (
+                isAssignedToMe(todo) ? (
                   <PersonDelete24Regular />
                 ) : (
                   <PersonAvailable24Regular />
@@ -1569,7 +1593,23 @@ export function TodoPage() {
               }
               onClick={(e) => {
                 e.stopPropagation();
-                claimTodo(todo);
+                toggleSelfAssign(todo);
+              }}
+            />
+          </Tooltip>
+        );
+      case "assign":
+        if (!hasPerm("assign_todos")) return null;
+        return (
+          <Tooltip key={key} content={t.actionAssign} relationship="label">
+            <Button
+              appearance="transparent"
+              size="small"
+              className={styles.actionBarBtn}
+              icon={<People24Regular />}
+              onClick={(e) => {
+                e.stopPropagation();
+                setAssignPickerTodoId(todo.id);
               }}
             />
           </Tooltip>
@@ -1628,6 +1668,84 @@ export function TodoPage() {
       default:
         return null;
     }
+  }
+
+  // ─── Assignee cluster + picker ─────────────────────────────────────────────
+
+  function renderAssigneeCluster(
+    todo: Todo,
+    isActionBarVisible: boolean,
+  ): ReactNode {
+    const canAssign = hasPerm("assign_todos");
+    const assignees = todo.assignees;
+    const shown = assignees.slice(0, 3);
+    const extra = assignees.length - shown.length;
+
+    const cluster = (
+      <span
+        className={styles.assigneeCluster}
+        data-interactive
+        onClick={(e) => {
+          e.stopPropagation();
+          if (canAssign) {
+            setAssignPickerTodoId((cur) => (cur === todo.id ? null : todo.id));
+          }
+        }}
+      >
+        {shown.map((a) => (
+          <Avatar
+            key={a.userId}
+            className={styles.assigneeAvatar}
+            name={a.name || a.username || undefined}
+            image={a.avatarUrl ? { src: a.avatarUrl } : undefined}
+            size={20}
+          />
+        ))}
+        {extra > 0 && <span className={styles.assigneeMore}>+{extra}</span>}
+        {assignees.length === 0 &&
+          canAssign &&
+          (isActionBarVisible || assignPickerTodoId === todo.id) && (
+            <Button
+              appearance="transparent"
+              size="small"
+              className={styles.assignAddBtn}
+              icon={<PersonAdd24Regular />}
+            />
+          )}
+      </span>
+    );
+
+    if (assignees.length === 0 && !canAssign) return null;
+
+    if (!canAssign) {
+      const names = assignees
+        .map((a) => a.name || (a.username ? `@${a.username}` : a.userId))
+        .join(", ");
+      return (
+        <Tooltip content={names} relationship="label">
+          {cluster}
+        </Tooltip>
+      );
+    }
+
+    return (
+      <AssigneePicker
+        teamId={selectedSpaceId}
+        todoId={todo.id}
+        assignees={assignees}
+        open={assignPickerTodoId === todo.id}
+        onOpenChange={(o) => setAssignPickerTodoId(o ? todo.id : null)}
+        onChanged={(next) =>
+          setTodos((prev) =>
+            prev.map((tt) =>
+              tt.id === todo.id ? { ...tt, assignees: next } : tt,
+            ),
+          )
+        }
+      >
+        {cluster}
+      </AssigneePicker>
+    );
   }
 
   // ─── Render todo item ────────────────────────────────────────────────────
@@ -1882,90 +2000,7 @@ export function TodoPage() {
                 >
                   {todo.title}
                 </Body2>
-                {todo.claimedBy &&
-                  (() => {
-                    const claimer =
-                      todo.claimedByName ||
-                      (todo.claimedBy === user?.id
-                        ? user?.displayName || user?.username
-                        : null);
-                    const claimerUsername =
-                      todo.claimedByUsername ||
-                      (todo.claimedBy === user?.id ? user?.username : null);
-                    const isMe = todo.claimedBy === user?.id;
-                    return (
-                      <Popover trapFocus={false} withArrow size="small">
-                        <PopoverTrigger disableButtonEnhancement>
-                          <span
-                            className={styles.claimedBadge}
-                            style={{ cursor: "pointer" }}
-                            onClick={(e) => e.stopPropagation()}
-                            data-interactive
-                          >
-                            {todo.claimedByAvatar ? (
-                              <img
-                                src={todo.claimedByAvatar}
-                                alt=""
-                                className={styles.claimedAvatar}
-                              />
-                            ) : (
-                              <PersonAvailable24Regular
-                                style={{ fontSize: 14 }}
-                              />
-                            )}
-                          </span>
-                        </PopoverTrigger>
-                        <PopoverSurface>
-                          <div className={styles.claimedFlyout}>
-                            {todo.claimedByAvatar ? (
-                              <img
-                                src={todo.claimedByAvatar}
-                                alt=""
-                                className={styles.claimedFlyoutAvatar}
-                              />
-                            ) : (
-                              <PersonAvailable24Regular
-                                style={{
-                                  fontSize: 28,
-                                  color: tokens.colorPaletteGreenForeground1,
-                                }}
-                              />
-                            )}
-                            <div className={styles.claimedFlyoutInfo}>
-                              <span className={styles.claimedFlyoutName}>
-                                {claimer ?? "Unknown user"}
-                              </span>
-                              {claimerUsername && (
-                                <span className={styles.claimedFlyoutUsername}>
-                                  @{claimerUsername}
-                                </span>
-                              )}
-                              <span className={styles.claimedFlyoutSub}>
-                                {t.actionClaimedStatus}
-                              </span>
-                              {isMe && (
-                                <Button
-                                  size="small"
-                                  appearance="subtle"
-                                  style={{
-                                    marginTop: 4,
-                                    padding: "2px 6px",
-                                    minWidth: 0,
-                                  }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    claimTodo(todo);
-                                  }}
-                                >
-                                  {t.actionUnclaim}
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </PopoverSurface>
-                      </Popover>
-                    );
-                  })()}
+                {renderAssigneeCluster(todo, isActionBarVisible)}
                 {todo.commentCount > 0 && (
                   <span
                     className={styles.commentBadge}
@@ -2176,6 +2211,10 @@ export function TodoPage() {
             sets={sets}
             selectedSetId={selectedSetId}
             onSetSelect={(id) => navigate(`/${selectedSpaceId}/${id}`)}
+            assignedViewActive={isAssignedView}
+            onSelectAssignedView={() =>
+              navigate(`/${selectedSpaceId}/${ASSIGNED_VIEW_ID}`)
+            }
             loadingSets={loadingSets}
             siteName={siteName}
             siteLogo={siteLogo}
@@ -2221,7 +2260,17 @@ export function TodoPage() {
         )}
 
         <div className={styles.main}>
-          {selectedSetId ? (
+          {isAssignedView ? (
+            <AssignedToMe
+              teamId={selectedSpaceId}
+              sidebarCollapsed={sidebarCollapsed}
+              onExpandSidebar={() => toggleSidebarCollapsed(false)}
+              onOpenDrawer={() => setDrawerOpen(true)}
+              onOpenSet={(setId) =>
+                navigate(`/${selectedSpaceId}/${setId}`)
+              }
+            />
+          ) : selectedSetId ? (
             <>
               <div
                 className={mergeClasses(
@@ -2601,9 +2650,9 @@ export function TodoPage() {
           onSelectAll={selectAll}
           onEdit={() => startEditTodo(contextTodo)}
           onToggleComplete={() => toggleTodo(contextTodo)}
-          onClaim={() => claimTodo(contextTodo)}
-          isClaimed={contextTodo.claimedBy !== null}
-          isClaimedByMe={contextTodo.claimedBy === user?.id}
+          onAssignSelf={() => toggleSelfAssign(contextTodo)}
+          onOpenAssign={() => setAssignPickerTodoId(contextTodo.id)}
+          isAssignedToMe={isAssignedToMe(contextTodo)}
           onDelete={() =>
             setConfirmAction({
               message: t.confirmDeleteTodo,

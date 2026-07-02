@@ -13,6 +13,7 @@ import {
   DismissCircle24Regular,
   PersonAvailable24Regular,
   PersonDelete24Regular,
+  People24Regular,
 } from "@fluentui/react-icons";
 import { useLayoutEffect, useRef } from "react";
 import type { Todo } from "../types";
@@ -72,9 +73,9 @@ type Props = {
   onSelectAll: () => void;
   onEdit: () => void;
   onToggleComplete: () => void;
-  onClaim: () => void;
-  isClaimed: boolean;
-  isClaimedByMe: boolean;
+  onAssignSelf: () => void;
+  onOpenAssign: () => void;
+  isAssignedToMe: boolean;
   onDelete: () => void;
   onMove: () => void;
   canMove: boolean;
@@ -100,9 +101,9 @@ export function TodoContextMenu({
   onSelectAll,
   onEdit,
   onToggleComplete,
-  onClaim,
-  isClaimed,
-  isClaimedByMe,
+  onAssignSelf,
+  onOpenAssign,
+  isAssignedToMe,
   onDelete,
   onMove,
   canMove,
@@ -166,14 +167,19 @@ export function TodoContextMenu({
           <Edit24Regular /> {t.edit}
         </button>
       )}
-      {hasPerm("claim_todos") && (!isClaimed || isClaimedByMe) && (
-        <button className={styles.item} onClick={onClaim}>
-          {isClaimedByMe ? (
+      {hasPerm("assign_todos") && (
+        <button className={styles.item} onClick={onAssignSelf}>
+          {isAssignedToMe ? (
             <PersonDelete24Regular />
           ) : (
             <PersonAvailable24Regular />
           )}
-          {isClaimedByMe ? ` ${t.actionUnclaim}` : ` ${t.actionClaim}`}
+          {isAssignedToMe ? ` ${t.actionUnassignSelf}` : ` ${t.actionAssignSelf}`}
+        </button>
+      )}
+      {hasPerm("assign_todos") && (
+        <button className={styles.item} onClick={onOpenAssign}>
+          <People24Regular /> {t.actionAssign}
         </button>
       )}
       {canToggle && (

@@ -70,7 +70,7 @@ Only recognized keys are persisted; unknown keys in the body are ignored.
 
 | Field | Constraint |
 | --- | --- |
-| `action_bar` | Array of valid action keys: `add_before`, `add_after`, `add_subtodo`, `edit`, `complete`, `claim`, `comment`, `delete`. Pass `null` to reset to workspace/site default. |
+| `action_bar` | Array of valid action keys: `add_before`, `add_after`, `add_subtodo`, `edit`, `complete`, `assign_self`, `assign`, `comment`, `move`, `delete`. Pass `null` to reset to workspace/site default. |
 | `realtime_transport` | One of: `"ws"`, `"sse"`, `"auto"`. |
 | `workspace_favicon` | Boolean. |
 | `detailed_status` | Boolean. |

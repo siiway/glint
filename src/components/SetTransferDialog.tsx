@@ -278,14 +278,14 @@ export function SetTransferDialog({
           >
             {node.title}
           </Body2>
-          {node.claimedByName && (
+          {node.assigneeNames && node.assigneeNames.length > 0 && (
             <Caption1
               style={{
                 color: "var(--colorPaletteGreenForeground1)",
                 whiteSpace: "nowrap",
               }}
             >
-              ↩ {node.claimedByName}
+              ↩ {node.assigneeNames.join(", ")}
             </Caption1>
           )}
         </div>

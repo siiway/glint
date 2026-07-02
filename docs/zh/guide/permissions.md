@@ -55,7 +55,7 @@ flowchart TD
 | `delete_any_todo` | 是 | 否 | 删除他人创建的待办事项 |
 | `complete_any_todo` | 是 | 否 | 切换他人待办事项的完成状态 |
 | `add_subtodos` | 是 | 是 | 创建嵌套的子待办事项 |
-| `claim_todos` | 是 | 是 | 将待办事项认领给自己或释放 |
+| `assign_todos` | 是 | 是 | 将待办事项分配给团队成员（或自己），或取消分配 |
 | `reorder_todos` | 是 | 否 | 拖拽重新排序待办事项 |
 | `comment` | 是 | 是 | 对待办事项添加评论 |
 | `delete_own_comments` | 是 | 是 | 删除本人发布的评论 |

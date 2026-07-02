@@ -106,7 +106,8 @@ Valid action keys:
 | `add_subtodo` | Add a nested sub-todo |
 | `edit` | Edit the todo title |
 | `complete` | Toggle completion |
-| `claim` | Claim / unclaim the todo |
+| `assign_self` | Assign / unassign the todo to yourself |
+| `assign` | Open the assignee picker (assign to team members) |
 | `comment` | Open the comments panel |
 | `move` | Move the todo to another list |
 | `delete` | Delete the todo |

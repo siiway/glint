@@ -43,6 +43,14 @@ export const DEFAULT_APP_CONFIG: AppConfig = {
 
 export type TeamRole = "owner" | "co-owner" | "admin" | "member";
 
+/** A user a todo is assigned to, with resolved profile fields for display. */
+export type Assignee = {
+  userId: string;
+  name: string | null;
+  username: string | null;
+  avatarUrl: string | null;
+};
+
 export type TeamInfo = {
   id: string;
   name: string;
@@ -119,7 +127,7 @@ export const PERMISSION_KEYS = [
   "delete_any_todo",
   "complete_any_todo",
   "add_subtodos",
-  "claim_todos",
+  "assign_todos",
   "reorder_todos",
   "comment",
   "delete_own_comments",
@@ -145,7 +153,7 @@ export const DEFAULT_PERMISSIONS: Record<
     delete_any_todo: true,
     complete_any_todo: true,
     add_subtodos: true,
-    claim_todos: true,
+    assign_todos: true,
     reorder_todos: true,
     comment: true,
     delete_own_comments: true,
@@ -164,7 +172,7 @@ export const DEFAULT_PERMISSIONS: Record<
     delete_any_todo: true,
     complete_any_todo: true,
     add_subtodos: true,
-    claim_todos: true,
+    assign_todos: true,
     reorder_todos: true,
     comment: true,
     delete_own_comments: true,
@@ -183,7 +191,7 @@ export const DEFAULT_PERMISSIONS: Record<
     delete_any_todo: false,
     complete_any_todo: false,
     add_subtodos: true,
-    claim_todos: true,
+    assign_todos: true,
     reorder_todos: false,
     comment: true,
     delete_own_comments: true,

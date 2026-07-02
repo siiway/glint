@@ -83,7 +83,10 @@ See [Authentication API](./auth) for full details on the login flow.
 | `PATCH`  | `/api/teams/:teamId/todos/:id`               | Session | Update title, completion, or sort order        |
 | `DELETE` | `/api/teams/:teamId/todos/:id`               | Session | Delete todo and its sub-todos (cascade)        |
 | `POST`   | `/api/teams/:teamId/todos/reorder`           | Session | Batch update todo sort orders (`reorder_todos`)|
-| `POST`   | `/api/teams/:teamId/todos/:id/claim`         | Session | Claim / release a todo (`claim_todos`)         |
+| `PUT`    | `/api/teams/:teamId/todos/:id/assignees`     | Session | Set a todo's assignees (`assign_todos`)        |
+| `GET`    | `/api/teams/:teamId/members`                 | Session | List assignable members                        |
+| `GET`    | `/api/teams/:teamId/assigned-to-me`          | Session | Todos assigned to me, grouped by list          |
+| `POST`   | `/api/teams/:teamId/assigned-expand`         | Session | Persist "Assigned to me" list expand state     |
 
 ### Comments
 
@@ -130,7 +133,9 @@ See [Realtime Sync](../guide/realtime) for details.
 | `POST`   | `/api/cross-app/teams/:teamId/sets/:setId/todos`            | Bearer | `write_todos`   | Create a todo                    |
 | `PATCH`  | `/api/cross-app/teams/:teamId/todos/:todoId`                | Bearer | `write_todos`   | Update todo title or completion  |
 | `DELETE`  | `/api/cross-app/teams/:teamId/todos/:todoId`                | Bearer | `delete_todos`  | Delete a todo                    |
-| `POST`   | `/api/cross-app/teams/:teamId/todos/:todoId/claim`          | Bearer | `claim_todos`   | Claim / release a todo           |
+| `PUT`    | `/api/cross-app/teams/:teamId/todos/:todoId/assignees`     | Bearer | `assign_todos`  | Set a todo's assignees           |
+| `GET`    | `/api/cross-app/teams/:teamId/assigned-to-me`              | Bearer | `read_todos`    | Todos assigned to me (one team)  |
+| `GET`    | `/api/cross-app/assigned-to-me`                            | Bearer | `read_todos`    | Todos assigned to me (all teams) |
 
 This table lists only the most common cross-app endpoints; see [Cross-App](./cross-app) for the complete set (sets, comments, settings, permissions, overview/feed, and realtime).
 

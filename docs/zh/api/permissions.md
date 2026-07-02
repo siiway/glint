@@ -23,7 +23,7 @@
 | `delete_any_todo` | `true` | `false` |
 | `complete_any_todo` | `true` | `false` |
 | `add_subtodos` | `true` | `true` |
-| `claim_todos` | `true` | `true` |
+| `assign_todos` | `true` | `true` |
 | `reorder_todos` | `true` | `false` |
 | `comment` | `true` | `true` |
 | `delete_own_comments` | `true` | `true` |
@@ -58,7 +58,7 @@
     "delete_any_todo",
     "complete_any_todo",
     "add_subtodos",
-    "claim_todos",
+    "assign_todos",
     "reorder_todos",
     "comment",
     "delete_own_comments",
@@ -127,7 +127,7 @@
     "delete_any_todo": true,
     "complete_any_todo": true,
     "add_subtodos": true,
-    "claim_todos": true,
+    "assign_todos": true,
     "reorder_todos": true,
     "comment": true,
     "delete_own_comments": true,

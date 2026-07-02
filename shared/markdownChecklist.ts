@@ -1,7 +1,8 @@
 export type MarkdownChecklistTodo = {
   title: string;
   completed: boolean;
-  claimedByName?: string;
+  /** Display names of everyone this todo is assigned to. */
+  assigneeNames?: string[];
   comments?: string[];
   children?: MarkdownChecklistTodo[];
 };
