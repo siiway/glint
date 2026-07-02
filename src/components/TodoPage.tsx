@@ -1131,6 +1131,12 @@ export function TodoPage() {
     targetSetId: string,
     insertAt: "top" | "bottom",
   ) => {
+    // Dropping onto the sidebar removes the dragged row (optimistic move) before
+    // the browser fires `dragend`, so that event never resets the drag state.
+    // Clear it explicitly, otherwise the stale index keeps greying out whatever
+    // todo now sits at that position until the next manual drag.
+    handleDragEnd();
+    handleSubDragEnd();
     const result = await moveTodoToSet(todoId, targetSetId, insertAt);
     if (!result.ok && result.error) setMoveError(result.error);
   };
